@@ -55,7 +55,7 @@ export default function Game() {
     return (
 
         <div className="min-h-screen flex flex-col items-center justify-center text-white ">
-            <RoleSlide />
+            {/* <RoleSlide /> */}
 
             <div className="w-full max-w-lg flex flex-col items-center py-20 space-y-12">
                 <h1 className="text-6xl font-Amatic text-yellow-400 mb-12">

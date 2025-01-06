@@ -103,8 +103,7 @@ export default function Hint() {
 
     return (
         <div>
-            <h1>Hint</h1>
-            {hint ? <p>{hint.hintText}</p> : <p>Chargement de l'indice...</p>}
+            {hint ? <p className="font-Amatic text-center m-6 text-[20px]">{hint.hintText}</p> : <p className="font-Amatic text-center m-6">Chargement de l'indice...</p>}
         </div>
     );
 }
