@@ -5,20 +5,19 @@ const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
     if (req.method === 'GET') {
-        // -----------------------------------------------------RÉCUPERE SUSPECT PAR SESSION ID---------------------------------------------------------//
-        const { sessionId } = req.query;
-        const suspects = await prisma.suspects.findMany({
-            where: { sessionId: parseInt(sessionId) },
+        // -----------------------------------------------------RÉCUPERE SUSPECT PAR suspect ID---------------------------------------------------------//
+        const { id } = req.query;
+        const suspects = await prisma.suspects.findUnique({
+            where: { id: parseInt(id) },
         });
         res.status(200).json(suspects);
 
     } else if (req.method === 'POST') {
         // -----------------------------------------------------CRÉE UN SUSPECT (pas pour les joueurs mais je laisse quand meme pour l'instant)---------------------------------------------------------//
 
-        const { sessionId, name, description, hints } = req.body;
+        const { name, description, hints } = req.body;
         const suspect = await prisma.suspects.create({
             data: {
-                sessionId,
                 name,
                 description,
                 hints,
@@ -29,7 +28,7 @@ export default async function handler(req, res) {
         // -----------------------------------------------------MODIFIE UN SUSPECT (pas pour les joueurs mais je laisse quand meme pour l'instant)---------------------------------------------------------//
 
         // Mettre à jour un suspect
-        const { id, sessionId, name, description, hints } = req.body;
+        const { id, name, description, hints } = req.body;
 
         // Vérifier si le suspect existe
         const existingSuspect = await prisma.suspects.findUnique({
@@ -44,7 +43,6 @@ export default async function handler(req, res) {
         const updatedSuspect = await prisma.suspects.update({
             where: { id },
             data: {
-                sessionId,
                 name,
                 description,
                 hints,

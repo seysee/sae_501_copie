@@ -56,10 +56,15 @@ export default function Salon() {
     const startGame = async () => {
         const storedPlayer = getStoredUserData()
         try {
+            const randomNumber = Math.floor(Math.random() * 5) + 1;
+            console.log(randomNumber);
+
             await axios.put('/api/session', {
                 id: session.id,
                 status: 1,
+                killerId: randomNumber,
             });
+
             setGameCreated(true);
             console.log("start game" , players, "session", session)
             const playerNumber = players.length;
