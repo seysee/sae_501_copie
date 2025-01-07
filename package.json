@@ -14,6 +14,7 @@
     "axios": "^1.7.8",
     "mariadb": "^3.4.0",
     "next": "15.0.3",
+    "ngrok": "^5.0.0-beta.2",
     "react": "^18.2.0",
     "react-device-detect": "^2.2.3",
     "react-dom": "^18.2.0",
