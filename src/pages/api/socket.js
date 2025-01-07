@@ -23,10 +23,8 @@ export default function handler(req, res) {
 
                 // Initialiser la session si elle n'existe pas
                 if (!sessions[sessionId]) sessions[sessionId] = { players: [], questions: [], answered: false };
-
                 sessions[sessionId].players.push(player);
                 socket.join(sessionId);
-
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
 
@@ -39,16 +37,22 @@ export default function handler(req, res) {
 
 
             // Lancer les questions
-            socket.on('launchQuestions', (sessionId) => {
+            socket.on('launchQuestions', (sessionId, toFilterQuestion) => {
                 console.log(`Lancement des questions pour la session : ${sessionId}`);
+                console.log("toFilterQuestion", toFilterQuestion);
+                console.log("ici test session[sessionId]:", sessions[sessionId] , sessions[sessionId].questions);
                 if (sessions[sessionId]) {
-                    if (sessions[sessionId].questions.length === 0) {
-                        sessions[sessionId].questions = [...questions];
-                    }
-                    const firstQuestion = sessions[sessionId].questions.shift();
-                    if (firstQuestion) {
-                        sessions[sessionId].answered = false;
-                        io.to(sessionId).emit('nextQuestion', firstQuestion);
+                    const availableQuestions = sessions[sessionId].questions
+                        .filter(q => !toFilterQuestion.includes(q.id));  // Garde uniquement les questions dont l'ID n'est PAS dans toFilterQuestion
+
+                    if (availableQuestions.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * availableQuestions.length);  // Sélectionne un index aléatoire
+                        const firstQuestion = availableQuestions[randomIndex];  // Récupère la question aléatoire
+
+                        // Retire cette question de la liste pour éviter qu'elle ne soit posée à nouveau
+                        sessions[sessionId].questions = sessions[sessionId].questions.filter(q => q.id !== firstQuestion.id);
+
+                        io.to(sessionId).emit('nextQuestion', firstQuestion);  // Envoie la question
                     }
                 }
             });
