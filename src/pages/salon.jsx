@@ -238,7 +238,7 @@ export default function Salon() {
                         )}
 
                         {session.status === 0 ? (
-                            isHost && players.length >= 3 ? (
+                            isHost && players.length >= 0 ? (
                                 <Button
                                     label="Créer la partie"
                                     onClick={startGame}
