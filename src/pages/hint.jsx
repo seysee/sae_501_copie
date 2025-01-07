@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import {useEffect, useState} from "react";
+import {useRouter} from "next/router";
 import axios from "axios";
 
 export default function Hint() {
@@ -12,7 +12,8 @@ export default function Hint() {
             if (storedPlayer) {
                 return JSON.parse(storedPlayer);
             }
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Erreur lors de la récupération des données utilisateur :", error);
         }
         return null;
@@ -21,10 +22,11 @@ export default function Hint() {
     const fetchSessionBySessionId = async (sessionId) => {
         try {
             const response = await axios.get("/api/session", {
-                params: { id: sessionId },
+                params: {id: parseInt(sessionId)},
             });
             return response.data;
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Erreur lors de la récupération de la session :", error);
             throw error;
         }
@@ -36,7 +38,8 @@ export default function Hint() {
                 params: { id: suspectId },
             });
             return response.data;
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Erreur lors de la récupération du suspect :", error);
             throw error;
         }
@@ -45,10 +48,11 @@ export default function Hint() {
     const fetchHintsBySuspectId = async (suspectId) => {
         try {
             const response = await axios.get("/api/suspect_hints", {
-                params: { suspectId: suspectId }, // suspectId envoyé ici
+                params: {suspectId: suspectId}, // suspectId envoyé ici
             });
             return response.data;
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Erreur lors de la récupération des indices :", error);
             throw error;
         }
@@ -93,7 +97,8 @@ export default function Hint() {
                 console.log("Indice sélectionné :", selectedHint);
 
                 setHint(selectedHint);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Erreur lors du chargement des données :", error);
             }
         };
@@ -103,7 +108,8 @@ export default function Hint() {
 
     return (
         <div>
-            {hint ? <p className="font-Amatic text-center m-6 text-[20px]">{hint.hintText}</p> : <p className="font-Amatic text-center m-6">Chargement de l'indice...</p>}
+            {hint ? <p className="font-Amatic text-center m-6 text-[20px]">{hint.hintText}</p> :
+                <p className="font-Amatic text-center m-6">Chargement de l'indice...</p>}
         </div>
     );
 }
