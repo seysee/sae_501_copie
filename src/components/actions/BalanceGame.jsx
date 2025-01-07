@@ -4,52 +4,95 @@ import axios from "axios";
 export default function BalanceGame({ questionId, onSuccess }) {
     const [ballPosition, setBallPosition] = useState(generateRandomPosition());
     const [holePosition, setHolePosition] = useState(generateRandomPosition());
-    const [successCount, setSuccessCount] = useState(0); // Nombre de validations réussies
-    const [message, setMessage] = useState(null); // Message de succès
-    const [isCompleted, setIsCompleted] = useState(false); // Éviter les doubles appels
+    const [obstacles, setObstacles] = useState(generateObstacles());
+    const [successCount, setSuccessCount] = useState(0);
+    const [lives, setLives] = useState(3);
+    const [message, setMessage] = useState(null);
+    const [isCompleted, setIsCompleted] = useState(false);
 
-    // Fonction pour générer une position aléatoire
     function generateRandomPosition() {
         return {
-            x: Math.random() * 80 + 10, // Entre 10% et 90%
-            y: Math.random() * 80 + 10, // Entre 10% et 90%
+            x: Math.random() * 80 + 10,
+            y: Math.random() * 80 + 10,
         };
+    }
+
+    function generateObstacles() {
+        const obstacleCount = 5;
+        return Array.from({ length: obstacleCount }, (_, index) => ({
+            id: index,
+            x: Math.random() * 80 + 10,
+            y: Math.random() * 80 + 10,
+            type: Math.random() < 0.5 ? "wall" : "death",
+        }));
     }
 
     useEffect(() => {
         const handleOrientation = (event) => {
-            if (isCompleted) return;
+            if (isCompleted || lives === 0) return;
 
-            const beta = event.beta; // Inclinaison avant/arrière (-180 à 180)
-            const gamma = event.gamma; // Inclinaison gauche/droite (-90 à 90)
+            const beta = event.beta;
+            const gamma = event.gamma;
 
-            // Ajuster les valeurs pour le déplacement de la balle
-            const newX = Math.min(Math.max(ballPosition.x + gamma / 10, 0), 100); // Limiter entre 0 et 100%
-            const newY = Math.min(Math.max(ballPosition.y + beta / 10, 0), 100); // Limiter entre 0 et 100%
+            const newX = Math.min(Math.max(ballPosition.x + gamma / 15, 0), 100);
+            const newY = Math.min(Math.max(ballPosition.y + beta / 15, 0), 100);
 
-            setBallPosition({ x: newX, y: newY });
+            const newBallPosition = { x: newX, y: newY };
 
-            // Vérifier si la balle est dans le trou
-            const distance = Math.sqrt(
+            for (const obstacle of obstacles) {
+                const distance = Math.sqrt(
+                    Math.pow(newX - obstacle.x, 2) + Math.pow(newY - obstacle.y, 2)
+                );
+                if (distance < 5) {
+                    if (obstacle.type === "wall") {
+                        setMessage("Mur bloqué !");
+                        return;
+                    } else if (obstacle.type === "death") {
+                        const remainingLives = lives - 1;
+                        setLives(remainingLives);
+                        setMessage(
+                            remainingLives > 0
+                                ? `Oh non, vous avez touché un piège ! Vies restantes : ${remainingLives}`
+                                : "Vous avez perdu toutes vos vies !"
+                        );
+
+                        if (remainingLives === 0) {
+                            setIsCompleted(true);
+                            window.removeEventListener("deviceorientation", handleOrientation);
+                            axios.post('/api/question/answer', {
+                                id: questionId,
+                                answer: "failure",
+                            });
+                        } else {
+                            setBallPosition(generateRandomPosition());
+                            setHolePosition(generateRandomPosition());
+                            setObstacles(generateObstacles());
+                        }
+                        return;
+                    }
+                }
+            }
+
+            setBallPosition(newBallPosition);
+
+            const distanceToHole = Math.sqrt(
                 Math.pow(newX - holePosition.x, 2) + Math.pow(newY - holePosition.y, 2)
             );
 
-            if (distance < 5) { // Si la balle est proche du trou
+            if (distanceToHole < 5) {
                 const nextSuccessCount = successCount + 1;
                 setSuccessCount(nextSuccessCount);
                 setMessage(`Bravo ! ${nextSuccessCount}/3 réussites.`);
 
-                if (nextSuccessCount === 3) { // Action validée après 3 succès
+                if (nextSuccessCount === 3) {
                     setMessage("Action réussie !");
-                    setIsCompleted(true); // Éviter les appels multiples
+                    setIsCompleted(true);
                     window.removeEventListener("deviceorientation", handleOrientation);
 
-                    // Valider via l'API
-                    axios
-                        .post('/api/question/answer', {
-                            id: questionId,
-                            answer: "hole_success",
-                        })
+                    axios.post('/api/question/answer', {
+                        id: questionId,
+                        answer: "hole_success",
+                    })
                         .then((response) => {
                             if (response.data.correct && onSuccess) {
                                 onSuccess(response.data.message);
@@ -59,14 +102,12 @@ export default function BalanceGame({ questionId, onSuccess }) {
                             console.error("Erreur lors de la validation :", error);
                         });
                 } else {
-                    // Réinitialiser les positions de la balle et du trou
                     setBallPosition(generateRandomPosition());
                     setHolePosition(generateRandomPosition());
                 }
             }
         };
 
-        // Vérifier la compatibilité et demander les permissions si nécessaire
         if (window.DeviceOrientationEvent) {
             if (typeof DeviceOrientationEvent.requestPermission === "function") {
                 DeviceOrientationEvent.requestPermission()
@@ -90,22 +131,33 @@ export default function BalanceGame({ questionId, onSuccess }) {
         return () => {
             window.removeEventListener("deviceorientation", handleOrientation);
         };
-    }, [ballPosition, holePosition, isCompleted, successCount, questionId, onSuccess]);
+    }, [ballPosition, holePosition, isCompleted, obstacles, successCount, lives, questionId, onSuccess]);
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center text-white">
-            <h1 className="text-2xl font-bold mb-4">Jeu d'équilibre</h1>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+            <h1 className="text-xl font-bold mb-4">Jeu d'équilibre</h1>
+            <div className="flex justify-center items-center mb-2">
+                {Array.from({ length: lives }).map((_, index) => (
+                    <span
+                        key={index}
+                        role="img"
+                        aria-label="life"
+                        className="mx-1 text-red-500 text-2xl"
+                    >
+                        ❤️
+                    </span>
+                ))}
+            </div>
 
             <div
                 style={{
                     position: "relative",
-                    width: "80vw", // 80% de la largeur de l'écran
-                    height: "80vw", // Maintenir un ratio carré
-                    maxWidth: "300px", // Taille maximale pour limiter sur les téléphones avec grands écrans
-                    maxHeight: "300px",
-                    margin: "0 auto", // Centrer horizontalement
+                    width: "70vw",
+                    height: "70vw",
+                    maxWidth: "250px",
+                    maxHeight: "250px",
                     border: "2px solid white",
-                    overflow: "hidden",
+                    borderRadius: "10px",
                     background: "black",
                 }}
             >
@@ -113,15 +165,42 @@ export default function BalanceGame({ questionId, onSuccess }) {
                 <div
                     style={{
                         position: "absolute",
-                        width: "12%",
-                        height: "12%",
-                        background: "red",
+                        width: "10%",
+                        height: "10%",
+                        background: "green",
                         borderRadius: "50%",
                         top: `${holePosition.y}%`,
                         left: `${holePosition.x}%`,
                         transform: "translate(-50%, -50%)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
                     }}
-                ></div>
+                >
+                    🏁
+                </div>
+
+                {/* Obstacles */}
+                {obstacles.map((obstacle) => (
+                    <div
+                        key={obstacle.id}
+                        style={{
+                            position: "absolute",
+                            width: "8%",
+                            height: "8%",
+                            background: obstacle.type === "wall" ? "blue" : "purple",
+                            borderRadius: "50%",
+                            top: `${obstacle.y}%`,
+                            left: `${obstacle.x}%`,
+                            transform: "translate(-50%, -50%)",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                        }}
+                    >
+                        {obstacle.type === "wall" ? "🧱" : "💀"}
+                    </div>
+                ))}
 
                 {/* Balle */}
                 <div
@@ -134,11 +213,16 @@ export default function BalanceGame({ questionId, onSuccess }) {
                         top: `${ballPosition.y}%`,
                         left: `${ballPosition.x}%`,
                         transform: "translate(-50%, -50%)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
                     }}
-                ></div>
+                >
+                    ⚽
+                </div>
             </div>
 
-            {message && <p className="text-green-500 text-xl mt-4">{message}</p>}
+            {message && <p className="text-green-500 text-sm mt-4">{message}</p>}
         </div>
     );
 }
