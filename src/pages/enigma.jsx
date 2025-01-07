@@ -23,50 +23,57 @@ export default function Game() {
         }
         return null;
     };
+    useEffect(() => {
+        async function fetchData() {
+            let storedPlayer = getStoredUserData();
 
-    useEffect(async () => {
-        let storedPlayer = getStoredUserData();
+            // Initialiser la connexion Socket.IO
+            const socketInstance = io({
+                path: '/api/socket',
+            });
 
-        // Initialiser la connexion Socket.IO
-        const socketInstance = io({
-            path: '/api/socket',
-        });
+            setSocket(socketInstance);
 
-        setSocket(socketInstance);
+            // Obtenir les questions depuis l'API
+            const responseGet = await axios.get("/api/session", {
+                params: {
+                    id: storedPlayer.sessionId,
+                }
+            });
+            const toFilterQuestion = responseGet.data.questions;
+            console.log(toFilterQuestion);
 
-        const responseGet = await axios.get("/api/session", {
-            params: {
-                id: storedPlayer.sessionId,
-            }
-        });
-        const toFilterQuestion = responseGet.data.questions
-        console.log(toFilterQuestion)
+            // Émettre les événements
+            socketInstance.emit('joinSession', storedPlayer.sessionId, { name: storedPlayer.name });
+            socketInstance.emit('launchQuestions', storedPlayer.sessionId, toFilterQuestion);
 
+            // Écouter l'événement 'nextQuestion' pour recevoir une nouvelle question
+            socketInstance.on('nextQuestion', (newQuestion) => {
+                console.log('Question reçue :', newQuestion);
+                setQuestion(newQuestion);
+                setAnswer(''); // Réinitialiser la réponse
+                setFeedback(''); // Réinitialiser le feedback
+            });
 
-        socketInstance.emit('joinSession', storedPlayer.sessionId, {name: storedPlayer.name});
-        socketInstance.emit('launchQuestions', storedPlayer.sessionId, toFilterQuestion);
+            // Écouter le feedback et rediriger vers la page de résultat
+            socketInstance.on('answerSubmitted', ({ redirectUrl }) => {
+                if (redirectUrl) {
+                    router.push(redirectUrl);
+                }
+            });
 
-        // Écouter l'événement 'nextQuestion' pour recevoir une nouvelle question
-        socketInstance.on('nextQuestion', (newQuestion) => {
-            console.log('Question reçue :', newQuestion);
-            setQuestion(newQuestion);
-            setAnswer(''); // Réinitialiser la réponse
-            setFeedback(''); // Réinitialiser le feedback
-        });
+            // Fonction de nettoyage pour déconnecter le socket
+            return () => {
+                socketInstance.off('nextQuestion');
+                socketInstance.off('answerSubmitted');
+                socketInstance.disconnect(); // Déconnecter le socket
+            };
+        }
 
-        // Écouter le feedback et rediriger vers la page de résultat
-        socketInstance.on('answerSubmitted', ({redirectUrl}) => {
-            if (redirectUrl) {
-                router.push(redirectUrl);
-            }
-        });
-
-        return () => {
-            socketInstance.off('nextQuestion');
-            socketInstance.off('answerSubmitted');
-            socketInstance.disconnect(); // Déconnecter le socket
-        };
+        // Appel immédiat de la fonction async
+        fetchData();
     }, [router]);
+
 
     const handleAnswerChange = (e) => {
         setAnswer(e.target.value);
