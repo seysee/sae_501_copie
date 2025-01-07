@@ -2,41 +2,58 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function BalanceGame({ questionId, onSuccess }) {
-    const [holePosition, setHolePosition] = useState(() => generateRandomPosition());
-    const [ballPosition, setBallPosition] = useState(() => generateSpawnPosition(holePosition));
-    const [obstacles, setObstacles] = useState(generateObstacles());
+    const radiusThreshold = 10; // Rayon minimum entre les éléments
+
+    const [holePosition, setHolePosition] = useState(() => generateRandomPosition([]));
+    const [ballPosition, setBallPosition] = useState(() => generateSpawnPosition(holePosition, []));
+    const [obstacles, setObstacles] = useState(() => generateObstacles([holePosition, ballPosition]));
     const [successCount, setSuccessCount] = useState(0);
     const [lives, setLives] = useState(3);
     const [message, setMessage] = useState(null);
     const [isCompleted, setIsCompleted] = useState(false);
 
-    function generateRandomPosition() {
-        return {
-            x: Math.random() * 80 + 10,
-            y: Math.random() * 80 + 10,
-        };
-    }
-
-    function generateSpawnPosition(holePosition) {
-        let position;
-        do {
-            position = generateRandomPosition();
-        } while (calculateDistance(position, holePosition) < 20); // Assure une distance minimale de 20%
-        return position;
-    }
-
+    // Calculer la distance entre deux positions
     function calculateDistance(pos1, pos2) {
         return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2));
     }
 
-    function generateObstacles() {
+    // Générer une position aléatoire avec vérification de non-superposition
+    function generateRandomPosition(existingPositions) {
+        let position;
+        do {
+            position = {
+                x: Math.random() * 80 + 10,
+                y: Math.random() * 80 + 10,
+            };
+        } while (
+            existingPositions.some((existing) => calculateDistance(position, existing) < radiusThreshold)
+            );
+        return position;
+    }
+
+    // Générer une position de départ avec une distance minimale par rapport à l'arrivée
+    function generateSpawnPosition(holePosition, existingPositions) {
+        let position;
+        do {
+            position = generateRandomPosition(existingPositions);
+        } while (calculateDistance(position, holePosition) < radiusThreshold * 2); // Distance minimale de 2x le rayon
+        return position;
+    }
+
+    // Générer des obstacles en évitant la superposition
+    function generateObstacles(existingPositions) {
         const obstacleCount = 5;
-        return Array.from({ length: obstacleCount }, (_, index) => ({
-            id: index,
-            x: Math.random() * 80 + 10,
-            y: Math.random() * 80 + 10,
-            type: Math.random() < 0.5 ? "wall" : "death",
-        }));
+        const obstacles = [];
+        for (let i = 0; i < obstacleCount; i++) {
+            const position = generateRandomPosition([...existingPositions, ...obstacles]);
+            obstacles.push({
+                id: i,
+                x: position.x,
+                y: position.y,
+                type: Math.random() < 0.5 ? "wall" : "death",
+            });
+        }
+        return obstacles;
     }
 
     useEffect(() => {
@@ -74,10 +91,7 @@ export default function BalanceGame({ questionId, onSuccess }) {
                                 answer: "failure",
                             });
                         } else {
-                            const newHolePosition = generateRandomPosition();
-                            setBallPosition(generateSpawnPosition(newHolePosition));
-                            setHolePosition(newHolePosition);
-                            setObstacles(generateObstacles());
+                            resetGame(); // Réinitialisation après collision
                         }
                         return;
                     }
@@ -111,9 +125,7 @@ export default function BalanceGame({ questionId, onSuccess }) {
                             console.error("Erreur lors de la validation :", error);
                         });
                 } else {
-                    const newHolePosition = generateRandomPosition();
-                    setBallPosition(generateSpawnPosition(newHolePosition));
-                    setHolePosition(newHolePosition);
+                    resetGame(); // Réinitialisation après une réussite partielle
                 }
             }
         };
@@ -142,6 +154,16 @@ export default function BalanceGame({ questionId, onSuccess }) {
             window.removeEventListener("deviceorientation", handleOrientation);
         };
     }, [ballPosition, holePosition, isCompleted, obstacles, successCount, lives, questionId, onSuccess]);
+
+    // Réinitialisation complète du jeu
+    function resetGame() {
+        const newHolePosition = generateRandomPosition([]);
+        const newBallPosition = generateSpawnPosition(newHolePosition, []);
+        const newObstacles = generateObstacles([newHolePosition, newBallPosition]);
+        setBallPosition(newBallPosition);
+        setHolePosition(newHolePosition);
+        setObstacles(newObstacles);
+    }
 
     return (
         <div className="flex flex-col items-center justify-center text-white">
