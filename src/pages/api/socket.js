@@ -55,23 +55,17 @@ export default function handler(req, res) {
             });
 
 
-            socket.on('submitAnswer', ({ questionId, answer }) => {
-                const question = questions.find(q => q.id === questionId);
-                if (!question) {
-                    socket.emit('answerFeedback', { correct: false, feedback: "Question introuvable" });
-                    return;
+            socket.on('submitAnswer', ({ sessionId, questionId, answer }) => {
+                if (sessions[sessionId]) {
+                    sessions[sessionId].answered = true;
+                    io.to(sessionId).emit('answerSubmitted', {
+                        redirectUrl: `/result?questionId=${questionId}&answer=${encodeURIComponent(answer)}`,
+                        questionId,
+                        answer
+                    });
                 }
-                const isCorrect = Array.isArray(question.answer)
-                    ? question.answer.some(correctAnswer => correctAnswer.toLowerCase() === answer.toLowerCase())
-                    : question.answer.toLowerCase() === answer.toLowerCase();
-                const feedback = isCorrect ? "Bonne réponse !" : "Mauvaise réponse.";
-                const session = Object.values(sessions).find(session => session.questions.some(q => q.id === questionId));
-                if (session?.answered) {
-                    return;
-                }
-                if (session) session.answered = true;
-                io.to(socket.handshake.query.sessionId).emit('answerSubmitted', { correct: isCorrect, feedback });
             });
+
 
         });
 
