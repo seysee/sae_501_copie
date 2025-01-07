@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 
-export default function BalanceGame({ questionId, onSuccess }) {
-    const radiusThreshold = 10; // Rayon minimum entre les éléments
+export default function BalanceGame({ questionId, socket }) {
+    const radiusThreshold = 10;
 
     const [holePosition, setHolePosition] = useState(() => generateRandomPosition([]));
     const [ballPosition, setBallPosition] = useState(() => generateSpawnPosition(holePosition, []));
@@ -12,12 +11,10 @@ export default function BalanceGame({ questionId, onSuccess }) {
     const [message, setMessage] = useState(null);
     const [isCompleted, setIsCompleted] = useState(false);
 
-    // Calculer la distance entre deux positions
     function calculateDistance(pos1, pos2) {
         return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2));
     }
 
-    // Générer une position aléatoire avec vérification de non-superposition
     function generateRandomPosition(existingPositions) {
         let position;
         do {
@@ -31,16 +28,14 @@ export default function BalanceGame({ questionId, onSuccess }) {
         return position;
     }
 
-    // Générer une position de départ avec une distance minimale par rapport à l'arrivée
     function generateSpawnPosition(holePosition, existingPositions) {
         let position;
         do {
             position = generateRandomPosition(existingPositions);
-        } while (calculateDistance(position, holePosition) < radiusThreshold * 2); // Distance minimale de 2x le rayon
+        } while (calculateDistance(position, holePosition) < radiusThreshold * 2);
         return position;
     }
 
-    // Générer des obstacles en évitant la superposition
     function generateObstacles(existingPositions) {
         const obstacleCount = 5;
         const obstacles = [];
@@ -86,12 +81,9 @@ export default function BalanceGame({ questionId, onSuccess }) {
                         if (remainingLives === 0) {
                             setIsCompleted(true);
                             window.removeEventListener("deviceorientation", handleOrientation);
-                            axios.post('/api/question/answer', {
-                                id: questionId,
-                                answer: "failure",
-                            });
+                            submitAnswer("failure");
                         } else {
-                            resetGame(); // Réinitialisation après collision
+                            resetGame();
                         }
                         return;
                     }
@@ -111,21 +103,9 @@ export default function BalanceGame({ questionId, onSuccess }) {
                     setMessage("Action réussie !");
                     setIsCompleted(true);
                     window.removeEventListener("deviceorientation", handleOrientation);
-
-                    axios.post('/api/question/answer', {
-                        id: questionId,
-                        answer: "hole_success",
-                    })
-                        .then((response) => {
-                            if (response.data.correct && onSuccess) {
-                                onSuccess(response.data.message);
-                            }
-                        })
-                        .catch((error) => {
-                            console.error("Erreur lors de la validation :", error);
-                        });
+                    submitAnswer("hole_success");
                 } else {
-                    resetGame(); // Réinitialisation après une réussite partielle
+                    resetGame();
                 }
             }
         };
@@ -153,9 +133,8 @@ export default function BalanceGame({ questionId, onSuccess }) {
         return () => {
             window.removeEventListener("deviceorientation", handleOrientation);
         };
-    }, [ballPosition, holePosition, isCompleted, obstacles, successCount, lives, questionId, onSuccess]);
+    }, [ballPosition, holePosition, isCompleted, obstacles, successCount, lives]);
 
-    // Réinitialisation complète du jeu
     function resetGame() {
         const newHolePosition = generateRandomPosition([]);
         const newBallPosition = generateSpawnPosition(newHolePosition, []);
@@ -165,22 +144,18 @@ export default function BalanceGame({ questionId, onSuccess }) {
         setObstacles(newObstacles);
     }
 
+    function submitAnswer(answer) {
+        socket.emit("submitAnswer", { sessionId: "sessionId", questionId, answer });
+    }
+
     return (
         <div className="flex flex-col items-center justify-center text-white">
             <h1 className="text-xl font-bold mb-4">Jeu d'équilibre</h1>
             <div className="flex justify-center items-center mb-2">
                 {Array.from({ length: lives }).map((_, index) => (
-                    <span
-                        key={index}
-                        role="img"
-                        aria-label="life"
-                        className="mx-1 text-red-500 text-2xl"
-                    >
-                        ❤️
-                    </span>
+                    <span key={index} className="mx-1 text-red-500 text-2xl">❤️</span>
                 ))}
             </div>
-
             <div
                 style={{
                     position: "relative",
@@ -198,19 +173,14 @@ export default function BalanceGame({ questionId, onSuccess }) {
                         position: "absolute",
                         width: "10%",
                         height: "10%",
-                        background: "green",
                         borderRadius: "50%",
                         top: `${holePosition.y}%`,
                         left: `${holePosition.x}%`,
                         transform: "translate(-50%, -50%)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
                     }}
                 >
                     🏁
                 </div>
-
                 {obstacles.map((obstacle) => (
                     <div
                         key={obstacle.id}
@@ -218,39 +188,29 @@ export default function BalanceGame({ questionId, onSuccess }) {
                             position: "absolute",
                             width: "8%",
                             height: "8%",
-                            background: obstacle.type === "wall" ? "blue" : "purple",
                             borderRadius: "50%",
                             top: `${obstacle.y}%`,
                             left: `${obstacle.x}%`,
                             transform: "translate(-50%, -50%)",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
                         }}
                     >
                         {obstacle.type === "wall" ? "🧱" : "💀"}
                     </div>
                 ))}
-
                 <div
                     style={{
                         position: "absolute",
                         width: "8%",
                         height: "8%",
-                        background: "yellow",
                         borderRadius: "50%",
                         top: `${ballPosition.y}%`,
                         left: `${ballPosition.x}%`,
                         transform: "translate(-50%, -50%)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
                     }}
                 >
                     ⚽
                 </div>
             </div>
-
             {message && <p className="text-green-500 text-sm mt-4">{message}</p>}
         </div>
     );
