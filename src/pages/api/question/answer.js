@@ -9,7 +9,15 @@ export default function handler(req, res) {
             return res.status(404).json({ message: "Question non trouvée." });
         }
 
-        // Fonction pour normaliser une chaîne : supprimer les accents, mettre en minuscule, et enlever les espaces inutiles
+        if (question.type === "action") {
+            if (answer === question.answer) {
+                return res.status(200).json({ correct: true, message: "Action réussie !" });
+            } else {
+                return res.status(200).json({ correct: false, message: "Action non réalisée, essayez encore." });
+            }
+        }
+
+        // Gestion des questions normales (texte ou nombre)
         const normalizeString = (str) =>
             str.toLowerCase()
                 .normalize("NFD")
@@ -17,7 +25,6 @@ export default function handler(req, res) {
                 .trim();
 
         const userAnswer = normalizeString(answer);
-
         const correctAnswer = Array.isArray(question.answer)
             ? question.answer.some(ans => normalizeString(ans) === userAnswer)
             : userAnswer === normalizeString(question.answer);
