@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function BalanceGame({ questionId, onSuccess }) {
-    const [ballPosition, setBallPosition] = useState(generateRandomPosition());
-    const [holePosition, setHolePosition] = useState(generateRandomPosition());
+    const [holePosition, setHolePosition] = useState(() => generateRandomPosition());
+    const [ballPosition, setBallPosition] = useState(() => generateSpawnPosition(holePosition));
     const [obstacles, setObstacles] = useState(generateObstacles());
     const [successCount, setSuccessCount] = useState(0);
     const [lives, setLives] = useState(3);
@@ -15,6 +15,18 @@ export default function BalanceGame({ questionId, onSuccess }) {
             x: Math.random() * 80 + 10,
             y: Math.random() * 80 + 10,
         };
+    }
+
+    function generateSpawnPosition(holePosition) {
+        let position;
+        do {
+            position = generateRandomPosition();
+        } while (calculateDistance(position, holePosition) < 20); // Assure une distance minimale de 20%
+        return position;
+    }
+
+    function calculateDistance(pos1, pos2) {
+        return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2));
     }
 
     function generateObstacles() {
@@ -40,9 +52,7 @@ export default function BalanceGame({ questionId, onSuccess }) {
             const newBallPosition = { x: newX, y: newY };
 
             for (const obstacle of obstacles) {
-                const distance = Math.sqrt(
-                    Math.pow(newX - obstacle.x, 2) + Math.pow(newY - obstacle.y, 2)
-                );
+                const distance = calculateDistance(newBallPosition, obstacle);
                 if (distance < 5) {
                     if (obstacle.type === "wall") {
                         setMessage("Mur bloqué !");
@@ -64,8 +74,9 @@ export default function BalanceGame({ questionId, onSuccess }) {
                                 answer: "failure",
                             });
                         } else {
-                            setBallPosition(generateRandomPosition());
-                            setHolePosition(generateRandomPosition());
+                            const newHolePosition = generateRandomPosition();
+                            setBallPosition(generateSpawnPosition(newHolePosition));
+                            setHolePosition(newHolePosition);
                             setObstacles(generateObstacles());
                         }
                         return;
@@ -75,9 +86,7 @@ export default function BalanceGame({ questionId, onSuccess }) {
 
             setBallPosition(newBallPosition);
 
-            const distanceToHole = Math.sqrt(
-                Math.pow(newX - holePosition.x, 2) + Math.pow(newY - holePosition.y, 2)
-            );
+            const distanceToHole = calculateDistance(newBallPosition, holePosition);
 
             if (distanceToHole < 5) {
                 const nextSuccessCount = successCount + 1;
@@ -102,8 +111,9 @@ export default function BalanceGame({ questionId, onSuccess }) {
                             console.error("Erreur lors de la validation :", error);
                         });
                 } else {
-                    setBallPosition(generateRandomPosition());
-                    setHolePosition(generateRandomPosition());
+                    const newHolePosition = generateRandomPosition();
+                    setBallPosition(generateSpawnPosition(newHolePosition));
+                    setHolePosition(newHolePosition);
                 }
             }
         };
@@ -134,7 +144,7 @@ export default function BalanceGame({ questionId, onSuccess }) {
     }, [ballPosition, holePosition, isCompleted, obstacles, successCount, lives, questionId, onSuccess]);
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+        <div className="flex flex-col items-center justify-center text-white">
             <h1 className="text-xl font-bold mb-4">Jeu d'équilibre</h1>
             <div className="flex justify-center items-center mb-2">
                 {Array.from({ length: lives }).map((_, index) => (
@@ -161,7 +171,6 @@ export default function BalanceGame({ questionId, onSuccess }) {
                     background: "black",
                 }}
             >
-                {/* Trou */}
                 <div
                     style={{
                         position: "absolute",
@@ -180,7 +189,6 @@ export default function BalanceGame({ questionId, onSuccess }) {
                     🏁
                 </div>
 
-                {/* Obstacles */}
                 {obstacles.map((obstacle) => (
                     <div
                         key={obstacle.id}
@@ -202,7 +210,6 @@ export default function BalanceGame({ questionId, onSuccess }) {
                     </div>
                 ))}
 
-                {/* Balle */}
                 <div
                     style={{
                         position: "absolute",
