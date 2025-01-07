@@ -20,7 +20,12 @@
   {
     "id": 4,
     "question": "Dans quel pays se trouve la statue de la Liberté ?",
-    "answer": ["usa", "etats-unis", "etat-unis","etat unis", "etats unis"],
+    "answer": [
+      "USA",
+      "usa",
+      "etats-unis",
+      "etat-unis"
+    ],
     "type": "texte"
   },
   {
@@ -28,5 +33,19 @@
     "question": "Quelle planète est connue comme la planète rouge ?",
     "answer": "Mars",
     "type": "texte"
+  },
+  {
+    "id": 6,
+    "question": "Renversez ce verre d'eau",
+    "assets": "/assets/water_glass.jpg",
+    "answer": "tilt_detected",
+    "type": "action"
+  },
+  {
+    "id": 7,
+    "question": "Secouez votre téléphone",
+    "assets": "/assets/shake_phone.jpg",
+    "answer": "shake_detected",
+    "type": "action"
   }
 ]

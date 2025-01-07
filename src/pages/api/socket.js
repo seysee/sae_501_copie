@@ -39,12 +39,18 @@ export default function handler(req, res) {
             });
 
 
-            // Lancer les questions
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
             socket.on('launchQuestions', (sessionId) => {
-                console.log(`Lancement des questions pour la session : ${sessionId}`);
                 if (sessions[sessionId]) {
                     if (sessions[sessionId].questions.length === 0) {
-                        sessions[sessionId].questions = [...questions];
+                        sessions[sessionId].questions = shuffle([...questions]);
                     }
                     const firstQuestion = sessions[sessionId].questions.shift();
                     if (firstQuestion) {
