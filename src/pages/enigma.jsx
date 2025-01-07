@@ -31,11 +31,12 @@ export default function Game() {
         });
 
         // Écouter le feedback et rediriger vers la page de résultat
-        socketInstance.on('answerSubmitted', ({ correct, feedback }) => {
-            if (correct !== undefined) {
-                router.push('/result');
+        socketInstance.on('answerSubmitted', ({ redirectUrl }) => {
+            if (redirectUrl) {
+                router.push(redirectUrl);
             }
         });
+
 
         return () => {
             socketInstance.off('nextQuestion');
@@ -48,24 +49,22 @@ export default function Game() {
         setAnswer(e.target.value);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const handleSubmit = () => {
 
         if (answer === '') {
             console.log('Aucune réponse donnée');
             return;
         }
 
-        console.log('Réponse envoyée:', answer);
+        console.log('Réponse envoyée:', answer, "questionID", question.id);
 
         // Émettre la réponse via WebSocket pour validation
-        socket.emit('submitAnswer', { sessionId: 'yourSessionId', questionId: question.id, answer });
+        socket.emit('submitAnswer', { sessionId: 'sessionId', questionId: question.id, answer });
     };
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white ">
             {/* <RoleSlide /> */}
-
 
             <div className="w-full max-w-lg flex flex-col items-center py-20 space-y-12">
                 <h1 className="text-6xl font-Amatic text-yellow-400 mb-12">
@@ -74,7 +73,7 @@ export default function Game() {
                 {question ? (
                     <div className="w-full max-w-md text-center">
                         <h2 className="text-3xl font-Amatic mb-6">{question.question}</h2>
-                        <form onSubmit={handleSubmit} className="flex flex-col items-center space-y-4">
+                        <form className="flex flex-col items-center space-y-4">
                             <input
                                 type="text"
                                 name="answer"
@@ -85,9 +84,8 @@ export default function Game() {
                             />
                             <Button
                                 label="Envoyer"
-                                type="submit"
+                                onClick={handleSubmit}
                                 className={`py-3 ${answer ? 'bg-black text-green-500 border-green-500' : 'text-gray-300 border-gray-500 cursor-not-allowed'}`}
-                                disabled={!answer}
                             />
                         </form>
                     </div>
