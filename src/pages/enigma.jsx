@@ -47,7 +47,6 @@ export default function Game() {
             }
         });
 
-
         return () => {
             socketInstance.off('nextQuestion');
             socketInstance.off('answerSubmitted');
