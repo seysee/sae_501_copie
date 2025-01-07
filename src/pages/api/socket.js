@@ -55,6 +55,7 @@ export default function handler(req, res) {
                     const firstQuestion = sessions[sessionId].questions.shift();
                     if (firstQuestion) {
                         sessions[sessionId].answered = false;
+                        sessions[sessionId].answeredBy = {};
                         io.to(sessionId).emit('nextQuestion', firstQuestion);
                     }
                 }
@@ -62,6 +63,7 @@ export default function handler(req, res) {
 
 
             socket.on('submitAnswer', ({ sessionId, questionId, answer }) => {
+                console.log(`Réponse reçue pour la question ${questionId} :`, answer);
                 if (sessions[sessionId]) {
                     sessions[sessionId].answered = true;
                     io.to(sessionId).emit('answerSubmitted', {

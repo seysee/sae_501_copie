@@ -43,7 +43,7 @@ export default function Game() {
         // Écouter le feedback et rediriger vers la page de résultat
         socketInstance.on('answerSubmitted', ({ redirectUrl }) => {
             if (redirectUrl) {
-                router.push(redirectUrl);
+                router.push(redirectUrl).then(r => console.log('Redirection effectuée'));
             }
         });
 
@@ -75,7 +75,7 @@ export default function Game() {
     const handleActionSuccess = (message) => {
         console.log(message);
         setFeedback(message);
-        socket.emit('submitAnswer', { sessionId: 'yourSessionId', questionId: question.id, answer: "action_success" });
+        socket.emit('submitAnswer', { sessionId: 'sessionId', questionId: question.id, answer: "action_success" });
     };
 
     return (
