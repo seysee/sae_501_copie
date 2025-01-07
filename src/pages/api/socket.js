@@ -23,10 +23,8 @@ export default function handler(req, res) {
 
                 // Initialiser la session si elle n'existe pas
                 if (!sessions[sessionId]) sessions[sessionId] = { players: [], questions: [], answered: false };
-
                 sessions[sessionId].players.push(player);
                 socket.join(sessionId);
-
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
 
@@ -46,16 +44,17 @@ export default function handler(req, res) {
                 return array;
             }
 
-            socket.on('launchQuestions', (sessionId) => {
+            socket.on('launchQuestions', (sessionId, toFilterQuestion) => {
                 if (sessions[sessionId]) {
                     if (sessions[sessionId].questions.length === 0) {
                         sessions[sessionId].questions = shuffle([...questions]);
                     }
-                    const firstQuestion = sessions[sessionId].questions.shift();
-                    if (firstQuestion) {
+                    const availableQuestions = sessions[sessionId].questions
+                        .filter(q => !toFilterQuestion.includes(q.id));
+                    if (availableQuestions.first()) {
                         sessions[sessionId].answered = false;
                         sessions[sessionId].answeredBy = {};
-                        io.to(sessionId).emit('nextQuestion', firstQuestion);
+                        io.to(sessionId).emit('nextQuestion', availableQuestions.first());
                     }
                 }
             });

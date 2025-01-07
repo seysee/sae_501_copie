@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import {useState, useEffect} from 'react';
+import {useRouter} from 'next/router';
 import io from 'socket.io-client';
 import RoleSlide from "../components/_roleSlide";
 import Button from "../components/_button";
+import axios from "axios";
 import ActionQuestion from "../components/ActionQuestion"; // Importer le composant ActionQuestion
 
 export default function Game() {
@@ -12,7 +13,21 @@ export default function Game() {
     const [socket, setSocket] = useState(null);
     const router = useRouter();
 
-    useEffect(() => {
+    const getStoredUserData = () => {
+        try {
+            const storedPlayer = sessionStorage.getItem('userData');
+            if (storedPlayer) {
+                return JSON.parse(storedPlayer);
+            }
+        } catch (error) {
+            console.error('Erreur lors de la récupération des données utilisateur:', error);
+        }
+        return null;
+    };
+
+    useEffect(async () => {
+        let storedPlayer = getStoredUserData();
+
         // Initialiser la connexion Socket.IO
         const socketInstance = io({
             path: '/api/socket',
@@ -20,8 +35,17 @@ export default function Game() {
 
         setSocket(socketInstance);
 
-        socketInstance.emit('joinSession', 'sessionId', { name: 'Player 1' });
-        socketInstance.emit('launchQuestions', 'sessionId');
+        const responseGet = await axios.get("/api/session", {
+            params: {
+                id: storedPlayer.sessionId,
+            }
+        });
+        const toFilterQuestion = responseGet.data.questions
+        console.log(toFilterQuestion)
+
+
+        socketInstance.emit('joinSession', storedPlayer.sessionId, {name: storedPlayer.name});
+        socketInstance.emit('launchQuestions', storedPlayer.sessionId, toFilterQuestion);
 
         // Écouter l'événement 'nextQuestion' pour recevoir une nouvelle question
         socketInstance.on('nextQuestion', (newQuestions) => {
@@ -41,7 +65,7 @@ export default function Game() {
         });
 
         // Écouter le feedback et rediriger vers la page de résultat
-        socketInstance.on('answerSubmitted', ({ redirectUrl }) => {
+        socketInstance.on('answerSubmitted', ({redirectUrl}) => {
             if (redirectUrl) {
                 router.push(redirectUrl).then(r => console.log('Redirection effectuée'));
             }
@@ -60,6 +84,7 @@ export default function Game() {
 
     const handleSubmit = (event) => {
         event.preventDefault();
+        let storedPlayer = getStoredUserData();
         if (answer === '') {
             console.log('Aucune réponse donnée');
             return;
@@ -68,7 +93,7 @@ export default function Game() {
         console.log('Réponse envoyée:', answer, "questionID", question.id);
 
         // Émettre la réponse via WebSocket pour validation
-        socket.emit('submitAnswer', { sessionId: 'sessionId', questionId: question.id, answer });
+        socket.emit('submitAnswer', {sessionId: storedPlayer.sessionId, questionId: question.id, answer});
     };
 
     const handleActionSuccess = (message) => {
