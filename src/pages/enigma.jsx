@@ -59,8 +59,8 @@ export default function Game() {
         setAnswer(e.target.value);
     };
 
-    const handleSubmit = () => {
-
+    const handleSubmit = (event) => {
+        event.preventDefault();
         if (answer === '') {
             console.log('Aucune réponse donnée');
             return;
@@ -92,7 +92,7 @@ export default function Game() {
                         {question.type === "action" ? (
                             <ActionQuestion question={question} onSuccess={handleActionSuccess} />
                         ) : (
-                            <form className="flex flex-col items-center space-y-4">
+                            <form className="flex flex-col items-center space-y-4" onSubmit={handleSubmit}>
                                 <input
                                     type="text"
                                     name="answer"
