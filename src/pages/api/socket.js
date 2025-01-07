@@ -17,7 +17,6 @@ export default function handler(req, res) {
         io.on('connection', (socket) => {
             console.log('Nouvelle connexion établie :', socket.id);
 
-
             // Rejoindre une session
             socket.on('joinSession', (sessionId, player) => {
                 console.log(`${player.name} a rejoint la session ${sessionId}`);
