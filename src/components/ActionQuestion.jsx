@@ -12,7 +12,6 @@ export default function ActionQuestion({ question, onSuccess }) {
 
     return (
         <div>
-            <h1>{question.question}</h1>
             {question.assets && <img src={question.assets} alt="Instruction" />}
             {question.answer === "tilt_detected" && (
                 <TiltDetected questionId={question.id} onSuccess={handleSuccess} />
