@@ -47,12 +47,17 @@ export default async function handler(req, res) {
             res.status(201).json(session);
         } else if (req.method === 'PUT') {
             // -----------------------------------------------------MET A JOUR SESSION PAR ID---------------------------------------------------------//
-            const {id, code, playersNumber, status, hostId, questions, killerId, hints} = req.body;
+            let {id, code, playersNumber, status, hostId, questions, killerId, hints} = req.body;
+            console.log("Requête PUT reçue avec :", req.body);
 
             // Vérifier si la session existe
             const existingSession = await prisma.sessions.findUnique({
                 where: {id},
             });
+
+            // if (existingSession && questions){
+            //     questions = JSON.stringify(questions)
+            // }
 
             if (!existingSession) {
                 return res.status(404).json({message: 'Session not found'});
