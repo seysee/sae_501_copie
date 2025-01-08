@@ -55,28 +55,37 @@ export default async function handler(req, res) {
                 where: {id},
             });
 
-            // if (existingSession && questions){
-            //     questions = JSON.stringify(questions)
-            // }
-
             if (!existingSession) {
                 return res.status(404).json({message: 'Session not found'});
             }
 
-            const updatedSession = await prisma.sessions.update({
-                where: {id},
-                data: {
-                    code,
-                    playersNumber,
-                    status,
-                    hostId,
-                    questions,
-                    killerId,
-                    hints
-                },
-            });
+            if(questions){
+                questions = JSON.stringify(questions);
+            }
+            const cleanData = (data) =>
+                Object.fromEntries(
+                    Object.entries(data).filter(([_, value]) => value !== undefined)
+                );
 
-            res.status(200).json(updatedSession);
+            try {
+                const updatedSession = await prisma.sessions.update({
+                    where: {id},
+                    data: cleanData({
+                        code,
+                        playersNumber,
+                        status,
+                        hostId,
+                        questions,
+                        killerId,
+                        hints,
+                    }),
+                });
+
+                res.status(200).json(updatedSession);
+            } catch (error) {
+                console.error("Erreur lors de la mise à jour de la session :", error);
+                res.status(500).json({message: 'Erreur interne du serveur', error: error.message});
+            }
         } else if (req.method === 'DELETE') {
             // -----------------------------------------------------DELETE SESSION PAR ID---------------------------------------------------------//
             const {id} = req.query;
