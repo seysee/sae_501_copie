@@ -126,8 +126,12 @@ export default function Game() {
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
             <RoleSlide />
 
-            <div className="w-full max-w-lg flex flex-col items-center py-20 space-y-12">
-                <h1 className="text-6xl font-Amatic text-yellow-400 mb-12">Énigme</h1>
+
+            <div className="w-full max-w-lg flex flex-col items-center py-20 space-y-8">
+                <h1 className="text-6xl font-Amatic text-yellow-400">
+                    Énigme
+                </h1>
+
                 {question ? (
                     <div className="w-full max-w-md text-center">
                         <h2 className="text-3xl font-Amatic mb-6">{question.question}</h2>
