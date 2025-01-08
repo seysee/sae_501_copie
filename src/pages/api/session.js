@@ -47,7 +47,8 @@ export default async function handler(req, res) {
             res.status(201).json(session);
         } else if (req.method === 'PUT') {
             // -----------------------------------------------------MET A JOUR SESSION PAR ID---------------------------------------------------------//
-            const {id, code, playersNumber, status, hostId, questions, killerId, hints} = req.body;
+            let {id, code, playersNumber, status, hostId, questions, killerId, hints} = req.body;
+            console.log("Requête PUT reçue avec :", req.body);
 
             // Vérifier si la session existe
             const existingSession = await prisma.sessions.findUnique({
@@ -58,20 +59,33 @@ export default async function handler(req, res) {
                 return res.status(404).json({message: 'Session not found'});
             }
 
-            const updatedSession = await prisma.sessions.update({
-                where: {id},
-                data: {
-                    code,
-                    playersNumber,
-                    status,
-                    hostId,
-                    questions,
-                    killerId,
-                    hints
-                },
-            });
+            if(questions){
+                questions = JSON.stringify(questions);
+            }
+            const cleanData = (data) =>
+                Object.fromEntries(
+                    Object.entries(data).filter(([_, value]) => value !== undefined)
+                );
 
-            res.status(200).json(updatedSession);
+            try {
+                const updatedSession = await prisma.sessions.update({
+                    where: {id},
+                    data: cleanData({
+                        code,
+                        playersNumber,
+                        status,
+                        hostId,
+                        questions,
+                        killerId,
+                        hints,
+                    }),
+                });
+
+                res.status(200).json(updatedSession);
+            } catch (error) {
+                console.error("Erreur lors de la mise à jour de la session :", error);
+                res.status(500).json({message: 'Erreur interne du serveur', error: error.message});
+            }
         } else if (req.method === 'DELETE') {
             // -----------------------------------------------------DELETE SESSION PAR ID---------------------------------------------------------//
             const {id} = req.query;
