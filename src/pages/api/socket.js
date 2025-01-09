@@ -26,13 +26,14 @@ export default function handler(req, res) {
                 if (!sessions[sessionId]) {
                     sessions[sessionId] = {
                         players: [],
-                        questions: shuffle([...questions]), // Mélangez et attribuez toutes les questions disponibles
+                        questions: shuffle([...questions]),
                         answered: false
                     };
                 }
 
                 sessions[sessionId].players.push(player);
                 socket.join(sessionId);
+                console.log("(socket.js:36) ", sessions);
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
 
