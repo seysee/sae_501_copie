@@ -49,3 +49,15 @@ model Suspect_hints {
 
   @@index([suspectId], map: "Suspect_hints_ibfk_1")
 }
+
+model Questions {
+  id         Int     @id @default(autoincrement())
+  type       String  @db.VarChar(50) // Type d'énigme : code, action, puzzle, etc.
+  question   String  @db.Text // Texte de l'énigme
+  solution   String  @db.Text // Solution attendue
+  hint       String? @db.Text // Indice optionnel
+  feedback   Json?   @db.Json // Feedback personnalisé pour les réponses correctes ou incorrectes
+  difficulty String? @db.VarChar(10) // Niveau de difficulté : facile, moyen, difficile
+  assets     String? @db.Text // Chemin vers les ressources associées (images, vidéos, etc.)
+  extraData  Json?   @db.Json // Données supplémentaires pour des énigmes complexes sous forme de fichier .js
+}
