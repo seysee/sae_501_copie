@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import Button from '../components/_button';
 import axios from 'axios';
 import io from 'socket.io-client';
-import {router} from "next/client";
+import {useRouter} from 'next/router'; // Import correct de useRouter
 
 export default function Salon() {
     const [session, setSession] = useState(null);
@@ -11,95 +11,7 @@ export default function Salon() {
     const [isHost, setIsHost] = useState(false);
     const [socket, setSocket] = useState(null);
 
-    // Récupérer les données utilisateur depuis le session storage
-    const getStoredUserData = () => {
-        try {
-            const storedPlayer = sessionStorage.getItem('userData');
-            if (storedPlayer) {
-                return JSON.parse(storedPlayer);
-            }
-        } catch (error) {
-            console.error('Erreur lors de la récupération des données utilisateur:', error);
-        }
-        return null;
-    };
-
-    const fetchSessionBySessionId = async (sessionId) => {
-        try {
-            const response = await axios.get('/api/session', {
-                params: { id: sessionId },
-            });
-            console.log("session",response.data)
-            setSession(response.data);
-        } catch (error) {
-            console.error('Erreur lors de la récupération de la session :', error);
-            alert('Une erreur est survenue lors de la récupération de la session.');
-        }
-    };
-
-    const fetchPlayersBySessionId = async (sessionId) => {
-        try {
-            const response = await axios.get('/api/player', {
-                params: { sessionId: sessionId },
-            });
-            setPlayers(response.data);
-        } catch (error) {
-            if (error.response && error.response.status === 404) {
-                console.error('La ressource demandée est introuvable');
-                alert('Aucun joueur trouvé pour cette session.');
-            } else {
-                console.error('Erreur lors de la récupération des joueurs :', error);
-            }
-        }
-    };
-
-    const startGame = async () => {
-        const storedPlayer = getStoredUserData()
-        try {
-            const randomNumber = Math.floor(Math.random() * 5) + 1;
-            console.log(randomNumber);
-
-            await axios.put('/api/session', {
-                id: session.id,
-                status: 1,
-                killerId: randomNumber,
-            });
-
-            setGameCreated(true);
-            console.log("start game" , players, "session", session)
-            const playerNumber = players.length;
-            let roleCount = 0;
-
-            //déterminez combien de joueurs auront le rôle '1' en fonciton du nobre de player
-            if (playerNumber >= 3 && playerNumber <= 4) {
-                roleCount = 1;
-            } else if (playerNumber >= 5 && playerNumber <= 6) {
-                roleCount = 2;
-            }
-
-            //sélectionnez aléatoirement les joueurs avec le rôle '1'
-            const selectedIndices = [];
-            while (selectedIndices.length < roleCount) {
-                const randomIndex = Math.floor(Math.random() * playerNumber);
-                if (!selectedIndices.includes(randomIndex)) {
-                    selectedIndices.push(randomIndex);
-                }
-            }
-
-            //assignez les rôles aux joueurs
-            for (let i = 0; i < playerNumber; i++) {
-                const role = selectedIndices.includes(i) ? 1 : 0;
-                await axios.put("/api/player", {
-                    id: players[i].id,
-                    role: role
-                });
-            }
-            socket.emit('startGame', storedPlayer.sessionId); // Informer tous les utilisateurs que la partie démarre
-
-        } catch (error) {
-            console.error('Erreur lors de la mise à jour de la session :', error);
-        }
-    };
+    const router = useRouter(); // Correctement utiliser useRouter
 
     useEffect(() => {
         const storedPlayer = getStoredUserData();
@@ -109,29 +21,40 @@ export default function Salon() {
 
             // Initialisation de la connexion Socket.IO
             const socketConnection = io('http://localhost:3000', {
+            // const socketConnection = io('https://dd08-195-220-84-42.ngrok-free.app', {
                 path: '/api/socket',
             });
             setSocket(socketConnection);
 
-            // Vérifier si la connexion est prête avant d'émettre l'événement
+            // Événement de connexion Socket.IO
             socketConnection.on('connect', () => {
+                console.log('Socket.IO connecté avec succès.');
+                setSocket(socketConnection);
                 socketConnection.emit('joinSession', storedPlayer.sessionId, storedPlayer, () => {
                     console.log('Événement joinSession émis.');
                 });
             });
 
+            // Mise à jour des joueurs
             socketConnection.on('updatePlayers', (updatedPlayers) => {
-                setPlayers(null);
                 setPlayers(updatedPlayers);
             });
 
+            // Événement de démarrage du jeu
             socketConnection.on('gameStarted', (redirectUrl) => {
-                console.log('Événement "gameStarted" reçu. Redirection vers :', redirectUrl);  // Ajout de log pour voir si l'événement est bien reçu
-                router.push("/role"); // Rediriger tous les joueurs
+                console.log('Événement "gameStarted" reçu. Redirection vers :', redirectUrl);
+                if (redirectUrl) {
+                    router.push(redirectUrl).then(() => {
+                        console.log('Redirection réussie vers /role');
+                    }).catch((error) => {
+                        console.error('Erreur lors de la redirection :', error);
+                    });
+                }
             });
 
-
-
+            return () => {
+                socketConnection.disconnect();
+            };
         }
     }, []);
 
@@ -143,6 +66,99 @@ export default function Salon() {
             }
         }
     }, [players, session]);
+    const getStoredUserData = () => {
+        try {
+            const storedPlayer = sessionStorage.getItem('userData');
+            if (storedPlayer) {
+                return JSON.parse(storedPlayer);
+            }
+        }
+        catch (error) {
+            console.error('Erreur lors de la récupération des données utilisateur:', error);
+        }
+        return null;
+    };
+
+    const fetchSessionBySessionId = async (sessionId) => {
+        try {
+            const response = await axios.get('/api/session', {
+                params: {id: sessionId},
+            });
+            setSession(response.data);
+        }
+        catch (error) {
+            console.error('Erreur lors de la récupération de la session :', error);
+            alert('Une erreur est survenue lors de la récupération de la session.');
+        }
+    };
+
+    const fetchPlayersBySessionId = async (sessionId) => {
+        try {
+            const response = await axios.get('/api/player', {
+                params: {sessionId: sessionId},
+            });
+            setPlayers(response.data);
+        }
+        catch (error) {
+            if (error.response && error.response.status === 404) {
+                console.error('La ressource demandée est introuvable');
+                alert('Aucun joueur trouvé pour cette session.');
+            } else {
+                console.error('Erreur lors de la récupération des joueurs :', error);
+            }
+        }
+    };
+
+    const startGame = async () => {
+        const storedPlayer = getStoredUserData();
+        if (!storedPlayer) {
+            console.error('Aucune donnée utilisateur trouvée.');
+            return;
+        }
+
+        try {
+            const randomNumber = Math.floor(Math.random() * 5) + 1;
+
+            await axios.put('/api/session', {
+                id: session.id,
+                status: 1,
+                killerId: randomNumber,
+            });
+
+            setGameCreated(true);
+
+            const playerNumber = players.length;
+            let roleCount = 0;
+
+            // Déterminer combien de joueurs auront le rôle '1'
+            if (playerNumber >= 3 && playerNumber <= 4) {
+                roleCount = 1;
+            } else if (playerNumber >= 5 && playerNumber <= 6) {
+                roleCount = 2;
+            }
+
+            // Sélectionner les rôles
+            const selectedIndices = [];
+            while (selectedIndices.length < roleCount) {
+                const randomIndex = Math.floor(Math.random() * playerNumber);
+                if (!selectedIndices.includes(randomIndex)) {
+                    selectedIndices.push(randomIndex);
+                }
+            }
+
+            for (let i = 0; i < playerNumber; i++) {
+                const role = selectedIndices.includes(i) ? 1 : 0;
+                await axios.put("/api/player", {
+                    id: players[i].id,
+                    role: role,
+                });
+            }
+            socket.emit('startGame', storedPlayer.sessionId); // Informer tous les utilisateurs que la partie démarre
+
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour de la session :', error);
+        }
+    };
 
     const quitGame = async () => {
         const storedPlayer = getStoredUserData();
@@ -151,63 +167,30 @@ export default function Salon() {
             return;
         }
 
-        console.log("Players:", players);
-        console.log("ishost",isHost)
-        if (isHost) {           //si on est host
-            console.log("Session ID:", session.id);
-            if (players.length > 1) {   //host + si il y a d'autres joueurs
-
-                const newHostId = players.find(player => player.id !== storedPlayer.id)?.id; //prendre un autre joueur de la session
-                console.log(newHostId)
-
-                const sessionResponse = await axios.put('/api/session', {
+        if (isHost) {
+            if (players.length > 1) {
+                const newHostId = players.find(player => player.id !== storedPlayer.id)?.id;
+                await axios.put('/api/session', {
                     id: session.id,
-                    hostId: players.find(player => player.id !== storedPlayer.id),           //mettre l'autre joueur hote
-                    playersNumber: session.playersNumber - 1,                                //enlever le joueur parti du total
-                    status: session.playersNumber === 6 ? 0 : undefined,                     //changer le status pour rejoindre si la partie était full
+                    hostId: newHostId,
+                    playersNumber: session.playersNumber - 1,
+                    status: session.playersNumber === 6 ? 0 : undefined,
                 });
-
-                console.log(sessionResponse.data)
-
-             } else {                   //host + si il y a pas d'autre joueur
-
-                // Supprimer la session s'il n'y a plus de joueurs
-                console.log('ID de la session à supprimer :', session.id);
-                const sessionResponse = await axios.delete('/api/session', {
-                    params: { id: session.id },
-                });
-
-                console.log(sessionResponse.data)
-
+            } else {
+                await axios.delete('/api/session', {params: {id: session.id}});
             }
-            const playerResponse = await axios.put('/api/player', { //mettre a null la session du joueur dans la bdd
-                id: storedPlayer.id,
-                sessionId: null,
-            });
-
-            const updatedUserData = { ...playerResponse.data, sessionId: null };            //mettre a null la session du joueur en front
-            sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
-
-            await router.push("/"); //retour à index.js
-
-        } else {    //si on est pas host
-
-            const sessionResponse = await axios.put('/api/session', {
+            await axios.put('/api/player', {id: storedPlayer.id, sessionId: null});
+            sessionStorage.setItem('userData', JSON.stringify({...storedPlayer, sessionId: null}));
+            await router.push('/');
+        } else {
+            await axios.put('/api/session', {
                 id: session.id,
-                playersNumber: session.playersNumber - 1,                           //enlever le nombre max de joueur
-                status: session.playersNumber === 6 ? 0 : undefined,                //rendre libre la partie si elle était full (6joueurs max)
+                playersNumber: session.playersNumber - 1,
+                status: session.playersNumber === 6 ? 0 : undefined,
             });
-            console.log(sessionResponse.data)
-
-            const playerResponse = await axios.put('/api/player', { //mettre a null dans la bdd la session du joueur
-                id: storedPlayer.id,
-                sessionId: null,
-            });
-
-            const updatedUserData = { ...playerResponse.data, sessionId: null };    //mettre a null dans session storage la session du joueur
-            sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
-
-            router.push("/");       //retour a index.js
+            await axios.put('/api/player', {id: storedPlayer.id, sessionId: null});
+            sessionStorage.setItem('userData', JSON.stringify({...storedPlayer, sessionId: null}));
+            await router.push('/');
         }
     };
 
@@ -258,11 +241,11 @@ export default function Salon() {
                         )}
 
                         <div className="mt-2">
-                                <Button
-                                    label="Annuler"
-                                    onClick={quitGame}
-                                    className="py-3 bg-black text-red-500 border-red-500"
-                                />
+                            <Button
+                                label="Annuler"
+                                onClick={quitGame}
+                                className="py-3 bg-black text-red-500 border-red-500"
+                            />
                         </div>
                     </div>
                 </>
