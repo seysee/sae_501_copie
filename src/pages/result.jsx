@@ -2,21 +2,35 @@ import {useEffect, useState} from 'react';
 import {useRouter} from 'next/router';
 import Hint from "./hint";
 import axios from "axios";
+import { decryptParam } from '../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
 
 const Result = () => {
     const router = useRouter();
     const [feedback, setFeedback] = useState('');
     const [correct, setCorrect] = useState(false);
-    const {questionId, answer} = router.query;
+    let {questionId, answer} = router.query;
 
     useEffect(() => {
-        console.log('Question ID:', questionId);
-        console.log('Réponse:', answer);
         if (questionId && answer) {
-            verifyResponse(questionId, answer);
-            rememberQuestion(questionId);
+            try {
+                console.log('Question ID avant décryptage :', questionId);
+                console.log('Réponse avant décryptage :', answer);
+
+                const decryptedQuestionId = decryptParam(questionId);
+                const decryptedAnswer = decryptParam(answer);
+
+                console.log('Question ID déchiffré :', decryptedQuestionId);
+                console.log('Réponse déchiffrée :', decryptedAnswer);
+
+                verifyResponse(decryptedQuestionId, decryptedAnswer);
+                rememberQuestion(decryptedQuestionId);
+            } catch (error) {
+                console.error("Erreur de déchiffrement :", error);
+            }
+        } else {
+            console.log("Les paramètres questionId ou answer ne sont pas encore disponibles.");
         }
-    }, [router.query]);
+    }, [questionId, answer]);
 
     const rememberQuestion = async (questionId) => {
         const storedPlayer = sessionStorage.getItem('userData');

@@ -1,5 +1,6 @@
 import { Server } from 'socket.io';
 import questions from '../../data/questions.json';
+import { encryptParam } from '../../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
 
 const sessions = {}; // Stock temporaire pour les sessions et leurs joueurs
 
@@ -81,10 +82,12 @@ export default function handler(req, res) {
                 console.log(`Réponse reçue pour la question ${questionId} :`, answer);
                 if (sessions[sessionId]) {
                     sessions[sessionId].answered = true;
+
+                    const encryptedQuestionId = encryptParam(questionId);
+                    const encryptedAnswer = encryptParam(answer);
+
                     io.to(sessionId).emit('answerSubmitted', {
-                        redirectUrl: `/result?questionId=${questionId}&answer=${encodeURIComponent(answer)}`,
-                        questionId,
-                        answer
+                        redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
                     });
                 }
             });
