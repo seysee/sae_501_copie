@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 
-export default function Camera({ questionId, targetColor, onSuccess, socket }) {
+export default function Camera({ questionId, targetColor, onSuccess, socket, sessionId }) {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -147,9 +147,11 @@ export default function Camera({ questionId, targetColor, onSuccess, socket }) {
         }
     };
 
-    const submitAnswer = (answer) => {
-        socket.emit("submitAnswer", { sessionId: "sessionId", questionId, answer });
-    };
+    function submitAnswer(answer) {
+        if (socket) {
+            socket.emit("submitAnswer", { sessionId, questionId, answer });
+        }
+    }
 
     const resetPhoto = () => {
         setPhotoTaken(false);
