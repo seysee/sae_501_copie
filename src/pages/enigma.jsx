@@ -132,7 +132,7 @@ export default function Game() {
                     <div className="w-full max-w-md text-center">
                         <h2 className="text-3xl font-Amatic mb-6">{question.question}</h2>
                         {question.type === "action" ? (
-                            <ActionQuestion question={question} onSuccess={handleActionSuccess} />
+                            <ActionQuestion question={question} onSuccess={handleActionSuccess} socket={socket}/>
                         ) : (
                             <form className="flex flex-col items-center space-y-4" onSubmit={handleSubmit}>
                                 <input

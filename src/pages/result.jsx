@@ -22,32 +22,36 @@ const Result = () => {
         const storedPlayer = sessionStorage.getItem('userData');
         const playerData = JSON.parse(storedPlayer);
         const sessionId = playerData.sessionId;
+
         try {
-            console.log("sessionid", sessionId)
+            console.log("Session ID :", sessionId);
+
+            // Récupérer les données de la session
             const responseGet = await axios.get("/api/session", {
                 params: {
                     id: sessionId,
-                }
+                },
             });
 
-            const data = responseGet.data.questions || []
+            console.log("Données de la session récupérées :", responseGet.data);
 
-            if (!data.includes(parseInt(questionId))){
-                data.push(parseInt(questionId));
-            }
+            // Fusionner les nouvelles questions avec celles existantes
+            const existingQuestions = Array.isArray(responseGet.data.questions) ? responseGet.data.questions : [];
+            const newQuestions = [...new Set([...existingQuestions, parseInt(questionId)])]; // Éviter les doublons
 
-            console.log("Données envoyées :", { id: sessionId, questions: data });
+            console.log("Questions mises à jour :", newQuestions);
 
+            // Mettre à jour les questions dans la session
             const responsePut = await axios.put("/api/session", {
                 id: sessionId,
-                questions: data
+                questions: newQuestions,
             });
 
-            console.log("response de sessions/question", responsePut.data)
+            console.log("Réponse de l'API PUT :", responsePut.data);
         } catch (error) {
             console.error("Erreur lors de la mise à jour de la session :", error);
         }
-    }
+    };
 
     const verifyResponse = async (questionId, answer) => {
         try {

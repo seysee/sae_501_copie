@@ -16,16 +16,17 @@ export default async function handler(req, res) {
                     return res.status(404).json({message: 'Session not found'});
                 }
                 res.status(200).json(session);
-            } else if (code) { console.log("start")
-                    // -----------------------------------------------------RÉCUPERE SESSION PAR ID---------------------------------------------------------//
-                    const session = await prisma.sessions.findFirst({
-                        where: {code: code},
-                    });
+            } else if (code) {
+                console.log("start")
+                // -----------------------------------------------------RÉCUPERE SESSION PAR ID---------------------------------------------------------//
+                const session = await prisma.sessions.findFirst({
+                    where: {code: code},
+                });
                 console.log("had fetched")
-                    if (!session) {
-                        return res.status(404).json({message: 'Session not found'});
-                    }
-                    res.status(200).json(session);
+                if (!session) {
+                    return res.status(404).json({message: 'Session not found'});
+                }
+                res.status(200).json(session);
                 console.log("returned")
             } else {
                 // -----------------------------------------------------RÉCUPERE SESSIONS---------------------------------------------------------//
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
                 return res.status(404).json({message: 'Session not found'});
             }
 
-            if(questions){
+            if (questions) {
                 questions = JSON.stringify(questions);
             }
             const cleanData = (data) =>
@@ -82,7 +83,8 @@ export default async function handler(req, res) {
                 });
 
                 res.status(200).json(updatedSession);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Erreur lors de la mise à jour de la session :", error);
                 res.status(500).json({message: 'Erreur interne du serveur', error: error.message});
             }
@@ -108,7 +110,8 @@ export default async function handler(req, res) {
         } else {
             res.status(405).json({message: 'Method Not Allowed'});
         }
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Erreur API /session:', error);
         res.status(500).json({message: 'Erreur interne du serveur'});
     }
