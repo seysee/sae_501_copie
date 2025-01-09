@@ -80,12 +80,15 @@ export default function handler(req, res) {
             socket.on('submitAnswer', ({ sessionId, questionId, answer }) => {
                 console.log(`Réponse reçue pour la question ${questionId} :`, answer);
                 if (sessions[sessionId]) {
+                    console.log("(socket.js:84) here");
                     sessions[sessionId].answered = true;
                     io.to(sessionId).emit('answerSubmitted', {
                         redirectUrl: `/result?questionId=${questionId}&answer=${encodeURIComponent(answer)}`,
                         questionId,
                         answer
                     });
+                } else {
+                    console.error(`Session ${sessionId} introuvable.`);
                 }
             });
 
