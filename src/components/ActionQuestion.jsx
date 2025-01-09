@@ -4,7 +4,7 @@ import ShakeDetected from "./actions/ShakeDetected";
 import BalanceGame from "./actions/BalanceGame";
 import Camera from "./actions/Camera";
 
-export default function ActionQuestion({ question, onSuccess }) {
+export default function ActionQuestion({ question, onSuccess, socket }) {
     const [targetColor, setTargetColor] = useState("red");
     const [sessionId, setSessionId] = useState(null);
 
@@ -96,6 +96,7 @@ export default function ActionQuestion({ question, onSuccess }) {
                         questionId={question.id}
                         targetColor={targetColor}
                         onSuccess={handleSuccess}
+                        socket={socket}
                     />
                 </>
             )}
