@@ -118,7 +118,7 @@ export default function Game() {
         socket.emit('submitAnswer', {
             sessionId: storedPlayer.sessionId,
             questionId: question?.id,
-            answer: "action_success",
+            answer: question.answer,
         });
     };
 
