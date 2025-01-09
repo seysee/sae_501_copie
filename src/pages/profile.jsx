@@ -14,7 +14,7 @@ export default function Profile() {
         "nègre", "negro", "bougnoule", "chinetoque", "sale arabe", "juif", "chintok", "sale noir",
         "pédé", "tafiole", "tapette", "féminazi", "misogyne", "pute", "viol", "violeur", "raciste",
         "xénophobe", "haineux", "sataniste", "démon", "tortionnaire", "tueur", "assassin",
-        "meurtrier", "massacre", "génocide", "torture", "terroriste", "kamikaze", "jihadiste",
+        "meurtrier","meurtre", "mort", "tuer", "tué", "massacre", "génocide", "torture", "terroriste", "kamikaze", "jihadiste",
         "esclavage", "nazi", "fasciste", "salopard", "sac à merde",
         "fuck", "f*ck", "fu*k", "fuc*",  "shit", "bitch", "asshole", "bastard", "motherfucker", "slut", "whore", "jerk",
         "nigga", "nigger", "fucker", "dick", "damn", "pussy", "wanker", "prick", "twat",
