@@ -3,6 +3,7 @@ import TiltDetected from "./actions/TiltDetected";
 import ShakeDetected from "./actions/ShakeDetected";
 import BalanceGame from "./actions/BalanceGame";
 import Camera from "./actions/Camera";
+import BlowGame from "./actions/BlowGame";
 
 export default function ActionQuestion({ question, onSuccess, socket }) {
     const [targetColor, setTargetColor] = useState("red");
@@ -77,7 +78,7 @@ export default function ActionQuestion({ question, onSuccess, socket }) {
             )}
 
             {/* Détection de Couleur avec la caméra */}
-            {question.answer === "color_detected" && (
+            {question.answer === "color_success" && (
                 <>
                     <h1
                         className={`text-4xl font-Amatic mb-6 capitalize ${
@@ -97,8 +98,13 @@ export default function ActionQuestion({ question, onSuccess, socket }) {
                         targetColor={targetColor}
                         onSuccess={handleSuccess}
                         socket={socket}
+                        sessionId={sessionId}
                     />
                 </>
+            )}
+            {/* Jeu de Souffle */}
+            {question.answer === "blow_success" && (
+                <BlowGame questionId={question.id} onSuccess={handleSuccess} socket={socket} sessionId={sessionId} />
             )}
         </div>
     );
