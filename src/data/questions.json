@@ -51,13 +51,19 @@
   {
     "id": 8,
     "question": "Prenez la couleur en photo",
-    "answer": "color_detected",
+    "answer": "color_success",
     "type": "action"
   },
   {
     "id": 9,
     "question": "Placez la balle dans le trou en inclinant votre téléphone.",
     "answer": "hole_success",
+    "type": "action"
+  },
+  {
+    "id": 10,
+    "question": "Gonflez le ballon !",
+    "answer": "blow_success",
     "type": "action"
   }
 ]
