@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-export default function BalanceGame({ questionId, socket }) {
+export default function BalanceGame({ questionId, socket, sessionId }) {
     const radiusThreshold = 10;
 
     const [holePosition, setHolePosition] = useState(() => generateRandomPosition([]));
@@ -145,7 +145,7 @@ export default function BalanceGame({ questionId, socket }) {
     }
 
     function submitAnswer(answer) {
-        socket.emit("submitAnswer", { sessionId: "sessionId", questionId, answer });
+        socket.emit("submitAnswer", { sessionId: sessionId, questionId, answer });
     }
 
     return (
@@ -212,6 +212,14 @@ export default function BalanceGame({ questionId, socket }) {
                 </div>
             </div>
             {message && <p className="text-green-500 text-sm mt-4">{message}</p>}
+            {/* Bouton Skip */}
+            <button
+                onClick={() => submitAnswer("hole_success")}
+                className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-700 text-white font-bold rounded-lg"
+            >
+                Skip
+            </button>
         </div>
     );
+
 }
