@@ -1,17 +1,34 @@
-import {useState, useEffect} from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
+import io from 'socket.io-client';
 
 export default function Profile() {
     const [suspects, setSuspects] = useState(null); // State for storing suspects
-    const [players, setPlayers] = useState(null); // State for storing suspects
-    const [sessionId, setSessionId] = useState(null); // State for storing suspects
+    const [players, setPlayers] = useState(null); // State for storing players
     const [error, setError] = useState(null); // State for error handling
+    const [socket, setSocket] = useState(null);
 
     // Fetch data using useEffect
     useEffect(() => {
+        // Crée une connexion socket une seule fois lors du premier rendu
+        const socketConnection = io('http://localhost:3000', {
+            path: '/api/socket',
+        });
+        setSocket(socketConnection);
+
+        // Assurez-vous que les appels API sont effectués après avoir récupéré les données de session
         const storedUserData = getStoredUserData();
-        fetchSuspects();
-        fetchPlayersBySessionId(storedUserData.sessionId);
+        if (storedUserData?.sessionId) {
+            fetchSuspects();
+            fetchPlayersBySessionId(storedUserData.sessionId);
+        }
+
+        // Assurez-vous de gérer la déconnexion lorsque le composant est démonté
+        return () => {
+            if (socketConnection) {
+                socketConnection.disconnect();
+            }
+        };
     }, []);
 
     const getStoredUserData = () => {
@@ -29,7 +46,6 @@ export default function Profile() {
     const fetchSuspects = async () => {
         try {
             const response = await axios.get("/api/suspect");
-            console.log(response);
             setSuspects(response.data);
         } catch (err) {
             console.error('Failed to fetch suspects:', err);
@@ -39,11 +55,9 @@ export default function Profile() {
 
     const fetchPlayersBySessionId = async (sessionId) => {
         try {
-            console.log(sessionId)
             const response = await axios.get("/api/player", {
-                params: {sessionId: sessionId},
+                params: { sessionId: sessionId },
             });
-            console.log(response);
             setPlayers(response.data);
         } catch (err) {
             console.error('Failed to fetch players:', err);
@@ -51,6 +65,16 @@ export default function Profile() {
         }
     };
 
+    const voteForSuspect = (suspectId) => {
+        const storedUserData = getStoredUserData();
+        if (socket && storedUserData) {
+            console.log("SUSPECT ID VOTÉ", suspectId);
+            console.log("StoredUserData", storedUserData.id);
+            console.log("StoredUserData", storedUserData.sessionId);
+
+            socket.emit('voteForSuspect', suspectId, storedUserData.id, storedUserData.sessionId);
+        }
+    };
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-1">
@@ -62,28 +86,27 @@ export default function Profile() {
                     <h1 className="font-Amatic text-3xl">Suspects :</h1>
 
                     {suspects.map((suspect, index) => (
-                        <div
-                            key={index}
-                            className="border border-gray-600 bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
-                        >
-                            <p className="font-Amatic text-2xl font-medium truncate">{suspect.name}</p>
-                        </div>
+                        <button onClick={() => voteForSuspect(suspect.id)} key={index}
+                                className="border border-gray-600 bg-gray-800 flex justify-start p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                            <p className="font-Amatic text-2xl text-white font-medium truncate">{suspect.name}</p>
+                        </button>
                     ))}
                 </div>
             ) : (
                 <p className="font-Amatic text-gray-400 text-2xl animate-pulse">Loading...</p>
             )}
+
             {players ? (
                 <div>
                     <h1 className="font-Amatic text-3xl mb-5">Joueurs :</h1>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-6xl">
+                    <div className="flex flex-wrap gap-3 w-full max-w-6xl">
                         {players.map((player, index) => (
                             <div
                                 key={index}
-                                className="border border-gray-600 bg-gray-800 p-5 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+                                className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
                             >
-                                <p className="font-Amatic text-2xl font-medium truncate">{player.name}</p>
+                                <p className="font-Amatic text-xl font-medium truncate">{player.name}</p>
                             </div>
                         ))}
                     </div>
@@ -92,6 +115,5 @@ export default function Profile() {
                 <p className="text-gray-400 font-Amatic text-2xl animate-pulse">Loading...</p>
             )}
         </div>
-
     );
 }

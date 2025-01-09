@@ -1,8 +1,9 @@
-import { Server } from 'socket.io';
+import {Server} from 'socket.io';
 import questions from '../../data/questions.json';
-import { encryptParam } from '../../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
+import {encryptParam} from '../../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
 
 const sessions = {}; // Stock temporaire pour les sessions et leurs joueurs
+const sessionVote = {};
 
 export default function handler(req, res) {
     if (!res.socket.server.io) {
@@ -79,7 +80,7 @@ export default function handler(req, res) {
             });
 
 
-            socket.on('submitAnswer', ({ sessionId, questionId, answer }) => {
+            socket.on('submitAnswer', ({sessionId, questionId, answer}) => {
                 console.log(`Réponse reçue pour la question ${questionId} :`, answer);
                 if (sessions[sessionId]) {
                     console.log("(socket.js:84) here");
@@ -91,6 +92,42 @@ export default function handler(req, res) {
                     io.to(sessionId).emit('answerSubmitted', {
                         redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
                     });
+                } else {
+                    console.error(`Session ${sessionId} introuvable.`);
+                }
+            });
+
+            socket.on('voteForSuspect', (suspectId, userId, sessionId ) => {
+                console.log(`suspectId ${suspectId} :`, `userId = ${userId}`, `sessionId = ${sessionId}`);
+
+                if (sessions[sessionId]) {
+                    console.log("(socket.js:84) here");
+
+                    // Vérifier si le joueur a déjà voté dans cette session
+                    if (!sessionVote[sessionId]) {
+                        sessionVote[sessionId] = [];
+                    }
+
+                    const alreadyVoted = sessionVote[sessionId].find(vote => vote.userId === userId);
+                    if (alreadyVoted) {
+                        console.log(`Le joueur ${userId} a déjà voté`);
+                        io.to(socket.id).emit('voteError', 'Vous avez déjà voté.');
+                    } else {
+                        // Enregistrer le vote du joueur
+                        sessionVote[sessionId].push({
+                            userId: userId,
+                            suspectId: suspectId,
+                        });
+
+                        console.log(`Le joueur ${userId} a voté pour le suspect ${suspectId} dans la session ${sessionId}.`);
+                        console.log(sessionVote[sessionId]);
+
+                        // Notifier les autres joueurs
+                        io.to(sessionId).emit('updateVotes', sessionVote[sessionId]);
+
+                        // Optionnel : envoyer un accusé de réception
+                        io.to(socket.id).emit('voteSuccess', 'Vote enregistré avec succès');
+                    }
                 } else {
                     console.error(`Session ${sessionId} introuvable.`);
                 }
