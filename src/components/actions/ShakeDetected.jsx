@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-export default function ShakeDetected({ questionId, onSuccess }) {
+export default function ShakeDetected({ questionId, onSuccess, socket, sessionId }) {
     const [shakeDetected, setShakeDetected] = useState(false);
     const shakeHistory = []; // Historique des détections de shake
     const maxHistory = 5; // Taille maximale de l'historique
 
+    function submitAnswer(answer) {
+        socket.emit("submitAnswer", { sessionId: sessionId , questionId, answer });
+    }
     useEffect(() => {
         let shakeValidated = false; // Empêche la validation multiple
 
@@ -28,22 +31,7 @@ export default function ShakeDetected({ questionId, onSuccess }) {
                 shakeValidated = true; // Bloquer les futures détections
                 setShakeDetected(true);
 
-                // Appel API avec Axios pour valider l'action
-                axios.post('/api/question/answer', {
-                    id: questionId,
-                    answer: "shake_detected"
-                })
-                    .then((response) => {
-                        if (response.data.correct && onSuccess) {
-                            onSuccess(response.data.message);
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Erreur lors de l'envoi des données :", error);
-                    })
-                    .finally(() => {
-                        window.removeEventListener("devicemotion", handleMotion); // Arrêter la détection
-                    });
+                submitAnswer("shake_detected");
             }
         };
 
@@ -58,6 +46,13 @@ export default function ShakeDetected({ questionId, onSuccess }) {
             ) : (
                 <p>Secouez votre téléphone pour valider cette action.</p>
             )}
+            {/* Bouton Skip */}
+            <button
+                onClick={() => submitAnswer("shake_detected")}
+                className="mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-700 text-white font-bold rounded-lg"
+            >
+                Skip
+            </button>
         </div>
     );
 }
