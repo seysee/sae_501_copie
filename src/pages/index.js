@@ -127,17 +127,27 @@ export default function Index() {
                                 className="mb-4 bg-black text-white border-white"
                             />
                         </Link>
-                        <Button
-                            label="Créer partie"
-                            className="mb-4 bg-black text-white border-white"
-                            onClick={createGame}
-                        />
-                        <Link href="/joinGame" passHref>
-                            <Button
-                                label="Rejoindre partie"
-                                className="mb-4 bg-black text-white border-white"
-                            />
-                        </Link>
+
+                        {userPseudo ? (
+                            <>
+                                <Button
+                                    label="Créer partie"
+                                    className="mb-4 bg-black text-white border-white"
+                                    onClick={createGame}
+                                />
+                                <Link href="/joinGame" passHref>
+                                    <Button
+                                        label="Rejoindre partie"
+                                        className="mb-4 bg-black text-white border-white"
+                                    />
+                                </Link>
+                            </>
+                        ) : (
+                            <p className="text-center text-red-500 mb-4">
+                                Veuillez créer un profil pour accéder à ces fonctionnalités.
+                            </p>
+                        )}
+
                         <Link href="/rules" passHref>
                             <Button
                                 label="Règles"
@@ -145,6 +155,7 @@ export default function Index() {
                             />
                         </Link>
                     </div>
+
                 </div>
             )}
         </div>
