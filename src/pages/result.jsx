@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
-import {useRouter} from 'next/router';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import Hint from "./hint";
 import axios from "axios";
 import { decryptParam } from '../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
@@ -35,39 +35,59 @@ const Result = () => {
     const rememberQuestion = async (questionId) => {
         const storedPlayer = sessionStorage.getItem('userData');
         const playerData = JSON.parse(storedPlayer);
-        const sessionId = playerData.sessionId;
+        const sessionId = playerData?.sessionId;
+
+        if (!sessionId) {
+            console.error("Aucune session ID trouvée.");
+            return;
+        }
+
         try {
-            console.log("sessionid", sessionId)
+            console.log("Session ID :", sessionId);
+
+            // Récupérer les données de la session
             const responseGet = await axios.get("/api/session", {
                 params: {
                     id: sessionId,
-                }
+                },
             });
 
-            const data = responseGet.data.questions || []
+            console.log("(result.jsx:40) Données récupérées :", responseGet.data);
 
-            if (!data.includes(parseInt(questionId))){
-                data.push(parseInt(questionId));
+            // Convertir les questions existantes en tableau si elles sont une chaîne JSON
+            let existingQuestions = [];
+            if (typeof responseGet.data.questions === "string") {
+                try {
+                    existingQuestions = JSON.parse(responseGet.data.questions); // Assure qu'on travaille avec un tableau
+                } catch (error) {
+                    console.error("Erreur lors du parsing des questions existantes :", error);
+                }
             }
 
-            console.log("Données envoyées :", { id: sessionId, questions: data });
+            console.log("Questions existantes (après parsing) :", existingQuestions);
 
+            // Ajouter la nouvelle question si elle n'existe pas déjà
+            const updatedQuestions = [...new Set([...existingQuestions, parseInt(questionId)])]; // Évite les doublons
+
+            console.log("Questions mises à jour :", updatedQuestions);
+
+            // Mettre à jour la session avec les nouvelles questions
             const responsePut = await axios.put("/api/session", {
                 id: sessionId,
-                questions: data
+                questions: updatedQuestions, // Stocker sous forme de chaîne JSON dans la BDD
             });
 
-            console.log("response de sessions/question", responsePut.data)
+            console.log("Réponse de l'API PUT :", responsePut.data);
         } catch (error) {
             console.error("Erreur lors de la mise à jour de la session :", error);
         }
-    }
+    };
 
     const verifyResponse = async (questionId, answer) => {
         try {
             const response = await axios.post("/api/question/answer", {
-                id: questionId,  // Correspondance correcte avec l'API
-                answer
+                id: questionId, // Correspondance correcte avec l'API
+                answer,
             });
             console.log('Réponse API :', response.data);
             setFeedback(response.data.message);
@@ -87,7 +107,7 @@ const Result = () => {
                     <p className="text-2xl text-green-500">
                         Bonne Réponse!
                     </p>
-                    <Hint/>
+                    <Hint />
                 </>
             ) : (
                 <p className="text-2xl text-red-500">
@@ -101,7 +121,7 @@ const Result = () => {
                 Retour à l'accueil
             </button>
         </div>
-    )
+    );
 };
 
 export default Result;

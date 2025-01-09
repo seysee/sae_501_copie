@@ -26,13 +26,14 @@ export default function handler(req, res) {
                 if (!sessions[sessionId]) {
                     sessions[sessionId] = {
                         players: [],
-                        questions: shuffle([...questions]), // Mélangez et attribuez toutes les questions disponibles
+                        questions: shuffle([...questions]),
                         answered: false
                     };
                 }
 
                 sessions[sessionId].players.push(player);
                 socket.join(sessionId);
+                console.log("(socket.js:36) ", sessions);
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
 
@@ -81,6 +82,7 @@ export default function handler(req, res) {
             socket.on('submitAnswer', ({ sessionId, questionId, answer }) => {
                 console.log(`Réponse reçue pour la question ${questionId} :`, answer);
                 if (sessions[sessionId]) {
+                    console.log("(socket.js:84) here");
                     sessions[sessionId].answered = true;
 
                     const encryptedQuestionId = encryptParam(questionId);
@@ -89,6 +91,8 @@ export default function handler(req, res) {
                     io.to(sessionId).emit('answerSubmitted', {
                         redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
                     });
+                } else {
+                    console.error(`Session ${sessionId} introuvable.`);
                 }
             });
 

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import TiltDetected from "./actions/TiltDetected";
 import ShakeDetected from "./actions/ShakeDetected";
 import BalanceGame from "./actions/BalanceGame";
 import Camera from "./actions/Camera";
 
-export default function ActionQuestion({ question, onSuccess }) {
+export default function ActionQuestion({ question, onSuccess, socket }) {
     const [targetColor, setTargetColor] = useState("red");
+    const [sessionId, setSessionId] = useState(null);
 
     useEffect(() => {
         if (question.answer === "color_detected") {
@@ -15,11 +16,33 @@ export default function ActionQuestion({ question, onSuccess }) {
         }
     }, [question]);
 
+
     const handleSuccess = (message) => {
         console.log(message); // Affiche un message de succès
         alert(message); // Optionnel : Affiche une alerte
         onSuccess(message); // Appelle la callback de validation
     };
+
+    const getStoredUserData = () => {
+        try {
+            const storedPlayer = sessionStorage.getItem("userData");
+            if (storedPlayer) {
+                return JSON.parse(storedPlayer);
+            }
+        } catch (error) {
+            console.error("Erreur lors de la récupération des données utilisateur:", error);
+        }
+        return null;
+    };
+
+    useEffect(() => {
+        const storedPlayer = getStoredUserData();
+        if (storedPlayer?.sessionId) {
+            setSessionId(storedPlayer.sessionId);
+        } else {
+            console.error("Aucune sessionId trouvée dans les données utilisateur.");
+        }
+    }, []);
 
     return (
         <div>
@@ -27,15 +50,30 @@ export default function ActionQuestion({ question, onSuccess }) {
 
             {/* Détection de Tilt */}
             {question.answer === "tilt_detected" && (
-                <TiltDetected questionId={question.id} onSuccess={handleSuccess} />
+                <TiltDetected
+                    questionId={question.id}
+                    onSuccess={handleSuccess}
+                    socket={socket}
+                    sessionId={sessionId} // Transmet l'id de session
+                />
             )}
 
             {/* Détection de Shake */}
             {question.answer === "shake_detected" && (
-                <ShakeDetected questionId={question.id} onSuccess={handleSuccess} />
+                <ShakeDetected
+                    questionId={question.id}
+                    onSuccess={handleSuccess}
+                    socket={socket}
+                    sessionId={sessionId} // Transmet l'id de session
+                />
             )}
             {question.answer === "hole_success" && (
-                <BalanceGame questionId={question.id} onSuccess={handleSuccess} />
+                <BalanceGame
+                    questionId={question.id}
+                    onSuccess={handleSuccess}
+                    socket={socket}
+                    sessionId={sessionId} // Transmet l'id de session
+                />
             )}
 
             {/* Détection de Couleur avec la caméra */}
@@ -58,6 +96,7 @@ export default function ActionQuestion({ question, onSuccess }) {
                         questionId={question.id}
                         targetColor={targetColor}
                         onSuccess={handleSuccess}
+                        socket={socket}
                     />
                 </>
             )}
