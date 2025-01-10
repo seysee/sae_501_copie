@@ -10,9 +10,10 @@ export default function Profile() {
     const [socket, setSocket] = useState(null);
     const [votes, setVotes] = useState([]);
 
-    const [timeLeft, setTimeLeft] = useState(null);
+    const [voters, setVoters] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
-    const initialTime = 10; //temps initial pour le timer
+    const initialTime = 10;
+    const [votedSuspectId, setVotedSuspectId] = useState(null);
 
     // Fetch data using useEffect
     useEffect(() => {
@@ -33,22 +34,22 @@ export default function Profile() {
         socketConnection.on('updateVotes', (updatedVotes) => {
             console.log('Votes mis à jour reçus :', updatedVotes);
             setVotes(updatedVotes);
+
+            const storedUserData = getStoredUserData();
+            const userVote = updatedVotes.find(vote => vote.userId === storedUserData?.id);
+
+            if (userVote) {
+                setVotedSuspectId(userVote.suspectId);
+                setDisableVote(true); // Désactiver les votes si l'utilisateur a déjà voté
+            }
+
+            const votedPlayers = updatedVotes.map(vote => vote.userName); // Suppose que `userName` est envoyé dans le vote
+            setVoters(votedPlayers);
         });
 
-        socketConnection.on('voteEndTime', (endTime) => {
-            const interval = setInterval(() => {
-                const now = new Date();
-                const timeRemaining = new Date(endTime) - now;
-                if (timeRemaining <= 0) {
-                    clearInterval(interval);
-                    setTimeLeft(0);
-                    setDisableVote(true);
-                } else {
-                    setTimeLeft(timeRemaining);
-                }
-            }, 1000);
-
-            return () => clearInterval(interval);
+        socketConnection.on('voteEndTime', () => {
+            setDisableVote(true);
+            console.log('Le temps est écoulé. Les votes sont désormais fermés.');
         });
 
         return () => {
@@ -95,19 +96,14 @@ export default function Profile() {
     const voteForSuspect = (suspectId) => {
         const storedUserData = getStoredUserData();
         const confirmVote = window.confirm("Valider votre vote ?");
-        if (socket && storedUserData) {
-            console.log("SUSPECT ID VOTÉ", suspectId);
+        if (!confirmVote) return;
+
+        if (confirmVote && socket && storedUserData) {
             console.log("StoredUserData", storedUserData.id);
             console.log("StoredUserData", storedUserData.sessionId);
-
+            console.log("SUSPECT ID VOTÉ", suspectId);
             socket.emit('voteForSuspect', suspectId, storedUserData.id, storedUserData.sessionId);
-        }
-        if (confirmVote) {
-            const storedUserData = getStoredUserData();
-            if (socket && storedUserData) {
-                console.log("SUSPECT ID VOTÉ", suspectId);
-                socket.emit('voteForSuspect', suspectId, storedUserData.id, storedUserData.sessionId);
-            }
+            setDisableVote(true);
         }
     };
 
@@ -117,25 +113,25 @@ export default function Profile() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-1 overflow-y-auto">
-            <h1 className="text-5xl font-Amatic mb-10">Place au vote</h1>
+        <div className="min-h-screen flex flex-col p-4 items-center justify-center">
+            <h1 className="text-5xl font-Amatic mb-7">Place au vote</h1>
 
-            {timeLeft !== null && !disableVote && (
-                <div className="text-center mb-6">
-                    <Timer
-                        initialTime={initialTime}
-                        onTimeUp={handleTimeUp}
-                        paused={false}
-                    />
+            {!disableVote && (
+                <div>
+                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false} />
                 </div>
             )}
 
-            {error ? (
-                <p className="text-red-500 text-2xl font-semibold">{error}</p>
-            ) : suspects ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-6xl mb-10">
-                    <h1 className="font-Amatic text-3xl mb-4">Suspects :</h1>
+            {disableVote && (
+                <p className="text-red-500 font-Amatic text-2xl">Le vote est terminé</p>
+            )}
 
+            {error ? (
+                <p className="text-red-500 text-2xl font-semibold text-center">{error}</p>
+            ) : suspects ? (
+                <div className="w-full max-w-6xl mx-auto">
+                    <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {suspects.map((suspect, index) => {
                         const hasVoted = votes.some(vote => vote.suspectId === suspect.id);
 
@@ -143,26 +139,25 @@ export default function Profile() {
                             <div key={index} className="flex flex-col items-center">
                                 <button
                                     onClick={() => voteForSuspect(suspect.id)}
-                                    disabled={disableVote}
+                                    disabled={disableVote || hasVoted}
                                     className={`border border-gray-600 bg-gray-800 flex justify-start p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ${
                                         disableVote ? 'opacity-50 cursor-not-allowed' : ''
                                     }`}>
-                                    <span className="font-Amatic text-2xl">{suspect.name}</span>
-                                    {hasVoted && <span className="text-sm text-green-500 ml-2">A voté</span>}
+                                    <p className="font-Amatic text-2xl text-white font-medium truncate">{suspect.name}</p>
                                 </button>
                             </div>
                         );
                     })}
+                    </div>
                 </div>
             ) : (
                 <p className="font-Amatic text-gray-400 text-2xl animate-pulse">Loading...</p>
             )}
 
             {players ? (
-                <div>
-                    <h1 className="font-Amatic text-3xl mb-5">Joueurs :</h1>
-
-                    <div className="flex flex-wrap gap-3 w-full max-w-6xl">
+                <div className="w-full max-w-6xl mx-auto mt-10">
+                    <h1 className="font-Amatic text-3xl mb-4">Joueurs :</h1>
+                    <div className="flex flex-wrap gap-3">
                         {players.map((player, index) => (
                             <div
                                 key={index}
@@ -177,20 +172,20 @@ export default function Profile() {
                 <p className="text-gray-400 font-Amatic text-2xl animate-pulse">Loading...</p>
             )}
 
-            {timeLeft !== null && !disableVote && (
-                <div className="mt-5 text-xl font-Amatic">
-                    <p>Temps restant avant la fin du vote : {Math.floor(timeLeft / 1000)} secondes</p>
+            {voters.length > 0 && (
+                <div className="w-full max-w-6xl mx-auto mt-10">
+                    <h1 className="font-Amatic text-3xl mb-4">Joueurs ayant voté :</h1>
+                    <div className="flex flex-wrap gap-3">
+                        {voters.map((voter, index) => (
+                            <div
+                                key={index}
+                                className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+                            >
+                                <p className="font-Amatic text-xl font-medium truncate">{voter}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            )}
-
-            {!disableVote && (
-                <div className="mt-5">
-                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false} />
-                </div>
-            )}
-
-            {disableVote && (
-                <p className="text-red-500 font-Amatic text-2xl mt-5">Le vote est terminé</p>
             )}
 
         </div>
