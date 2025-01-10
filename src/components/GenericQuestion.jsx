@@ -72,7 +72,7 @@ export default function GenericQuestion({ question, onSuccess }) {
 
     return (
         <div className="flex flex-col items-center justify-center text-white">
-            <h1 className="text-4xl mb-4">{question.question}</h1>
+            <h1 className="text-4xl mb-4 font-Amatic font-bold">{question.question}</h1>
 
             {/* Charger les assets */}
             {assetsLoaded.map((asset, index) => (

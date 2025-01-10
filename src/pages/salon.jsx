@@ -10,7 +10,6 @@ export default function Salon() {
     const [gameCreated, setGameCreated] = useState(false);
     const [isHost, setIsHost] = useState(false);
     const [socket, setSocket] = useState(null);
-
     const router = useRouter(); // Correctement utiliser useRouter
 
     useEffect(() => {
