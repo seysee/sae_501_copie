@@ -1,12 +1,12 @@
 import { Server } from 'socket.io';
 import questions from '../../data/questions.json';
-import { encryptParam } from '../../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
+import { encryptParam } from '../../lib/cryptoUtils';
+import axios from "axios"; // Chemin vers votre fichier d'utilitaires
 
 const sessions = {}; // Stock temporaire pour les sessions et leurs joueurs
 
 export default function handler(req, res) {
     if (!res.socket.server.io) {
-        console.log('Initialisation du serveur Socket.IO...');
         const io = new Server(res.socket.server, {
             path: '/api/socket',
             cors: {
@@ -16,11 +16,9 @@ export default function handler(req, res) {
         });
 
         io.on('connection', (socket) => {
-            console.log('Nouvelle connexion établie :', socket.id);
 
             // Rejoindre une session
             socket.on('joinSession', (sessionId, player) => {
-                console.log(`${player.name} a rejoint la session ${sessionId}`);
 
                 // Initialiser la session si elle n'existe pas
                 if (!sessions[sessionId]) {
@@ -31,16 +29,20 @@ export default function handler(req, res) {
                     };
                 }
 
-                sessions[sessionId].players.push(player);
+                // Vérifier si le joueur est déjà dans la session
+                const existingPlayer = sessions[sessionId].players.find(p => p.id === player.id);
+                if (!existingPlayer) {
+                    sessions[sessionId].players.push(player);
+                } else {
+                }
+
                 socket.join(sessionId);
-                console.log("(socket.js:36) ", sessions);
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
 
 
             // Démarrer une partie
             socket.on('startGame', (sessionId) => {
-                console.log(`La partie dans la session ${sessionId} commence.`);
                 io.to(sessionId).emit('gameStarted', '/role');
             });
 
@@ -53,19 +55,25 @@ export default function handler(req, res) {
                 return array;
             }
 
-            socket.on('launchQuestions', (sessionId, toFilterQuestion) => {
+            socket.on('launchQuestions', async (sessionId, toFilterQuestion) => {
                 console.log(`${sessionId} est en train de lancer les questions.`);
 
                 if (sessions[sessionId]) {
+                    // Récupérer des questions si nécessaire
                     if (sessions[sessionId].questions.length === 0) {
-                        sessions[sessionId].questions = shuffle([...questions]);
+                        try {
+                            const response = await axios.get('/api/question/question', { params: { limit: 10 } });
+                            sessions[sessionId].questions = response.data;
+                        } catch (error) {
+                            console.error("Erreur lors de la récupération des questions :", error);
+                            return;
+                        }
                     }
-                    const availableQuestions = sessions[sessionId].questions
-                        .filter(q => !toFilterQuestion.includes(q.id));
 
-                    console.log("Questions disponibles après filtrage :", availableQuestions);
+                    // Exclure les questions déjà répondues
+                    const availableQuestions = sessions[sessionId].questions.filter(q => !toFilterQuestion.includes(q.id));
 
-                    if (availableQuestions.length > 0) { // Vérifier si des questions sont disponibles
+                    if (availableQuestions.length > 0) {
                         const firstQuestion = availableQuestions[0]; // Utiliser [0] pour obtenir la première question
                         sessions[sessionId].answered = false;
                         sessions[sessionId].answeredBy = {};
@@ -79,10 +87,10 @@ export default function handler(req, res) {
             });
 
 
+
             socket.on('submitAnswer', ({ sessionId, questionId, answer }) => {
                 console.log(`Réponse reçue pour la question ${questionId} :`, answer);
                 if (sessions[sessionId]) {
-                    console.log("(socket.js:84) here");
                     sessions[sessionId].answered = true;
 
                     const encryptedQuestionId = encryptParam(questionId);
