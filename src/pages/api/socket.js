@@ -144,6 +144,11 @@ export default function handler(req, res) {
                 }
             });
 
+            // ce que j'ai ajouté
+            socket.on('getVoteEndTime', (sessionId) => {
+                const sessionEndTime = sessions[sessionId]?.endTime;
+                io.to(socket.id).emit('voteEndTime', sessionEndTime);
+            });
 
         });
 
