@@ -3,7 +3,7 @@ import questions from '../../data/questions.json';
 import {encryptParam} from '../../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
 
 const sessions = {}; // Stock temporaire pour les sessions et leurs joueurs
-const sessionVote = {};
+const sessionVote = {}; //STOCKER LES VOTES
 
 export default function handler(req, res) {
     if (!res.socket.server.io) {
@@ -97,7 +97,7 @@ export default function handler(req, res) {
                 }
             });
 
-            socket.on('voteForSuspect', (suspectId, userId, sessionId ) => {
+            socket.on('voteForSuspect', (suspectId, userId, sessionId) => {
                 console.log(`suspectId ${suspectId} :`, `userId = ${userId}`, `sessionId = ${sessionId}`);
 
                 if (sessions[sessionId]) {
@@ -108,26 +108,37 @@ export default function handler(req, res) {
                         sessionVote[sessionId] = [];
                     }
 
-                    const alreadyVoted = sessionVote[sessionId].find(vote => vote.userId === userId);
-                    if (alreadyVoted) {
-                        console.log(`Le joueur ${userId} a déjà voté`);
-                        io.to(socket.id).emit('voteError', 'Vous avez déjà voté.');
+                    const voteIndex = sessionVote[sessionId].findIndex(vote => vote.userId === userId);
+
+                    if (voteIndex !== -1) {
+                        // Si un vote existe déjà, mettre à jour le vote avec le nouveau suspectId
+                        if (sessionVote[sessionId][voteIndex].suspectId === suspectId) {
+                            console.log(`Le joueur ${userId} a déjà voté pour ${suspectId}`);
+                            console.log(sessionVote[sessionId]);
+
+                            io.to(socket.id).emit('voteError', 'Vous avez déjà voté pour ce suspect.');
+                        } else {
+                            sessionVote[sessionId][voteIndex].suspectId = suspectId;
+                            console.log(`Le joueur ${userId} a changé son vote pour ${suspectId} dans la session ${sessionId}.`);
+                            console.log(sessionVote[sessionId]);
+
+                            io.to(socket.id).emit('voteUpdated', 'Votre vote a été mis à jour.');
+                        }
                     } else {
-                        // Enregistrer le vote du joueur
+                        // Si aucun vote précédent, enregistrer un nouveau vote
                         sessionVote[sessionId].push({
                             userId: userId,
                             suspectId: suspectId,
                         });
-
                         console.log(`Le joueur ${userId} a voté pour le suspect ${suspectId} dans la session ${sessionId}.`);
                         console.log(sessionVote[sessionId]);
-
-                        // Notifier les autres joueurs
-                        io.to(sessionId).emit('updateVotes', sessionVote[sessionId]);
-
-                        // Optionnel : envoyer un accusé de réception
-                        io.to(socket.id).emit('voteSuccess', 'Vote enregistré avec succès');
+                        io.to(socket.id).emit('voteSuccess', 'Vote enregistré avec succès.');
                     }
+
+                    // Notifier les autres joueurs
+                    io.to(sessionId).emit('updateVotes', sessionVote[sessionId]);
+                    console.log(`Votes mis à jour envoyés pour la session ${sessionId} :`, sessionVote[sessionId]);
+
                 } else {
                     console.error(`Session ${sessionId} introuvable.`);
                 }
