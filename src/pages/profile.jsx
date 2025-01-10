@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import Button from '../components/_button';
@@ -6,7 +6,10 @@ import Button from '../components/_button';
 export default function Profile() {
     const [pseudo, setPseudo] = useState('');
     const [error, setError] = useState(null);
+    const [isConnected, setIsConnected] = useState(false);
+
     const router = useRouter();
+
     const bannedWords = [
         "con", "conne", "abruti", "imbécile", "crétin", "débile", "connard", "connasse", "trouduc",
         "enfoiré", "bâtard", "merde", "emmerdeur", "chieur", "salope", "saligaud", "pute", "putain",
@@ -42,11 +45,21 @@ export default function Profile() {
         "c4c4", "c4ca", "cac4", "p1p1", "p1pi", "pip1"
     ];
 
-
     const containsBannedWord = (text) => {
         const lowerText = text.toLowerCase();
         return bannedWords.some((word) => lowerText.includes(word));
     };
+
+    useEffect(() => {
+        const storedUserData = sessionStorage.getItem('userData');
+        if (storedUserData) {
+            const userData = JSON.parse(storedUserData);
+            if (userData && userData.name) {
+                setPseudo(userData.name);
+                setIsConnected(true);
+            }
+        }
+    }, []);
 
     const handleSavePseudo = async () => {
         if (!pseudo.trim()) {
@@ -71,11 +84,35 @@ export default function Profile() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center text-white">
+        <div className="min-h-screen flex flex-col items-center justify-center text-white relative">
+            {/* Bouton retour, affiché uniquement si isConnected === true */}
+            { (
+                <button
+                    onClick={() => router.back()}
+                    className="absolute top-4 left-0 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
+                    title="Retour"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-6 h-6"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15.75 19.5L8.25 12l7.5-7.5"
+                        />
+                    </svg>
+                </button>
+            )}
+
             <h1 className="text-5xl font-Amatic mb-8">Profil</h1>
             <div className="w-full max-w-md">
                 <label htmlFor="pseudo" className="block text-lg mb-4">
-                    Entrez votre pseudo :
+                    {isConnected ? 'Modifiez votre pseudo :' : 'Entrez votre pseudo :'}
                 </label>
                 <input
                     type="text"
