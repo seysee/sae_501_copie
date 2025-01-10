@@ -7,23 +7,29 @@ export default function Profile() {
     const [players, setPlayers] = useState(null); // State for storing players
     const [error, setError] = useState(null); // State for error handling
     const [socket, setSocket] = useState(null);
+    const [votes, setVotes] = useState([]);
 
     // Fetch data using useEffect
     useEffect(() => {
-        // Crée une connexion socket une seule fois lors du premier rendu
+        const storedUserData = getStoredUserData();
+
+        if (storedUserData?.sessionId) {
+            fetchSuspects();
+            fetchPlayersBySessionId(storedUserData.sessionId);
+        }
+    }, []);
+
+    useEffect(() => {
         const socketConnection = io('http://localhost:3000', {
             path: '/api/socket',
         });
         setSocket(socketConnection);
 
-        // Assurez-vous que les appels API sont effectués après avoir récupéré les données de session
-        const storedUserData = getStoredUserData();
-        if (storedUserData?.sessionId) {
-            fetchSuspects();
-            fetchPlayersBySessionId(storedUserData.sessionId);
-        }
+        socketConnection.on('updateVotes', (updatedVotes) => {
+            console.log('Votes mis à jour reçus :', updatedVotes);
+            setVotes(updatedVotes);
+        });
 
-        // Assurez-vous de gérer la déconnexion lorsque le composant est démonté
         return () => {
             if (socketConnection) {
                 socketConnection.disconnect();
