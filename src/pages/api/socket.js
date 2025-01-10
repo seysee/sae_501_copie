@@ -100,54 +100,74 @@ export default function handler(req, res) {
             socket.on('voteForSuspect', (suspectId, userId, sessionId) => {
                 console.log(`suspectId ${suspectId} :`, `userId = ${userId}`, `sessionId = ${sessionId}`);
 
-                if (sessions[sessionId]) {
-                    console.log("(socket.js:84) here");
-
-                    // Vérifier si le joueur a déjà voté dans cette session
-                    if (!sessionVote[sessionId]) {
-                        sessionVote[sessionId] = [];
-                    }
-
-                    const voteIndex = sessionVote[sessionId].findIndex(vote => vote.userId === userId);
-
-                    if (voteIndex !== -1) {
-                        // Si un vote existe déjà, mettre à jour le vote avec le nouveau suspectId
-                        if (sessionVote[sessionId][voteIndex].suspectId === suspectId) {
-                            console.log(`Le joueur ${userId} a déjà voté pour ${suspectId}`);
-                            console.log(sessionVote[sessionId]);
-
-                            io.to(socket.id).emit('voteError', 'Vous avez déjà voté pour ce suspect.');
-                        } else {
-                            sessionVote[sessionId][voteIndex].suspectId = suspectId;
-                            console.log(`Le joueur ${userId} a changé son vote pour ${suspectId} dans la session ${sessionId}.`);
-                            console.log(sessionVote[sessionId]);
-
-                            io.to(socket.id).emit('voteUpdated', 'Votre vote a été mis à jour.');
-                        }
-                    } else {
-                        // Si aucun vote précédent, enregistrer un nouveau vote
-                        sessionVote[sessionId].push({
-                            userId: userId,
-                            suspectId: suspectId,
-                        });
-                        console.log(`Le joueur ${userId} a voté pour le suspect ${suspectId} dans la session ${sessionId}.`);
-                        console.log(sessionVote[sessionId]);
-                        io.to(socket.id).emit('voteSuccess', 'Vote enregistré avec succès.');
-                    }
-
-                    // Notifier les autres joueurs
-                    io.to(sessionId).emit('updateVotes', sessionVote[sessionId]);
-                    console.log(`Votes mis à jour envoyés pour la session ${sessionId} :`, sessionVote[sessionId]);
-
-                } else {
-                    console.error(`Session ${sessionId} introuvable.`);
+                // Validation des données
+                if (!suspectId || !userId || !sessionId) {
+                    console.error("Données invalides reçues : suspectId, userId ou sessionId manquant.");
+                    io.to(socket.id).emit('voteError', 'Données invalides pour le vote.');
+                    return;
                 }
+
+                // Vérification de l'existence de la session
+                if (!sessions[sessionId]) {
+                    console.error(`Session ${sessionId} introuvable.`);
+                    io.to(socket.id).emit('voteError', 'Session introuvable.');
+                    return;
+                }
+
+                // Vérification du temps de vote
+                const now = new Date();
+                const sessionEndTime = sessions[sessionId]?.endTime;
+
+                if (sessionEndTime && new Date(sessionEndTime) <= now) {
+                    io.to(socket.id).emit('voteError', 'Le temps de vote est écoulé.');
+                    return;
+                }
+
+                // Initialiser les votes pour la session si nécessaire
+                if (!sessionVote[sessionId]) {
+                    sessionVote[sessionId] = [];
+                }
+
+                const voteIndex = sessionVote[sessionId].findIndex(vote => vote.userId === userId);
+
+                if (voteIndex !== -1) {
+                    if (sessionVote[sessionId][voteIndex].suspectId === suspectId) {
+                        console.log(`Le joueur ${userId} a déjà voté pour ${suspectId}`);
+                        io.to(socket.id).emit('voteError', 'Vous avez déjà voté pour ce suspect.');
+                    } else {
+                        sessionVote[sessionId][voteIndex].suspectId = suspectId;
+                        console.log(`Le joueur ${userId} a changé son vote pour ${suspectId}.`);
+                        io.to(socket.id).emit('voteUpdated', 'Votre vote a été mis à jour.');
+                    }
+                } else {
+                    sessionVote[sessionId].push({ userId, suspectId });
+                    console.log(`Le joueur ${userId} a voté pour le suspect ${suspectId}.`);
+                    io.to(socket.id).emit('voteSuccess', 'Vote enregistré avec succès.');
+                }
+
+                // Désactiver la possibilité de voter une fois que tous les joueurs ont voté
+                const totalVotes = sessionVote[sessionId].length;
+                const totalPlayers = sessions[sessionId].players.length;
+
+                if (totalVotes === totalPlayers) {
+                    console.log('Tous les joueurs ont voté.');
+                    io.to(sessionId).emit('voteEndTime'); // Notifier que le vote est terminé
+                    // Vous pouvez aussi ici arrêter le timer si vous en avez un
+                }
+
+                // Notifier les autres joueurs
+                io.to(sessionId).emit('updateVotes', sessionVote[sessionId]);
+                console.log(`Votes mis à jour pour la session ${sessionId} :`, sessionVote[sessionId]);
             });
 
-            // ce que j'ai ajouté
+            // temps de vote
             socket.on('getVoteEndTime', (sessionId) => {
                 const sessionEndTime = sessions[sessionId]?.endTime;
-                io.to(socket.id).emit('voteEndTime', sessionEndTime);
+                if (sessionEndTime) {
+                    io.to(socket.id).emit('voteEndTime', sessionEndTime);
+                } else {
+                    io.to(socket.id).emit('voteError', 'Temps de fin non défini pour cette session.');
+                }
             });
 
         });

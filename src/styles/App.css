@@ -8,7 +8,6 @@
 body{
   background-color: var(--black);
   height: 100vh;
-  overflow: hidden;
   margin: 0 !important;  /* Pour éviter qu'il y ai une margin de 8px a cause de la bibliothèque qui gere la reconnaissance du type de l'appareil */
 }
 
