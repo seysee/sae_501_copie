@@ -65,5 +65,17 @@
     "question": "Gonflez le ballon !",
     "answer": "blow_success",
     "type": "action"
+  },
+  {
+    "id": 11,
+    "question": "Répétez cette phrase",
+    "answer": "repeat_success",
+    "type": "action"
+  },
+  {
+    "id": 12,
+    "question": "Reproduisez le dessin",
+    "answer": "trace_success",
+    "type": "action"
   }
 ]
