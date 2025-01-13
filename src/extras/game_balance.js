@@ -1,4 +1,6 @@
-export default async function gameBalance({ containerId, onComplete }) {
+import axios from "axios";
+
+export default async function gameBalance({ containerId, questionId, sessionId, onComplete }) {
     const radiusThreshold = 10;
     const container = document.getElementById(containerId);
 
@@ -109,6 +111,35 @@ export default async function gameBalance({ containerId, onComplete }) {
         container.appendChild(status);
     }
 
+    async function handleGameEnd(success) {
+        try {
+            const response = await axios.post('/api/question/answer', {
+                id: questionId,
+                answer: success ? "success" : "failure",
+            });
+
+            // Envoie également via le socket
+            if (window.socket) {
+                window.socket.emit("submitAnswer", {
+                    sessionId,
+                    questionId,
+                    answer: success ? "success" : "failure",
+                });
+            }
+
+            if (success) {
+                onComplete({ correct: true, message: "Action réussie !" });
+            } else {
+                onComplete({ correct: false, message: "Échec de l'action, essayez encore." });
+            }
+
+            console.log(response.data.message);
+            onComplete(response.data); // Envoie les résultats au composant parent
+        } catch (error) {
+            console.error("Erreur lors de l'envoi de la réponse :", error);
+        }
+    }
+
     function handleOrientation(event) {
         if (lives === 0 || successCount === 3) return;
 
@@ -127,9 +158,10 @@ export default async function gameBalance({ containerId, onComplete }) {
                     return;
                 } else if (obstacle.type === "death") {
                     lives--;
+                    renderGame();
                     if (lives === 0) {
-                        onComplete({ success: false });
                         window.removeEventListener("deviceorientation", handleOrientation);
+                        handleGameEnd(false);
                         return;
                     } else {
                         resetGame();
@@ -144,9 +176,10 @@ export default async function gameBalance({ containerId, onComplete }) {
         const distanceToHole = calculateDistance(newBallPosition, holePosition);
         if (distanceToHole < 5) {
             successCount++;
+            renderGame();
             if (successCount === 3) {
-                onComplete({ success: true });
                 window.removeEventListener("deviceorientation", handleOrientation);
+                handleGameEnd(true);
             } else {
                 resetGame();
             }
@@ -171,16 +204,16 @@ export default async function gameBalance({ containerId, onComplete }) {
                     if (permissionState === "granted") {
                         window.addEventListener("deviceorientation", handleOrientation);
                     } else {
-                        onComplete({ success: false });
+                        handleGameEnd(false);
                     }
                 })
                 .catch(() => {
-                    onComplete({ success: false });
+                    handleGameEnd(false);
                 });
         } else {
             window.addEventListener("deviceorientation", handleOrientation);
         }
     } else {
-        onComplete({ success: false });
+        await handleGameEnd(false);
     }
 }
