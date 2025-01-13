@@ -12,7 +12,7 @@ export default function Profile() {
     const [disableVote, setDisableVote] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
-    const [initialTime, setInitialTime] = useState(30);
+    const [initialTime, setInitialTime] = useState(90);
 
     useEffect(() => {
         const storedUserData = getStoredUserData();
@@ -141,7 +141,7 @@ export default function Profile() {
                 <div className="w-full max-w-6xl mx-auto">
                     <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {suspects.map((suspect, index) => {
+                    {suspects.map((suspect) => {
                         return (
                             <div key={suspect.id} className="flex flex-col items-center">
                                 <button
