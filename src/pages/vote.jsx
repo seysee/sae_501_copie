@@ -60,6 +60,13 @@ export default function Vote() {
         socketConnection.on('allVotes', (votes) => {
             console.log(votes)
             setVotes(votes)
+            const storedUserData = getStoredUserData();
+            const userVote = votes.find(vote => vote.userId === storedUserData?.id);
+
+            if (userVote) {
+                setVotedSuspectId(userVote.suspectId);
+                setDisableVote(true);
+            }
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
@@ -170,7 +177,8 @@ export default function Vote() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {suspects.map((suspect, index) => {
                             // Comptez les votes pour le suspect actuel
-                            const votesForSuspect = votes.filter(vote => vote.suspectId === suspect.id).length;
+
+                            const votesForSuspect = votes ? votes.filter(vote => vote.suspectId === suspect.id).length : 0;
 
                             return (
                                 <div key={index} className="flex flex-col items-center">
