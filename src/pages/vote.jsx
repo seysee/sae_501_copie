@@ -47,9 +47,6 @@ export default function Vote() {
                 setVotedSuspectId(userVote.suspectId);
                 setDisableVote(true);
             }
-
-            const votedPlayers = votes.map(vote => vote.userName || vote.userId);
-            setVoters(votedPlayers);
         };
 
         // Gestionnaire pour l'événement "voteSuccess"
@@ -59,13 +56,15 @@ export default function Vote() {
 
         socketConnection.on('allVotes', (votes) => {
             console.log(votes)
-            setVotes(votes)
-            const storedUserData = getStoredUserData();
-            const userVote = votes.find(vote => vote.userId === storedUserData?.id);
+            if (votes) {
+                setVotes(votes)
+                const storedUserData = getStoredUserData();
+                const userVote = votes.find(vote => vote.userId === storedUserData?.id) || null;
 
-            if (userVote) {
-                setVotedSuspectId(userVote.suspectId);
-                setDisableVote(true);
+                if (userVote) {
+                    setVotedSuspectId(userVote.suspectId);
+                    setDisableVote(true);
+                }
             }
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
@@ -99,7 +98,6 @@ export default function Vote() {
             console.error("Error emitting getSessionVote:", error);
         }
     }, [socket]); // Ajoutez socket comme dépendance pour que cet useEffect réagisse à son initialisation
-
 
 
     const getStoredUserData = () => {
