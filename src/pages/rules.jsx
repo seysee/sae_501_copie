@@ -1,10 +1,15 @@
 import Link from 'next/link';
 import Button from '../components/_button';
+import '../styles/App.css';
 
 export default function Rules() {
     return (
-        <div className="box-area relative min-h-screen flex justify-center text-white">
-            <div className="w-full max-w-lg flex flex-col items-center py-20 h-screen overflow-y-auto space-y-12">
+        <div className="box-area relative min-h-screen flex justify-center text-white"
+             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', }}>
+
+            <div className="w-full max-w-lg flex flex-col items-center py-20 h-screen overflow-y-auto space-y-12"
+                 style={{ scrollbarWidth: 'none', }}>
+
                 <h1 className="text-6xl font-Amatic text-yellow-400">Règles du Jeu</h1>
 
                 <div className="text-center text-lg font-Amatic space-y-6">
@@ -65,7 +70,7 @@ export default function Rules() {
 
                 <div className="mt-12">
                     <Link href="/" passHref>
-                        <Button label="Retour à l'accueil" className="bg-black text-yellow-400 border-yellow-400" />
+                        <Button label="Retour" className="bg-black text-yellow-400 border-yellow-400" />
                     </Link>
                 </div>
             </div>
