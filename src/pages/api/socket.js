@@ -101,32 +101,28 @@ export default function handler(req, res) {
             socket.on('voteForSuspect', (suspectId, userId, sessionId) => {
                 console.log(`suspectId ${suspectId} :`, `userId = ${userId}`, `sessionId = ${sessionId}`);
 
-                // Validation des données
                 if (!suspectId || !userId || !sessionId) {
                     console.error("Données invalides reçues : suspectId, userId ou sessionId manquant.");
                     io.to(socket.id).emit('voteError', 'Données invalides pour le vote.');
                     return;
-                }
+                } // vérifie s'il y a les données
 
-                // Vérification de l'existence de la session
                 if (!sessions[sessionId]) {
                     console.error(`Session ${sessionId} introuvable.`);
                     io.to(socket.id).emit('voteError', 'Session introuvable.');
                     return;
-                }
+                } // vérifie sur la session existe
 
-                // Vérification du temps de vote
+                if (!sessionVote[sessionId]) {
+                    sessionVote[sessionId] = [];
+                } // vérifie si le vote de la session id existe, et si non initialiser a []
+
+                // vérification du tps de vote
                 const now = new Date();
                 const sessionEndTime = sessions[sessionId]?.endTime;
-
                 if (sessionEndTime && new Date(sessionEndTime) <= now) {
                     io.to(socket.id).emit('voteError', 'Le temps de vote est écoulé.');
                     return;
-                }
-
-                // Initialiser les votes pour la session si nécessaire
-                if (!sessionVote[sessionId]) {
-                    sessionVote[sessionId] = [];
                 }
 
                 const voteIndex = sessionVote[sessionId].findIndex(vote => vote.userId === userId);
@@ -146,14 +142,24 @@ export default function handler(req, res) {
                     io.to(socket.id).emit('voteSuccess', 'Vote enregistré avec succès.');
                 }
 
-                // quand tous les users votent, on peut plus voter
+                /* quand tous les users votent, on peut plus voter
                 const totalVotes = sessionVote[sessionId].length;
                 const totalPlayers = sessions[sessionId].players.length;
                 if (totalVotes === totalPlayers) {
                     console.log('Tous les joueurs ont voté.');
                     io.to(sessionId).emit('voteEndTime');
-                }
+                }*/
 
+                console.log(`Mise à jour des votes pour la session ${sessionId} :`, sessionVote[sessionId]);
+                socket.join(sessionId);
+                io.to(sessionId).emit('voteSuccess', sessionVote[sessionId]);
+            });
+
+
+            socket.on('getSessionVote', (sessionId) => {
+                console.log(`Envoyer ${sessionVote[sessionId]} à sessionId = ${sessionId}`);
+                socket.join(sessionId);
+                io.to(sessionId).emit('allVotes', sessionVote[sessionId]);
             });
 
 
