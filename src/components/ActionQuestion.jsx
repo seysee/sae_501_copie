@@ -4,10 +4,122 @@ import ShakeDetected from "./actions/ShakeDetected";
 import BalanceGame from "./actions/BalanceGame";
 import Camera from "./actions/Camera";
 import BlowGame from "./actions/BlowGame";
+import RepeatPhrase from "./actions/RepeatPhrase";
+import TraceShape from "./actions/TraceShape";
 
 export default function ActionQuestion({ question, onSuccess, socket }) {
     const [targetColor, setTargetColor] = useState("red");
+    const [selectedShape, setSelectedShape] = useState(null);
     const [sessionId, setSessionId] = useState(null);
+
+    const generateArc = (centerX, centerY, radius, startAngle, endAngle, numPoints) => {
+        const points = [];
+        for (let i = 0; i <= numPoints; i++) {
+            const angle = startAngle + (i / numPoints) * (endAngle - startAngle);
+            points.push({
+                x: centerX + radius * Math.cos(angle),
+                y: centerY + radius * Math.sin(angle),
+            });
+        }
+        return points;
+    };
+
+    const generateWaves = (startX, endX, baseY, waveHeight, numWaves, numPointsPerWave, stemHeight, stemWidthFactor = 0.5) => {
+        const points = [];
+        const waveWidth = (endX - startX) / numWaves;
+
+        for (let i = 0; i < numWaves; i++) {
+            if (i === Math.floor(numWaves / 2)) {
+                // Générer la tige à la place de la vague centrale avec une largeur réduite
+                const stemStartX = startX + i * waveWidth;
+                const stemEndX = stemStartX + waveWidth;
+                points.push(...generateStem(stemStartX, stemEndX, baseY, stemHeight, stemWidthFactor));
+            } else {
+                // Générer une vague normale
+                for (let j = 0; j <= numPointsPerWave; j++) {
+                    const t = j / numPointsPerWave; // Normalisation de 0 à 1
+                    const x = startX + i * waveWidth + t * waveWidth; // Position horizontale
+                    const y = baseY - waveHeight * Math.sin(t * Math.PI); // Sinus pour l'arrondi
+                    points.push({ x, y });
+                }
+            }
+        }
+
+        return points;
+    };
+
+
+
+
+    const generateStem = (startX, endX, baseY, stemHeight, stemWidthFactor = 0.5) => {
+        const waveWidth = endX - startX;
+        const stemWidth = waveWidth * stemWidthFactor; // Réduction de la largeur de la tige
+        const stemCenterX = (startX + endX) / 2; // Centre de la vague
+        const leftX = stemCenterX - stemWidth / 2; // Bord gauche de la tige
+        const rightX = stemCenterX + stemWidth / 2; // Bord droit de la tige
+        const arcRadius = stemWidth / 2; // Rayon de l'arrondi (bas de la tige)
+
+        const points = [
+            // Barre descendante gauche
+            { x: leftX, y: baseY },
+            { x: leftX, y: baseY + stemHeight - arcRadius },
+
+            // Arc arrondi bas de la tige
+            ...generateArc(leftX + arcRadius, baseY + stemHeight - arcRadius, arcRadius, Math.PI, 2 * Math.PI, 20),
+
+            // Barre montante droite
+            { x: rightX, y: baseY + stemHeight - arcRadius },
+            { x: rightX, y: baseY },
+        ];
+
+        return points;
+    };
+
+
+    const shapes = {
+        triangle: [
+            { x: 150, y: 50 },
+            { x: 50, y: 250 },
+            { x: 250, y: 250 },
+            { x: 150, y: 50 },
+        ],
+        star: [
+            { x: 150, y: 50 },  // Pointe supérieure
+            { x: 173, y: 130 }, // Branche droite haut
+            { x: 250, y: 130 }, // Branche droite bas
+            { x: 190, y: 170 }, // Branche inférieure droite
+            { x: 210, y: 250 }, // Bas central
+            { x: 150, y: 200 }, // Centre bas
+            { x: 90, y: 250 },  // Bas gauche
+            { x: 110, y: 170 }, // Branche inférieure gauche
+            { x: 50, y: 130 },  // Branche gauche bas
+            { x: 127, y: 130 }, // Branche gauche haut
+            { x: 150, y: 50 },  // Retour à la pointe supérieure
+        ],
+        circle: Array.from({ length: 100 }, (_, i) => {
+            const angle = (i / 100) * 2 * Math.PI;
+            return {
+                x: 150 + 100 * Math.cos(angle),
+                y: 150 + 100 * Math.sin(angle),
+            };
+        }),
+        umbrella: [
+            ...generateArc(150, 150, 100, Math.PI, 2 * Math.PI, 50), // Arc supérieur
+            ...generateWaves(250, 50, 150, 10, 5, 20, 70, 0.7),                  // Vagues alignées
+        ],
+    };
+
+    const handleShapeSelection = () => {
+        const storedShapeKey = sessionStorage.getItem("selectedShape");
+        if (storedShapeKey && shapes[storedShapeKey]) {
+            setSelectedShape(shapes[storedShapeKey]);
+        } else {
+            const shapeKeys = Object.keys(shapes);
+            const randomShapeKey = shapeKeys[Math.floor(Math.random() * shapeKeys.length)];
+            setSelectedShape(shapes[randomShapeKey]);
+            sessionStorage.setItem("selectedShape", randomShapeKey); // Sauvegarde la clé de la forme
+        }
+    };
 
     useEffect(() => {
         if (question.answer === "color_detected") {
@@ -15,8 +127,11 @@ export default function ActionQuestion({ question, onSuccess, socket }) {
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
             setTargetColor(randomColor);
         }
-    }, [question]);
 
+        if (question.answer === "trace_success") {
+            handleShapeSelection(); // Sélectionner ou charger la forme
+        }
+    }, [question]);
 
     const handleSuccess = (message) => {
         console.log(message); // Affiche un message de succès
@@ -49,23 +164,21 @@ export default function ActionQuestion({ question, onSuccess, socket }) {
         <div>
             {question.assets && <img src={question.assets} alt="Instruction" className="mb-4" />}
 
-            {/* Détection de Tilt */}
             {question.answer === "tilt_detected" && (
                 <TiltDetected
                     questionId={question.id}
                     onSuccess={handleSuccess}
                     socket={socket}
-                    sessionId={sessionId} // Transmet l'id de session
+                    sessionId={sessionId}
                 />
             )}
 
-            {/* Détection de Shake */}
             {question.answer === "shake_detected" && (
                 <ShakeDetected
                     questionId={question.id}
                     onSuccess={handleSuccess}
                     socket={socket}
-                    sessionId={sessionId} // Transmet l'id de session
+                    sessionId={sessionId}
                 />
             )}
             {question.answer === "hole_success" && (
@@ -73,11 +186,10 @@ export default function ActionQuestion({ question, onSuccess, socket }) {
                     questionId={question.id}
                     onSuccess={handleSuccess}
                     socket={socket}
-                    sessionId={sessionId} // Transmet l'id de session
+                    sessionId={sessionId}
                 />
             )}
 
-            {/* Détection de Couleur avec la caméra */}
             {question.answer === "color_success" && (
                 <>
                     <h1
@@ -102,9 +214,27 @@ export default function ActionQuestion({ question, onSuccess, socket }) {
                     />
                 </>
             )}
-            {/* Jeu de Souffle */}
             {question.answer === "blow_success" && (
                 <BlowGame questionId={question.id} onSuccess={handleSuccess} socket={socket} sessionId={sessionId} />
+            )}
+
+            {question.answer === "repeat_success" && (
+                <RepeatPhrase
+                    questionId={question.id}
+                    phrase="Noé le caca"
+                    onSuccess={handleSuccess}
+                    socket={socket}
+                    sessionId={sessionId}
+                />
+            )}
+            {question.answer === "trace_success" && selectedShape && (
+                <TraceShape
+                    questionId={question.id}
+                    shape={selectedShape} // Passe la forme choisie
+                    onSuccess={handleSuccess}
+                    socket={socket}
+                    sessionId={sessionId}
+                />
             )}
         </div>
     );
