@@ -1,9 +1,10 @@
-import {Server} from 'socket.io';
+// socket.js
+import { Server } from 'socket.io';
 import questions from '../../data/questions.json';
-import {encryptParam} from '../../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
+import { encryptParam } from '../../lib/cryptoUtils';
 
-const sessions = {}; // Stock temporaire pour les sessions et leurs joueurs
-const sessionVote = {}; //STOCKER LES VOTES
+const sessions = {};    // sessions[sessionId] = { players, questions, answered, activePlayerIndex, answeredBy }
+const sessionVote = {}; // sessionVote[sessionId] = [ ... ]
 
 export default function handler(req, res) {
     if (!res.socket.server.io) {
@@ -15,6 +16,15 @@ export default function handler(req, res) {
                 methods: ['GET', 'POST'],
             },
         });
+
+        // Fonction shuffle si nécessaire
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
         io.on('connection', (socket) => {
             console.log('Nouvelle connexion établie :', socket.id);
@@ -28,16 +38,20 @@ export default function handler(req, res) {
                     sessions[sessionId] = {
                         players: [],
                         questions: shuffle([...questions]),
-                        answered: false
+                        answered: false,
+                        answeredBy: {},
+                        activePlayerIndex: 0,
+                        lastPlayerId: null, // <-- on initialise
                     };
                 }
 
+
                 sessions[sessionId].players.push(player);
                 socket.join(sessionId);
-                console.log("(socket.js:36) ", sessions);
+
+                console.log("(socket.js) Sessions:", sessions);
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
-
 
             // Démarrer une partie
             socket.on('startGame', (sessionId) => {
@@ -45,56 +59,87 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('gameStarted', '/role');
             });
 
-
-            function shuffle(array) {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-                return array;
-            }
-
+            // Lancer la question suivante
             socket.on('launchQuestions', (sessionId, toFilterQuestion) => {
                 console.log(`${sessionId} est en train de lancer les questions.`);
 
-                if (sessions[sessionId]) {
-                    if (sessions[sessionId].questions.length === 0) {
-                        sessions[sessionId].questions = shuffle([...questions]);
-                    }
-                    const availableQuestions = sessions[sessionId].questions
-                        .filter(q => !toFilterQuestion.includes(q.id));
-
-                    console.log("Questions disponibles après filtrage :", availableQuestions);
-
-                    if (availableQuestions.length > 0) { // Vérifier si des questions sont disponibles
-                        const firstQuestion = availableQuestions[0]; // Utiliser [0] pour obtenir la première question
-                        sessions[sessionId].answered = false;
-                        sessions[sessionId].answeredBy = {};
-                        io.to(sessionId).emit('nextQuestion', firstQuestion);
-                    } else {
-                        console.log("Aucune question disponible pour cette session.");
-                    }
-                } else {
+                const sessionData = sessions[sessionId];
+                if (!sessionData) {
                     console.error(`Session ${sessionId} introuvable.`);
+                    return;
+                }
+
+                // Filtrer les questions déjà posées
+                if (sessionData.questions.length === 0) {
+                    sessionData.questions = shuffle([...questions]);
+                }
+                const availableQuestions = sessionData.questions.filter(
+                    (q) => !toFilterQuestion.includes(q.id)
+                );
+
+                if (availableQuestions.length > 0) {
+                    const firstQuestion = availableQuestions[0];
+                    sessionData.answered = false;
+                    sessionData.answeredBy = {};
+
+                    // Qui est le joueur actif ?
+                    const { activePlayerIndex, players } = sessionData;
+                    const activePlayer = players[activePlayerIndex];
+
+                    // Envoyer la question + l'info du joueur actif
+                    io.to(sessionId).emit('nextQuestion', {
+                        question: firstQuestion,
+                        activePlayer: activePlayer,
+                    });
+                } else {
+                    console.log("Aucune question disponible pour cette session.");
+                }
+            });
+
+            // Lorsque le joueur actif soumet une réponse
+            // socket.js
+
+            socket.on('submitAnswer', async ({ sessionId, questionId, answer, playerId }) => {
+                const sessionData = sessions[sessionId];
+                if (!sessionData) {
+                    console.error(`Session ${sessionId} introuvable.`);
+                    return;
+                }
+
+                sessionData.answered = true;
+                sessionData.lastPlayerId = playerId; // <-- on stocke le dernier qui a répondu
+
+                // ... on chiffre questionId et answer pour la redirection
+                const encryptedQuestionId = encryptParam(questionId);
+                const encryptedAnswer = encryptParam(answer);
+
+                io.to(sessionId).emit('answerSubmitted', {
+                    redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
+                });
+
+                // on incrémente l'index du prochain joueur, etc.
+                const nbPlayers = sessionData.players.length;
+                if (nbPlayers > 1) {
+                    sessionData.activePlayerIndex = (sessionData.activePlayerIndex + 1) % nbPlayers;
                 }
             });
 
 
-            socket.on('submitAnswer', ({sessionId, questionId, answer}) => {
-                console.log(`Réponse reçue pour la question ${questionId} :`, answer);
-                if (sessions[sessionId]) {
-                    console.log("(socket.js:84) here");
-                    sessions[sessionId].answered = true;
+            socket.on('returnHome', (sessionId) => {
+                console.log(`Le joueur de la session ${sessionId} demande le retour à l'accueil.`);
+                // On émet un événement commun pour TOUS les joueurs de la session
+                io.to(sessionId).emit('redirectToEnigma');
+            });
+            // Exemple : si tu veux passer au joueur suivant **après** la bonne réponse
+            // tu peux écouter un event du type "setNextPlayer" déclenché depuis result.jsx
+            // ou bien l'appeler directement en fin de "submitAnswer", c'est au choix.
+            socket.on('setNextPlayer', (sessionId) => {
+                const sessionData = sessions[sessionId];
+                if (!sessionData) return;
 
-                    const encryptedQuestionId = encryptParam(questionId);
-                    const encryptedAnswer = encryptParam(answer);
-
-                    io.to(sessionId).emit('answerSubmitted', {
-                        redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
-                    });
-                } else {
-                    console.error(`Session ${sessionId} introuvable.`);
-                }
+                const nbPlayers = sessionData.players.length;
+                sessionData.activePlayerIndex = (sessionData.activePlayerIndex + 1) % nbPlayers;
+                console.log(`Prochain joueur: index = ${sessionData.activePlayerIndex}`);
             });
 
             socket.on('voteForSuspect', (suspectId, userId, sessionId) => {
