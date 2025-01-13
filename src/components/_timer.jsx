@@ -4,6 +4,10 @@ export default function Timer({ initialTime, onTimeUp, paused }) {
     const [timeLeft, setTimeLeft] = useState(initialTime);
 
     useEffect(() => {
+        setTimeLeft(initialTime);
+    }, [initialTime]);
+
+    useEffect(() => {
         if (paused || timeLeft <= 0) {
             if (timeLeft <= 0) onTimeUp(); // Déclenchement lorsque le temps est écoulé
             return;
