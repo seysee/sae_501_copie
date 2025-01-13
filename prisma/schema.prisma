@@ -61,4 +61,5 @@ model Questions {
   assets     String? @db.Text // Chemin ou liste des ressources associées (en JSON stringifié)
   extraData  String? @db.Text // Données supplémentaires (en JSON stringifié ou texte brut)
   duration   Int?    @db.Int // Durée maximale pour résoudre l'énigme en secondes
+  active     Boolean @default(true) // État de l'énigme (active ou non)
 }

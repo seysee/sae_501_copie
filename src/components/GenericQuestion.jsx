@@ -12,10 +12,8 @@ export default function GenericQuestion({ question, onSuccess }) {
         if (question.assets) {
             const loadAssets = async () => {
                 try {
-                    const assets = question.assets.split(',');
-                    const loadedAssets = assets.map((asset) => {
-                        return typeof asset === "string" ? `/assets/${asset}` : asset;
-                    });
+                    const assets = JSON.parse(question.assets || "[]");
+                    const loadedAssets = assets.map((asset) => `/assets/${asset}`);
                     setAssetsLoaded(loadedAssets);
                 } catch (error) {
                     console.error("Erreur lors du chargement des assets :", error);
@@ -28,19 +26,22 @@ export default function GenericQuestion({ question, onSuccess }) {
 
     // Charger et exécuter la logique additionnelle
     useEffect(() => {
-        if (question.extraData) {
+        if (question.extraData && typeof question.extraData === "string") {
             const loadExtraLogic = async () => {
                 try {
-                    const logic = await import(`/extras/${question.extraData}`);
+                    const logic = await import(`../extras/${question.extraData}`);
                     setExtraLogic(() => logic.default || logic);
                 } catch (error) {
-                    console.error("Erreur lors du chargement de la logique extra :", error);
+                    console.error(`Erreur lors du chargement de la logique extra : ${question.extraData}`, error);
                 }
             };
 
             loadExtraLogic();
+        } else {
+            console.warn("extraData est manquant ou invalide :", question.extraData);
         }
     }, [question.extraData]);
+
 
     // Gérer les réponses textuelles
     const handleAnswerChange = (e) => {
@@ -50,23 +51,28 @@ export default function GenericQuestion({ question, onSuccess }) {
     const handleSubmit = (event) => {
         event.preventDefault();
         if (answer.trim() === question.solution) {
-            setFeedback(question.feedback?.correct || "Bonne réponse !");
+            setFeedback(JSON.parse(question.feedback)?.correct || "Bonne réponse !");
             onSuccess && onSuccess("success");
         } else {
-            setFeedback(question.feedback?.incorrect || "Mauvaise réponse.");
+            setFeedback(JSON.parse(question.feedback)?.incorrect || "Mauvaise réponse.");
         }
     };
 
     // Gérer les interactions spéciales avec `extraLogic`
     const handleExtraLogic = async () => {
         if (extraLogic) {
-            const result = await extraLogic();
-            if (result.success) {
-                setFeedback(question.feedback?.correct || "Bonne réponse !");
-                onSuccess && onSuccess("success");
-            } else {
-                setFeedback(question.feedback?.incorrect || "Mauvaise réponse.");
-            }
+            const containerId = "game-container";
+            const result = await extraLogic({
+                containerId,
+                onComplete: (result) => {
+                    if (result.success) {
+                        setFeedback(question.feedback?.correct || "Bravo !");
+                        onSuccess && onSuccess("success");
+                    } else {
+                        setFeedback(question.feedback?.incorrect || "Essayez encore.");
+                    }
+                },
+            });
         }
     };
 
@@ -76,7 +82,7 @@ export default function GenericQuestion({ question, onSuccess }) {
 
             {/* Charger les assets */}
             {assetsLoaded.map((asset, index) => (
-                <img key={index} src={asset} alt={`asset-${index}`} className="mb-4" />
+                <img key={index} src={asset} alt={`asset-${index}`} className="mb-4"/>
             ))}
 
             {/* Gestion des interactions */}
@@ -110,7 +116,7 @@ export default function GenericQuestion({ question, onSuccess }) {
                     </Button>
                 )
             )}
-
+            <div id="game-container" className="relative w-full h-80 bg-black rounded-lg"></div>
             {/* Feedback */}
             {feedback && <p className="text-green-500 mt-4">{feedback}</p>}
         </div>

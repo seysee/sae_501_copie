@@ -7,8 +7,9 @@ export default async function handler(req, res) {
             const { limit = 10 } = req.query;
 
             // Récupérer les questions depuis la base
-            const questions = await prisma.questions.findMany();
-
+            const questions = await prisma.questions.findMany({
+                where : {active : true}
+            });
             if (!questions || questions.length === 0) {
                 return res.status(404).json({ error: "Aucune question disponible." });
             }
