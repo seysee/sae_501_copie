@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import Timer from '../components/_timer';
+import Modal from '../components/_modal';
 
 export default function Profile() {
     const [suspects, setSuspects] = useState(null);
@@ -9,11 +10,10 @@ export default function Profile() {
     const [error, setError] = useState(null);
     const [socket, setSocket] = useState(null);
     const [votes, setVotes] = useState([]);
-
-    const [voters, setVoters] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
     const initialTime = 10;
-    const [votedSuspectId, setVotedSuspectId] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedSuspect, setSelectedSuspect] = useState(null);
 
     useEffect(() => {
         const storedUserData = getStoredUserData();
@@ -102,6 +102,9 @@ export default function Profile() {
             console.log("SUSPECT ID VOTÉ", suspectId);
             socket.emit('voteForSuspect', suspectId, storedUserData.id, storedUserData.sessionId);
             setDisableVote(true);
+
+            setSelectedSuspect(suspect);
+            setShowModal(true);
         }
     };
 
@@ -114,6 +117,15 @@ export default function Profile() {
         const endTimestamp = new Date(endTime).getTime();
         const nowTimestamp = Date.now();
         return Math.max((endTimestamp - nowTimestamp) / 1000, 0);
+    };
+
+    const confirmVote = () => {
+        const storedUserData = getStoredUserData();
+        if (selectedSuspect && socket && storedUserData) {
+            socket.emit('voteForSuspect', selectedSuspect.id, storedUserData.id, storedUserData.sessionId);
+            setDisableVote(true);
+        }
+        setShowModal(false);
     };
 
     return (
@@ -137,17 +149,18 @@ export default function Profile() {
                     <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {suspects.map((suspect, index) => {
-                        const hasVoted = votes.some(vote => vote.suspectId === suspect.id);
-
                         return (
-                            <div key={index} className="flex flex-col items-center">
+                            <div key={suspect.id} className="flex flex-col items-center">
                                 <button
-                                    onClick={() => voteForSuspect(suspect.id)}
-                                    disabled={disableVote || votes.some(vote => vote.suspectId === suspect.id)}
+                                    onClick={() => voteForSuspect(suspect)}
+                                    disabled={disableVote}
                                     className={`border border-gray-600 bg-gray-800 p-4 rounded-lg shadow-md transition ${
                                         disableVote ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}>
-                                <p className="font-Amatic text-2xl text-white font-medium truncate">{suspect.name}</p>
+                                    }`}
+                                >
+                                    <p className="font-Amatic text-2xl text-white font-medium truncate">
+                                        {suspect.name}
+                                    </p>
                                 </button>
                             </div>
                         );
@@ -175,6 +188,13 @@ export default function Profile() {
             ) : (
                 <p className="text-gray-400 font-Amatic text-2xl animate-pulse">Loading...</p>
             )}
+
+            <Modal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                onConfirm={confirmVote}
+                suspectName={selectedSuspect?.name}
+            />
 
         </div>
     );
