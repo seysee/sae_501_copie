@@ -2,8 +2,7 @@
 import { Server } from 'socket.io';
 import questions from '../../data/questions.json';
 import { encryptParam } from '../../lib/cryptoUtils';
-
-const sessions = {};    // sessions[sessionId] = { players, questions, answered, activePlayerIndex, answeredBy }
+import { sessions } from '../../lib/store';
 const sessionVote = {}; // sessionVote[sessionId] = [ ... ]
 
 export default function handler(req, res) {
@@ -108,7 +107,9 @@ export default function handler(req, res) {
 
                 sessionData.answered = true;
                 sessionData.lastPlayerId = playerId; // <-- on stocke le dernier qui a répondu
-
+                const nbPlayers = sessionData.players.length;
+                sessionData.activePlayerIndex = (sessionData.activePlayerIndex + 1) % nbPlayers;
+                console.log("Le prochain joueur actif est index:", sessionData.activePlayerIndex);
                 // ... on chiffre questionId et answer pour la redirection
                 const encryptedQuestionId = encryptParam(questionId);
                 const encryptedAnswer = encryptParam(answer);
@@ -116,12 +117,6 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('answerSubmitted', {
                     redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
                 });
-
-                // on incrémente l'index du prochain joueur, etc.
-                const nbPlayers = sessionData.players.length;
-                if (nbPlayers > 1) {
-                    sessionData.activePlayerIndex = (sessionData.activePlayerIndex + 1) % nbPlayers;
-                }
             });
 
 
