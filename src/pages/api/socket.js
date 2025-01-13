@@ -133,12 +133,14 @@ export default function handler(req, res) {
 
                 // Vérifiez les votes mis à jour avant de les envoyer
                 console.log(`Mise à jour des votes pour la session ${sessionId} :`, sessionVote[sessionId]);
-                io.to(socket.id).emit('voteSuccess', sessionVote[sessionId]);
+                socket.join(sessionId);
+                io.to(sessionId).emit('voteSuccess', sessionVote[sessionId]);
             });
 
             socket.on('getSessionVote', (sessionId) => {
                 console.log(`Envoyer ${sessionVote[sessionId]} à sessionId = ${sessionId}`);
-                io.to(socket.id).emit('allVotes', sessionVote[sessionId]);
+                socket.join(sessionId);
+                io.to(sessionId).emit('allVotes', sessionVote[sessionId]);
             });
 
                 // temps de vote
