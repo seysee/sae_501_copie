@@ -17,7 +17,7 @@ export default function Timer({ initialTime, onTimeUp, paused }) {
     }, [timeLeft, onTimeUp, paused]);
 
     return (
-        <div className="text-center text-xl font-bold text-white">
+        <div className="text-center font-Amatic text-2xl font-bold text-white">
             Temps restant : {timeLeft} s
         </div>
     );
