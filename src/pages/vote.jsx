@@ -59,9 +59,9 @@ export default function Vote() {
 
         socketConnection.on('allVotes', (votes) => {
             console.log(votes)
+            setVotes(votes)
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
-        //socket.emit('getSessionVote', getStoredUserData().sessionId);
 
         socketConnection.on('voteEndTime', () => {
             setDisableVote(true);
@@ -74,6 +74,25 @@ export default function Vote() {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const sessionId = getStoredUserData()?.sessionId;
+
+        if (!sessionId) {
+            console.error("Session ID is missing or invalid.");
+            return;
+        }
+
+        try {
+            console.log("Emitting getSessionVote with sessionId:", sessionId);
+            socket.emit('getSessionVote', sessionId);
+        } catch (error) {
+            console.error("Error emitting getSessionVote:", error);
+        }
+    }, [socket]); // Ajoutez socket comme dépendance pour que cet useEffect réagisse à son initialisation
+
 
 
     const getStoredUserData = () => {
@@ -120,7 +139,7 @@ export default function Vote() {
             console.log("StoredUserData", storedUserData.sessionId);
             console.log("SUSPECT ID VOTÉ", suspectId);
             socket.emit('voteForSuspect', suspectId, storedUserData.id, storedUserData.sessionId);
-            setDisableVote(true);
+            //setDisableVote(true);
         }
     };
 
