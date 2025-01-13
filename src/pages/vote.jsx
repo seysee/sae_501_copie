@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import Timer from '../components/_timer';
 
-export default function Profile() {
+export default function Vote() {
     const [suspects, setSuspects] = useState(null); // State for storing suspects
     const [players, setPlayers] = useState(null); // State for storing players
     const [error, setError] = useState(null); // State for error handling
@@ -31,21 +31,37 @@ export default function Profile() {
         });
         setSocket(socketConnection);
 
-        socketConnection.on('updateVotes', (updatedVotes) => {
-            console.log('Votes mis à jour reçus :', updatedVotes);
-            setVotes(updatedVotes);
+        socketConnection.on('voteError', (errorMessage) => {
+            console.error('Erreur de vote reçue :', errorMessage);
+            alert(errorMessage);
+        });
+
+        const handleVotesUpdate = (votes) => {
+            console.log('Mise à jour des votes reçue :', votes);
+            setVotes(votes);
 
             const storedUserData = getStoredUserData();
-            const userVote = updatedVotes.find(vote => vote.userId === storedUserData?.id);
+            const userVote = votes.find(vote => vote.userId === storedUserData?.id);
 
             if (userVote) {
                 setVotedSuspectId(userVote.suspectId);
-                setDisableVote(true); // Désactiver les votes si l'utilisateur a déjà voté
+                setDisableVote(true);
             }
 
-            const votedPlayers = updatedVotes.map(vote => vote.userName); // Suppose que `userName` est envoyé dans le vote
+            const votedPlayers = votes.map(vote => vote.userName || vote.userId);
             setVoters(votedPlayers);
+        };
+
+        // Gestionnaire pour l'événement "voteSuccess"
+        socketConnection.on('voteSuccess', (votes) => {
+            handleVotesUpdate(votes);
         });
+
+        socketConnection.on('allVotes', (votes) => {
+            console.log(votes)
+        });
+        console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
+        //socket.emit('getSessionVote', getStoredUserData().sessionId);
 
         socketConnection.on('voteEndTime', () => {
             setDisableVote(true);
@@ -58,6 +74,7 @@ export default function Profile() {
             }
         };
     }, []);
+
 
     const getStoredUserData = () => {
         try {
@@ -84,7 +101,7 @@ export default function Profile() {
     const fetchPlayersBySessionId = async (sessionId) => {
         try {
             const response = await axios.get("/api/player", {
-                params: { sessionId: sessionId },
+                params: {sessionId: sessionId},
             });
             setPlayers(response.data);
         } catch (err) {
@@ -118,7 +135,7 @@ export default function Profile() {
 
             {!disableVote && (
                 <div>
-                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false} />
+                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
                 </div>
             )}
 
@@ -132,22 +149,42 @@ export default function Profile() {
                 <div className="w-full max-w-6xl mx-auto">
                     <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {suspects.map((suspect, index) => {
-                        const hasVoted = votes.some(vote => vote.suspectId === suspect.id);
+                        {suspects.map((suspect, index) => {
+                            // Comptez les votes pour le suspect actuel
+                            const votesForSuspect = votes.filter(vote => vote.suspectId === suspect.id).length;
 
-                        return (
-                            <div key={index} className="flex flex-col items-center">
-                                <button
-                                    onClick={() => voteForSuspect(suspect.id)}
-                                    disabled={disableVote || hasVoted}
-                                    className={`border border-gray-600 bg-gray-800 flex justify-start p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ${
-                                        disableVote ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}>
-                                    <p className="font-Amatic text-2xl text-white font-medium truncate">{suspect.name}</p>
-                                </button>
-                            </div>
-                        );
-                    })}
+                            return (
+                                <div key={index} className="flex flex-col items-center">
+                                    <button
+                                        onClick={() => voteForSuspect(suspect.id)}
+                                        disabled={disableVote || votedSuspectId === suspect.id}
+                                        className={`relative border border-gray-600 bg-gray-800 flex justify-between items-center p-4 w-full rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ${
+                                            disableVote ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
+                                    >
+                                        <p className="font-Amatic text-2xl text-white font-medium truncate">
+                                            {suspect.name}
+                                        </p>
+                                        {votesForSuspect > 0 && (
+                                            <div className="absolute right-3 top-3 flex flex-wrap gap-1">
+                                                {/* Générer un cercle rouge pour chaque vote */}
+                                                {Array.from({length: votesForSuspect}).map((_, i) => (
+                                                    <svg
+                                                        key={i}
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="w-6 h-6 text-red-500"
+                                                        viewBox="0 0 24 24"
+                                                        fill="currentColor"
+                                                    >
+                                                        <circle cx="12" cy="12" r="6"/>
+                                                    </svg>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             ) : (

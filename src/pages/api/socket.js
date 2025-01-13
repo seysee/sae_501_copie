@@ -98,35 +98,23 @@ export default function handler(req, res) {
             });
 
             socket.on('voteForSuspect', (suspectId, userId, sessionId) => {
-                console.log(`suspectId ${suspectId} :`, `userId = ${userId}`, `sessionId = ${sessionId}`);
+                console.log(`Vote reçu : suspectId = ${suspectId}, userId = ${userId}, sessionId = ${sessionId}`);
 
-                // Validation des données
                 if (!suspectId || !userId || !sessionId) {
                     console.error("Données invalides reçues : suspectId, userId ou sessionId manquant.");
                     io.to(socket.id).emit('voteError', 'Données invalides pour le vote.');
                     return;
-                }
+                } //verifie si il y a les données
 
-                // Vérification de l'existence de la session
                 if (!sessions[sessionId]) {
                     console.error(`Session ${sessionId} introuvable.`);
                     io.to(socket.id).emit('voteError', 'Session introuvable.');
                     return;
-                }
+                } //vérifie sur la session existe
 
-                // Vérification du temps de vote
-                const now = new Date();
-                const sessionEndTime = sessions[sessionId]?.endTime;
-
-                if (sessionEndTime && new Date(sessionEndTime) <= now) {
-                    io.to(socket.id).emit('voteError', 'Le temps de vote est écoulé.');
-                    return;
-                }
-
-                // Initialiser les votes pour la session si nécessaire
                 if (!sessionVote[sessionId]) {
                     sessionVote[sessionId] = [];
-                }
+                } //verifie si le vote de la session id existe, et si non initialiser a []
 
                 const voteIndex = sessionVote[sessionId].findIndex(vote => vote.userId === userId);
 
@@ -137,30 +125,23 @@ export default function handler(req, res) {
                     } else {
                         sessionVote[sessionId][voteIndex].suspectId = suspectId;
                         console.log(`Le joueur ${userId} a changé son vote pour ${suspectId}.`);
-                        io.to(socket.id).emit('voteUpdated', 'Votre vote a été mis à jour.');
                     }
                 } else {
-                    sessionVote[sessionId].push({ userId, suspectId });
+                    sessionVote[sessionId].push({userId, suspectId});
                     console.log(`Le joueur ${userId} a voté pour le suspect ${suspectId}.`);
-                    io.to(socket.id).emit('voteSuccess', 'Vote enregistré avec succès.');
                 }
 
-                // Désactiver la possibilité de voter une fois que tous les joueurs ont voté
-                const totalVotes = sessionVote[sessionId].length;
-                const totalPlayers = sessions[sessionId].players.length;
-
-                if (totalVotes === totalPlayers) {
-                    console.log('Tous les joueurs ont voté.');
-                    io.to(sessionId).emit('voteEndTime'); // Notifier que le vote est terminé
-                    // Vous pouvez aussi ici arrêter le timer si vous en avez un
-                }
-
-                // Notifier les autres joueurs
-                io.to(sessionId).emit('updateVotes', sessionVote[sessionId]);
-                console.log(`Votes mis à jour pour la session ${sessionId} :`, sessionVote[sessionId]);
+                // Vérifiez les votes mis à jour avant de les envoyer
+                console.log(`Mise à jour des votes pour la session ${sessionId} :`, sessionVote[sessionId]);
+                io.to(socket.id).emit('voteSuccess', sessionVote[sessionId]);
             });
 
-            // temps de vote
+            socket.on('getSessionVote', (sessionId) => {
+                console.log(`Envoyer ${sessionVote[sessionId]} à sessionId = ${sessionId}`);
+                io.to(socket.id).emit('allVotes', sessionVote[sessionId]);
+            });
+
+                // temps de vote
             socket.on('getVoteEndTime', (sessionId) => {
                 const sessionEndTime = sessions[sessionId]?.endTime;
                 if (sessionEndTime) {
