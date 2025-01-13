@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import TiltDetected from "./actions/TiltDetected";
 import ShakeDetected from "./actions/ShakeDetected";
-import BalanceGame from "./actions/BalanceGame";
 import Camera from "./actions/Camera";
 import BlowGame from "./actions/BlowGame";
 import RepeatPhrase from "./actions/RepeatPhrase";

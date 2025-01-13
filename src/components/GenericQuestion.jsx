@@ -1,13 +1,36 @@
 import React, { useEffect, useState } from "react";
 import Button from "./_button";
+import axios from "axios";
 
-export default function GenericQuestion({ question, onSuccess }) {
+export default function GenericQuestion({ question, onSuccess, socket }) {
     const [assetsLoaded, setAssetsLoaded] = useState([]);
     const [extraLogic, setExtraLogic] = useState(null);
     const [feedback, setFeedback] = useState('');
     const [answer, setAnswer] = useState('');
+    const getStoredUserData = () => {
+        try {
+            const storedPlayer = sessionStorage.getItem("userData");
+            if (storedPlayer) {
+                return JSON.parse(storedPlayer);
+            }
+        } catch (error) {
+            console.error("Erreur lors de la récupération des données utilisateur :", error);
+        }
+        return null;
+    };
 
-    // Charger les assets (images, etc.)
+    // Écouter l'événement `answerSubmitted` pour rediriger les joueurs
+    useEffect(() => {
+        if (socket) {
+            socket.on("answerSubmitted", ({ redirectUrl }) => {
+                if (redirectUrl) {
+                    window.location.href = redirectUrl;
+                }
+            });
+        }
+    }, [socket]);
+
+
     useEffect(() => {
         if (question.assets) {
             const loadAssets = async () => {
@@ -19,12 +42,10 @@ export default function GenericQuestion({ question, onSuccess }) {
                     console.error("Erreur lors du chargement des assets :", error);
                 }
             };
-
             loadAssets();
         }
     }, [question.assets]);
 
-    // Charger et exécuter la logique additionnelle
     useEffect(() => {
         if (question.extraData && typeof question.extraData === "string") {
             const loadExtraLogic = async () => {
@@ -35,42 +56,52 @@ export default function GenericQuestion({ question, onSuccess }) {
                     console.error(`Erreur lors du chargement de la logique extra : ${question.extraData}`, error);
                 }
             };
-
-            loadExtraLogic();
-        } else {
-            console.warn("extraData est manquant ou invalide :", question.extraData);
+            loadExtraLogic().then(r => r);
         }
     }, [question.extraData]);
 
-
-    // Gérer les réponses textuelles
     const handleAnswerChange = (e) => {
         setAnswer(e.target.value);
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
-        if (answer.trim() === question.solution) {
-            setFeedback(JSON.parse(question.feedback)?.correct || "Bonne réponse !");
-            onSuccess && onSuccess("success");
-        } else {
-            setFeedback(JSON.parse(question.feedback)?.incorrect || "Mauvaise réponse.");
+
+        const storedUserData = getStoredUserData();
+        const isCorrect = answer.trim() === question.solution;
+
+        // Envoie via Socket.IO
+        socket.emit("submitAnswer", {
+            sessionId: storedUserData.sessionId,
+            questionId: question.id,
+            answer: isCorrect ? "success" : "failure",
+        });
+
+        // Feedback local
+        setFeedback(isCorrect ? JSON.parse(question.feedback)?.correct || "Bonne réponse !" : JSON.parse(question.feedback)?.incorrect || "Mauvaise réponse.");
+
+        if (isCorrect) {
+            onSuccess();
         }
     };
 
-    // Gérer les interactions spéciales avec `extraLogic`
     const handleExtraLogic = async () => {
         if (extraLogic) {
+            const storedUserData = getStoredUserData();
             const containerId = "game-container";
-            const result = await extraLogic({
+            extraLogic({
                 containerId,
+                questionId: question.id,
+                sessionId: storedUserData.sessionId,
                 onComplete: (result) => {
-                    if (result.success) {
-                        setFeedback(question.feedback?.correct || "Bravo !");
-                        onSuccess && onSuccess("success");
-                    } else {
-                        setFeedback(question.feedback?.incorrect || "Essayez encore.");
-                    }
+                    socket.emit("submitAnswer", {
+                        sessionId: storedUserData.sessionId,
+                        questionId: question.id,
+                        answer: result.correct ? "success" : "failure",
+                    });
+
+                    setFeedback(result.message || (result.correct ? "Bonne réponse !" : "Essayez encore."));
+                    if (result.correct) onSuccess();
                 },
             });
         }
@@ -79,14 +110,10 @@ export default function GenericQuestion({ question, onSuccess }) {
     return (
         <div className="flex flex-col items-center justify-center text-white">
             <h1 className="text-4xl mb-4 font-Amatic font-bold">{question.question}</h1>
-
-            {/* Charger les assets */}
             {assetsLoaded.map((asset, index) => (
-                <img key={index} src={asset} alt={`asset-${index}`} className="mb-4"/>
+                <img key={index} src={asset} alt={`asset-${index}`} className="mb-4" />
             ))}
-
-            {/* Gestion des interactions */}
-            {question.type === "code" || question.type === "calculation" || question.type === "text" || question.type === "logic" ? (
+            {question.type === "text" ? (
                 <form className="flex flex-col items-center space-y-4" onSubmit={handleSubmit}>
                     <input
                         type="text"
@@ -95,29 +122,14 @@ export default function GenericQuestion({ question, onSuccess }) {
                         onChange={handleAnswerChange}
                         className="w-full p-3 bg-black text-white border border-gray-500 rounded-lg mb-6"
                     />
-                    <button
-                        type="submit"
-                        className={`py-3 px-6 ${
-                            answer
-                                ? 'bg-black text-green-500 border-green-500'
-                                : 'text-gray-300 border-gray-500 cursor-not-allowed'
-                        }`}
-                    >
-                        Envoyer
-                    </button>
+                    <button type="submit" className="py-3 px-6 bg-black text-green-500 border-green-500">Envoyer</button>
                 </form>
             ) : (
                 question.extraData && (
-                    <Button
-                        label={"Commencer l'interaction"}
-                        onClick={handleExtraLogic}
-                        className="py-3 px-6 bg-blue-500 text-white rounded-lg mt-4"
-                    >
-                    </Button>
+                    <Button label="Commencer l'interaction" onClick={handleExtraLogic} className="py-3 px-6 bg-blue-500 text-white rounded-lg mt-4" />
                 )
             )}
             <div id="game-container" className="relative w-full h-80 bg-black rounded-lg"></div>
-            {/* Feedback */}
             {feedback && <p className="text-green-500 mt-4">{feedback}</p>}
         </div>
     );
