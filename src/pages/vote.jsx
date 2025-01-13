@@ -9,11 +9,10 @@ export default function Profile() {
     const [players, setPlayers] = useState(null);
     const [error, setError] = useState(null);
     const [socket, setSocket] = useState(null);
-    const [votes, setVotes] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
-    const initialTime = 10;
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
+    const [initialTime, setInitialTime] = useState(30);
 
     useEffect(() => {
         const storedUserData = getStoredUserData();
@@ -91,21 +90,24 @@ export default function Profile() {
         }
     };
 
-    const voteForSuspect = (suspectId) => {
+    const confirmVote = () => {
         const storedUserData = getStoredUserData();
-        const confirmVote = window.confirm("Valider votre vote ?");
-        if (!confirmVote) return;
 
-        if (confirmVote && socket && storedUserData) {
-            console.log("StoredUserData", storedUserData.id);
-            console.log("StoredUserData", storedUserData.sessionId);
-            console.log("SUSPECT ID VOTÉ", suspectId);
-            socket.emit('voteForSuspect', suspectId, storedUserData.id, storedUserData.sessionId);
+        if (selectedSuspect && socket && storedUserData) {
+            console.log('StoredUserData', storedUserData.id);
+            console.log('StoredUserData', storedUserData.sessionId);
+            console.log('SUSPECT ID VOTÉ', selectedSuspect.id);
+
+            socket.emit('voteForSuspect', selectedSuspect.id, storedUserData.id, storedUserData.sessionId);
             setDisableVote(true);
-
-            setSelectedSuspect(suspect);
-            setShowModal(true);
         }
+
+        setShowModal(false);
+    };
+
+    const voteForSuspect = (suspect) => {
+        setSelectedSuspect(suspect);
+        setShowModal(true);
     };
 
     const handleTimeUp = () => {
@@ -117,15 +119,6 @@ export default function Profile() {
         const endTimestamp = new Date(endTime).getTime();
         const nowTimestamp = Date.now();
         return Math.max((endTimestamp - nowTimestamp) / 1000, 0);
-    };
-
-    const confirmVote = () => {
-        const storedUserData = getStoredUserData();
-        if (selectedSuspect && socket && storedUserData) {
-            socket.emit('voteForSuspect', selectedSuspect.id, storedUserData.id, storedUserData.sessionId);
-            setDisableVote(true);
-        }
-        setShowModal(false);
     };
 
     return (
