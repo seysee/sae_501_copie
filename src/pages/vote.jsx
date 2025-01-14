@@ -92,7 +92,7 @@ export default function Profile() {
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        socketConnection.on('voteStart', ({endTime}) => {
+        socketConnection.on('voteStart', ({ endTime }) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
@@ -105,6 +105,17 @@ export default function Profile() {
         socketConnection.on('endVote', (message) => {
             setDisableVote(true);
             console.log('Le temps est écoulé. Les votes sont désormais fermés.');
+        });
+
+        socketConnection.on('gameEnded', (redirectUrl) => {
+            console.log('Événement "gameEnded" reçu. Redirection vers :', redirectUrl);
+            if (redirectUrl) {
+                router.push(redirectUrl).then(() => {
+                    console.log('Redirection réussie vers /endGame');
+                }).catch((error) => {
+                    console.error('Erreur lors de la redirection :', error);
+                });
+            }
         });
 
         return () => {
@@ -129,7 +140,7 @@ export default function Profile() {
         } catch (error) {
             console.error("Error emitting getSessionVote:", error);
         }
-    }, [socket]); // Ajoutez socket comme dépendance pour que cet useEffect réagisse à son initialisation
+    }, [socket]);
 
     const getStoredUserData = () => {
         try {
@@ -211,7 +222,6 @@ export default function Profile() {
     const toggleHints = () => {
         setShowHints((prev) => !prev);
     };
-
 
     return (
         <div className="min-h-screen flex flex-col p-4 items-center justify-center">
