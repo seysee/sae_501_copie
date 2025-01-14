@@ -70,7 +70,7 @@ export default function handler(req, res) {
                 if (sessions[sessionId].questions.length === 0) {
                     try {
                         const dbQuestions = await prisma.questions.findMany({
-                            where: { id: { notIn: toFilterQuestion } },
+                            where: { id: { notIn: toFilterQuestion }, active: true },
                         });
                         sessions[sessionId].questions = shuffle(dbQuestions);
                     } catch (error) {

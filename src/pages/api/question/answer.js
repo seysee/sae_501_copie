@@ -16,20 +16,6 @@ export default async function handler(req, res) {
                 return res.status(404).json({ message: "Question non trouvée." });
             }
 
-            if (question.type === "action") {
-                // Gestion des questions de type "action"
-                if (answer === question.solution) {
-                    return res.status(200).json({
-                        correct: true,
-                        message: JSON.parse(question.feedback)?.correct || "Action réussie !"
-                    });
-                } else {
-                    return res.status(200).json({
-                        correct: false,
-                        message: JSON.parse(question.feedback)?.incorrect || "Action non réalisée, essayez encore."
-                    });
-                }
-            }
 
             // Normalisation de la chaîne pour gérer les réponses
             const normalizeString = (str) =>
@@ -38,10 +24,9 @@ export default async function handler(req, res) {
                     .replace(/[\u0300-\u036f]/g, '')
                     .trim();
 
+            console.log("(answer.js:28) answer, question.solution", answer, question.solution);
             const userAnswer = normalizeString(answer);
-            const correctAnswer = Array.isArray(JSON.parse(question.solution))
-                ? JSON.parse(question.solution).some(ans => normalizeString(ans) === userAnswer)
-                : userAnswer === normalizeString(question.solution);
+            const correctAnswer = normalizeString(question.solution) === userAnswer;
 
             if (correctAnswer) {
                 return res.status(200).json({
