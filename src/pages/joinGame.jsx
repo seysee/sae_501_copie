@@ -45,7 +45,6 @@ export default function JoinGame({ setSessionData, sessionData }) {
         }
     };
 
-
     const isJoinable = (session) => {
         console.log("status : " , session.status)
         if (session.status === 0) {
@@ -60,6 +59,7 @@ export default function JoinGame({ setSessionData, sessionData }) {
             console.log("Non non non")
         }
     }
+
     const joinGame = async (session) => {
         const storedPlayer = getStoredUserData()
         console.log(storedPlayer)
@@ -80,6 +80,7 @@ export default function JoinGame({ setSessionData, sessionData }) {
         sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
         router.push('/salon');
     }
+
     const fetchSessions = async (code) => {
         try {
             const response = await axios.get('/api/session', {
@@ -93,8 +94,6 @@ export default function JoinGame({ setSessionData, sessionData }) {
             throw error; // Permet de gérer l'erreur dans handleJoinGame
         }
     };
-
-
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
