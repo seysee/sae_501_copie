@@ -20,19 +20,19 @@ model Players {
 }
 
 model Sessions {
-  id            Int       @id @default(autoincrement())
-  code          String    @unique @db.VarChar(10)
-  playersNumber Int?
-  createdAt     DateTime? @default(now()) @db.DateTime(0)
-  status        Int?
-  questions     String?   @db.LongText
-  hostId        Int?
-  hints         String?   @default("[]") @db.LongText
-  killerId      Int?
-  answeredCount Int?
-  Players       Players[]
+  id                Int       @id @default(autoincrement())
+  code              String    @unique @db.VarChar(10)
+  playersNumber     Int?
+  createdAt         DateTime? @default(now()) @db.DateTime(0)
+  status            Int?
+  questions         String?   @db.LongText
+  hostId            Int?
+  hints             String?   @default("[]") @db.LongText
+  killerId          Int?
+  answeredCount     Int?
   activePlayerIndex Int?
-  Killer        Suspects? @relation("SessionKiller", fields: [killerId], references: [id], onDelete: Restrict, map: "fk_killerId")
+  Players           Players[]
+  Killer            Suspects? @relation("SessionKiller", fields: [killerId], references: [id], onDelete: Restrict, map: "fk_killerId")
 
   @@index([killerId], map: "idx_killerId")
 }
