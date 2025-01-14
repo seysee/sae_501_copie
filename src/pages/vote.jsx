@@ -9,13 +9,15 @@ export default function Profile() {
     const [players, setPlayers] = useState(null);
     const [error, setError] = useState(null);
     const [socket, setSocket] = useState(null);
+    const [votes, setVotes] = useState([]);
+
+    const [voters, setVoters] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
+    const [initialTime, setInitialTime] = useState(90);
+    const [votedSuspectId, setVotedSuspectId] = useState(null);
+
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
-    const [initialTime, setInitialTime] = useState(90);
-    const [votes, setVotes] = useState([]);
-    const [voters, setVoters] = useState([]);
-    const [votedSuspectId, setVotedSuspectId] = useState(null);
 
     useEffect(() => {
         const storedUserData = getStoredUserData();
@@ -201,13 +203,15 @@ export default function Profile() {
                     <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {suspects.map((suspect, index) => {
+
                         const votesForSuspect = votes ? votes.filter(vote => vote.suspectId === suspect.id).length : 0;
+
                         return (
                             <div key={index} className="flex flex-col items-center">
                                 <button
                                     onClick={() => voteForSuspect(suspect)}
                                     disabled={disableVote || votedSuspectId === suspect.id}
-                                    className={`border border-gray-600 bg-gray-800 p-4 rounded-lg shadow-md transition ${
+                                    className={`relative border border-gray-600 bg-gray-800 flex justify-between items-center p-4 w-full rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ${
                                         disableVote ? 'opacity-50 cursor-not-allowed' : ''
                                     }`}
                                 >

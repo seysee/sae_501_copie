@@ -134,12 +134,10 @@ export default function handler(req, res) {
                     } else {
                         sessionVote[sessionId][voteIndex].suspectId = suspectId;
                         console.log(`Le joueur ${userId} a changé son vote pour ${suspectId}.`);
-                        io.to(socket.id).emit('voteUpdated', 'Votre vote a été mis à jour.');
                     }
                 } else {
                     sessionVote[sessionId].push({ userId, suspectId });
                     console.log(`Le joueur ${userId} a voté pour le suspect ${suspectId}.`);
-                    io.to(socket.id).emit('voteSuccess', 'Vote enregistré avec succès.');
                 }
 
                 /* quand tous les users votent, on peut plus voter
@@ -163,6 +161,16 @@ export default function handler(req, res) {
             });
 
 
+            // ça permet de configurer une durée de début et de fin
+            socket.on('getVoteEndTime', (sessionId, callback) => {
+                if (sessions[sessionId]?.endTime) {
+                    callback({ endTime: sessions[sessionId].endTime });
+                } else {
+                    callback({ error: 'Session introuvable ou pas de vote en cours.' });
+                }
+            });
+
+
             socket.on('startVote', (sessionId, durationInSeconds) => {
                 const now = new Date();
                 const endTime = new Date(now.getTime() + durationInSeconds * 1000);
@@ -171,15 +179,6 @@ export default function handler(req, res) {
                 }
                 sessions[sessionId].endTime = endTime;
                 io.to(sessionId).emit('voteStart', { endTime });
-            });
-
-
-            socket.on('getVoteEndTime', (sessionId, callback) => {
-                if (sessions[sessionId]?.endTime) {
-                    callback({ endTime: sessions[sessionId].endTime });
-                } else {
-                    callback({ error: 'Session introuvable ou pas de vote en cours.' });
-                }
             });
 
 
