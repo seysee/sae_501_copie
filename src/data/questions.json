@@ -1,4 +1,4 @@
-[
+[[
   {
     "id": 1,
     "question": "Quelle est la capitale de la France ?",
@@ -70,12 +70,6 @@
     "id": 12,
     "question": "Reproduisez le dessin",
     "answer": "trace_success",
-    "type": "action"
-  },
-  {
-    "id": 13,
-    "question": "Reformez le puzzle pour gagner !",
-    "answer": "puzzle_success",
     "type": "action"
   }
 ]

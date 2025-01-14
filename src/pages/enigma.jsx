@@ -67,6 +67,53 @@ export default function Game() {
         console.log("Question réussie !");
     };
 
+    // Lors de la soumission de la réponse
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        const storedPlayer = getStoredUserData();
+        if (!answer) {
+            console.log('Aucune réponse donnée');
+            return;
+        }
+        if (!question?.id) {
+            console.log("ID de la question non défini");
+            return;
+        }
+        console.log('Réponse envoyée:', answer, "pour la question ID", question.id);
+
+        // (Optionnel) marquer le joueur dans le sessionStorage
+        sessionStorage.setItem('I_AM_LAST_ANSWERER', 'true');
+
+        // Vérifier que le socket est bien initialisé
+        if (!socket) {
+            console.error("Socket non initialisé");
+            return;
+        }
+
+        // Émission de l'événement submitAnswer
+        socket.emit('submitAnswer', {
+            sessionId: storedPlayer.sessionId,
+            questionId: question.id,
+            answer,
+            playerId: storedPlayer.id,
+        });
+        console.log("Événement submitAnswer émis");
+    };
+
+    const handleActionSuccess = (message) => {
+        console.log(message);
+        setFeedback(message);
+        const storedPlayer = getStoredUserData();
+        socket.emit('submitAnswer', {
+            sessionId: storedPlayer.sessionId,
+            questionId: question?.id,
+            answer: question.answer,
+            playerId: storedPlayer.id,
+        });
+        console.log("Événement submitAnswer (action) émis");
+    };
+
+    // Affichage conditionnel : si c'est le joueur actif, on affiche le formulaire pour répondre
     const storedPlayer = getStoredUserData();
     const amIActive = activePlayer && storedPlayer && Number(activePlayer.id) === Number(storedPlayer.id);
 
