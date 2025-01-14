@@ -5,10 +5,12 @@ import Camera from "./actions/Camera";
 import BlowGame from "./actions/BlowGame";
 import RepeatPhrase from "./actions/RepeatPhrase";
 import TraceShape from "./actions/TraceShape";
+import PuzzleGame from "./actions/PuzzleGame";
 
 export default function ActionQuestion({ question, onSuccess, socket }) {
     const [targetColor, setTargetColor] = useState("red");
     const [selectedShape, setSelectedShape] = useState(null);
+    const [selectedImage, setSelectedImage] = useState(null);
     const [sessionId, setSessionId] = useState(null);
 
     const generateArc = (centerX, centerY, radius, startAngle, endAngle, numPoints) => {
@@ -130,7 +132,27 @@ export default function ActionQuestion({ question, onSuccess, socket }) {
         if (question.answer === "trace_success") {
             handleShapeSelection(); // Sélectionner ou charger la forme
         }
+
+        if (question.answer === "puzzle_success") {
+            selectImage(); // Sélectionne ou charge l'image
+        }
     }, [question]);
+
+    const puzzleImages = [
+        "/puzzle/mamie.jpg",
+        "/puzzle/enfant.jpeg",
+    ]; // Ajoutez toutes les images disponibles dans le répertoire 'puzzle'
+
+    const selectImage = () => {
+        const storedImage = sessionStorage.getItem("selectedPuzzleImage");
+        if (storedImage) {
+            setSelectedImage(storedImage);
+        } else {
+            const randomImage = puzzleImages[Math.floor(Math.random() * puzzleImages.length)];
+            setSelectedImage(randomImage);
+            sessionStorage.setItem("selectedPuzzleImage", randomImage);
+        }
+    };
 
     const handleSuccess = (message) => {
         console.log(message); // Affiche un message de succès
@@ -230,6 +252,16 @@ export default function ActionQuestion({ question, onSuccess, socket }) {
                 <TraceShape
                     questionId={question.id}
                     shape={selectedShape} // Passe la forme choisie
+                    onSuccess={handleSuccess}
+                    socket={socket}
+                    sessionId={sessionId}
+                />
+            )}
+
+            {question.answer === "puzzle_success" && (
+                <PuzzleGame
+                    questionId={question.id}
+                    image={selectedImage}
                     onSuccess={handleSuccess}
                     socket={socket}
                     sessionId={sessionId}
