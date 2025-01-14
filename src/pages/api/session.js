@@ -15,22 +15,9 @@ export default async function handler(req, res) {
                 if (!sessionDb) {
                     return res.status(404).json({ message: 'Session not found' });
                 }
-
-                // Pour aider au debug, affichez les clés de l'objet sessions
-                console.log("=== GET /api/session ===");
-                console.log("id =", id, "(type:", typeof id, ")");
-                console.log("sessions keys =", Object.keys(sessions));
-
-                // Récupération de la session en mémoire en forçant la clé en string
-                const memorySession = sessions[id.toString()];
-                console.log("memorySession =", memorySession);
-                if (memorySession) {
-                    sessionDb.activePlayerIndex = memorySession.activePlayerIndex;
-                    sessionDb.playersInMemory = memorySession.players;
-                }
-
                 res.status(200).json(sessionDb);
-            } else if (code) {
+            }
+            else if (code) {
                 console.log("start");
                 // Récupère la session par code
                 const session = await prisma.sessions.findFirst({

@@ -11,7 +11,7 @@ export default function Game() {
     const [answer, setAnswer] = useState('');
     const [feedback, setFeedback] = useState('');
     const [socket, setSocket] = useState(null);
-    const [activePlayer, setActivePlayer] = useState(null); // <-- NOUVEAU
+    const [activePlayer, setActivePlayer] = useState(null);
     const router = useRouter();
 
     const getStoredUserData = () => {
@@ -34,40 +34,46 @@ export default function Game() {
                 return;
             }
 
-            // Initialiser la connexion Socket.IO
+            // Initialisation du socket
             const socketInstance = io({ path: '/api/socket' });
             setSocket(socketInstance);
+            console.log("Socket initialisé, socket.id =", socketInstance.id);
 
             try {
-                // Récupère la session pour filtrer les questions déjà posées
+                // Récupérer la session pour filtrer les questions déjà posées
                 const responseGet = await axios.get("/api/session", {
                     params: { id: storedPlayer.sessionId },
                 });
                 const toFilterQuestion = responseGet.data.questions || [];
                 console.log("Questions à filtrer :", toFilterQuestion);
 
-                // Rejoindre la session
+                // Émission de joinSession
+                console.log("Envoi de joinSession", storedPlayer.sessionId, {
+                    name: storedPlayer.name,
+                    id: storedPlayer.id,
+                });
                 socketInstance.emit('joinSession', storedPlayer.sessionId, {
                     name: storedPlayer.name,
-                    id: storedPlayer.id  // <-- S’assurer qu’on identifie bien le player
+                    id: storedPlayer.id,
                 });
 
                 // Lancer la première question
+                console.log("Envoi de launchQuestions", storedPlayer.sessionId, toFilterQuestion);
                 socketInstance.emit('launchQuestions', storedPlayer.sessionId, toFilterQuestion);
 
-                // Écouter la prochaine question
+                // Écouter l'événement nextQuestion
                 socketInstance.on('nextQuestion', (data) => {
-                    // data = { question, activePlayer }
                     console.log('Nouvelle question reçue :', data);
                     setQuestion(data.question);
-                    setActivePlayer(data.activePlayer); // <-- NOUVEAU
+                    setActivePlayer(data.activePlayer);
                     setAnswer('');
                 });
 
-                // Écouter la soumission de réponse
+                // Écouter l'événement answerSubmitted qui doit contenir redirectUrl
                 socketInstance.on('answerSubmitted', ({ redirectUrl }) => {
+                    console.log("Événement answerSubmitted reçu, redirectUrl =", redirectUrl);
                     if (redirectUrl) {
-                        router.push(redirectUrl).then(() => console.log('Redirection effectuée'));
+                        router.push(redirectUrl).then(() => console.log('Redirection effectuée vers', redirectUrl));
                     }
                 });
             } catch (error) {
@@ -90,7 +96,7 @@ export default function Game() {
         setAnswer(e.target.value);
     };
 
-    // enigma.jsx (exemple)
+    // Lors de la soumission de la réponse
     const handleSubmit = (event) => {
         event.preventDefault();
         const storedPlayer = getStoredUserData();
@@ -98,21 +104,30 @@ export default function Game() {
             console.log('Aucune réponse donnée');
             return;
         }
+        if (!question?.id) {
+            console.log("ID de la question non défini");
+            return;
+        }
+        console.log('Réponse envoyée:', answer, "pour la question ID", question.id);
 
-        console.log('Réponse envoyée:', answer, "questionID", question?.id);
-
-        // Marquer CE joueur comme "dernier répondant" dans le sessionStorage
+        // (Optionnel) marquer le joueur dans le sessionStorage
         sessionStorage.setItem('I_AM_LAST_ANSWERER', 'true');
 
+        // Vérifier que le socket est bien initialisé
+        if (!socket) {
+            console.error("Socket non initialisé");
+            return;
+        }
+
+        // Émission de l'événement submitAnswer
         socket.emit('submitAnswer', {
             sessionId: storedPlayer.sessionId,
-            questionId: question?.id,
+            questionId: question.id,
             answer,
             playerId: storedPlayer.id,
         });
-
+        console.log("Événement submitAnswer émis");
     };
-
 
     const handleActionSuccess = (message) => {
         console.log(message);
@@ -122,22 +137,20 @@ export default function Game() {
             sessionId: storedPlayer.sessionId,
             questionId: question?.id,
             answer: question.answer,
+            playerId: storedPlayer.id,
         });
+        console.log("Événement submitAnswer (action) émis");
     };
 
-    // Ici, affichage conditionnel :
-    // - Si c'est moi le joueur actif => afficher question + formulaire
-    // - Sinon => afficher un message "Pseudo est en train de répondre"
+    // Affichage conditionnel : si c'est le joueur actif, on affiche le formulaire pour répondre
     const storedPlayer = getStoredUserData();
-    const amIActive = activePlayer && storedPlayer && activePlayer.id === storedPlayer.id;
+    const amIActive = activePlayer && storedPlayer && Number(activePlayer.id) === Number(storedPlayer.id);
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
             <RoleSlide />
-
             <div className="w-full max-w-lg flex flex-col items-center py-20 space-y-8">
                 <h1 className="text-6xl font-Amatic text-yellow-400">Énigme</h1>
-
                 {question ? (
                     <div className="w-full max-w-md text-center">
                         {amIActive ? (
@@ -150,10 +163,7 @@ export default function Game() {
                                         socket={socket}
                                     />
                                 ) : (
-                                    <form
-                                        className="flex flex-col items-center space-y-4"
-                                        onSubmit={handleSubmit}
-                                    >
+                                    <form className="flex flex-col items-center space-y-4" onSubmit={handleSubmit}>
                                         <input
                                             type="text"
                                             name="answer"

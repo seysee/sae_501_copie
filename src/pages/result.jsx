@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import io from 'socket.io-client';
 import axios from 'axios';
@@ -12,25 +12,31 @@ export default function Result() {
     const [feedback, setFeedback] = useState('');
     const [correct, setCorrect] = useState(false);
     const [showButton, setShowButton] = useState(false);
-
     const { questionId, answer } = router.query;
 
     useEffect(() => {
         if (!socket) {
             socket = io({ path: '/api/socket' });
+            const storedPlayerStr = sessionStorage.getItem('userData');
+            if (storedPlayerStr) {
+                const storedPlayer = JSON.parse(storedPlayerStr);
+                if (storedPlayer.sessionId) {
+                    socket.emit('joinSession', storedPlayer.sessionId, {
+                        name: storedPlayer.name,
+                        id: storedPlayer.id,
+                    });
+                }
+            }
         }
-
-        // Redirection
-        socket.on('redirectToEnigma', () => {
-            console.log('redirectToEnigma => router.push("/enigma")');
-            router.push('/enigma');
-        });
-        return () => {
-            socket.off('redirectToEnigma');
+        const redirectHandler = () => {
+            window.location.href = '/enigma';
         };
-    }, [router]);
+        socket.on('redirectToEnigma', redirectHandler);
+        return () => {
+            socket.off('redirectToEnigma', redirectHandler);
+        };
+    }, []);
 
-    // Au montage, on vérifie la réponse
     useEffect(() => {
         if (questionId && answer) {
             try {
@@ -38,14 +44,10 @@ export default function Result() {
                 const decryptedAnswer = decryptParam(answer);
                 verifyResponse(decryptedQuestionId, decryptedAnswer);
                 rememberQuestion(decryptedQuestionId);
-            } catch (error) {
-                console.error('Erreur de déchiffrement :', error);
-            }
+            } catch (error) {}
         }
     }, [questionId, answer]);
 
-    // Après avoir validé la réponse, on va décider si on affiche le bouton
-    // => On compare mon ID au "activePlayer" (celui qui va jouer la prochaine question)
     useEffect(() => {
         defineButtonVisibility();
     }, []);
@@ -60,57 +62,59 @@ export default function Result() {
             const sessionId = storedPlayer.sessionId;
             const myId = storedPlayer.id;
 
-            // Appel API pour récupérer session + activePlayerIndex + playersInMemory
-            const resp = await axios.get("/api/session", { params: { id: sessionId } });
-            const serverSession = resp.data;
-            console.log('serverSession =', serverSession);
+            // Récupère la session (qui contient activePlayerIndex)
+            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
+            const serverSession = sessionResp.data;
+            const aIndex = serverSession.activePlayerIndex;
 
-            const aIndex = serverSession.activePlayerIndex;  // index du prochain joueur
-            const players = serverSession.playersInMemory;   // liste des joueurs en mémoire
+            // Récupère tous les joueurs de la session
+            const playersResp = await axios.get("/api/player", { params: { sessionId: sessionId } });
+            const players = playersResp.data;
 
-            console.log('aIndex = ', aIndex);
-            console.log('playersInMemory = ', players);
+            // Si un seul joueur, toujours afficher le bouton
+            if (players.length === 1) {
+                setShowButton(true);
+                return;
+            }
 
+            // Sinon, logique du joueur actif
             if (typeof aIndex === 'number' && Array.isArray(players)) {
-                if (Number(players[aIndex]?.id) === Number(myId)) {
-                    console.log("C'est moi le joueur actif prochain => j'affiche le bouton");
+                if (parseInt(players[aIndex]?.id) === parseInt(myId)) {
                     setShowButton(true);
                 } else {
-                    console.log("Ce n'est pas moi => pas de bouton");
                     setShowButton(false);
                 }
             }
-        } catch (err) {
-            console.error("Erreur defineButtonVisibility:", err);
-        }
+        } catch (err) {}
     };
 
-
-
-    const handleReturnHome = () => {
+    const handleReturnHome = useCallback(() => {
         const storedPlayerStr = sessionStorage.getItem('userData');
         if (!storedPlayerStr) return;
         const storedPlayer = JSON.parse(storedPlayerStr);
-
         if (storedPlayer.sessionId) {
-            // j'émets "returnHome" => tout le monde fait redirectToEnigma => /enigma
             socket.emit('returnHome', storedPlayer.sessionId);
         }
-    };
+    }, []);
 
-    const rememberQuestion = async (questionId) => {
-        // ... (ton code existant pour ne plus re-poser la question) ...
+    const rememberQuestion = async (qid) => {
+        try {
+            await axios.post("/api/question/remember", { questionId: qid });
+        } catch (error) {}
     };
 
     const verifyResponse = async (qId, ans) => {
         try {
             const response = await axios.post("/api/question/answer", {
-                id: qId, answer: ans
+                id: qId,
+                answer: ans
             });
             setFeedback(response.data.message);
             setCorrect(response.data.correct);
+            setTimeout(() => {
+                defineButtonVisibility();
+            }, 500);
         } catch (error) {
-            console.error("Erreur lors de la vérification :", error);
             setFeedback("Erreur lors de la vérification. Veuillez réessayer.");
         }
     };
@@ -119,7 +123,6 @@ export default function Result() {
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
             <h1 className="text-4xl mb-4">Résultat de la Réponse</h1>
             <p className="text-xl">{feedback}</p>
-
             {correct ? (
                 <>
                     <p className="text-2xl text-green-500">Bonne Réponse!</p>
@@ -128,7 +131,6 @@ export default function Result() {
             ) : (
                 <p className="text-2xl text-red-500">Mauvaise Réponse!</p>
             )}
-
             {showButton && (
                 <button
                     onClick={handleReturnHome}
