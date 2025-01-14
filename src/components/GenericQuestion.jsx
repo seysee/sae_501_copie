@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import Button from "./_button";
-import axios from "axios";
 
 export default function GenericQuestion({ question, onSuccess, socket }) {
     const [assetsLoaded, setAssetsLoaded] = useState([]);
@@ -10,13 +9,11 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
     const getStoredUserData = () => {
         try {
             const storedPlayer = sessionStorage.getItem("userData");
-            if (storedPlayer) {
-                return JSON.parse(storedPlayer);
-            }
+            return storedPlayer ? JSON.parse(storedPlayer) : null;
         } catch (error) {
             console.error("Erreur lors de la récupération des données utilisateur :", error);
+            return null;
         }
-        return null;
     };
 
     // Écouter l'événement `answerSubmitted` pour rediriger les joueurs
@@ -29,7 +26,6 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
             });
         }
     }, [socket]);
-
 
     useEffect(() => {
         if (question.assets) {
@@ -56,7 +52,7 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
                     console.error(`Erreur lors du chargement de la logique extra : ${question.extraData}`, error);
                 }
             };
-            loadExtraLogic().then(r => r);
+            loadExtraLogic().then(() => null);
         }
     }, [question.extraData]);
 
@@ -68,21 +64,20 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
         event.preventDefault();
 
         const storedUserData = getStoredUserData();
-        const isCorrect = answer.trim() === question.solution;
+        if (!storedUserData || !socket) {
+            console.error("Données utilisateur ou socket non disponibles.");
+            return;
+        }
 
-        // Envoie via Socket.IO
+        // Envoi de la réponse à l'API via Socket.IO
         socket.emit("submitAnswer", {
             sessionId: storedUserData.sessionId,
             questionId: question.id,
-            answer: isCorrect ? "success" : "failure",
+            answer,
         });
 
-        // Feedback local
-        setFeedback(isCorrect ? JSON.parse(question.feedback)?.correct || "Bonne réponse !" : JSON.parse(question.feedback)?.incorrect || "Mauvaise réponse.");
-
-        if (isCorrect) {
-            onSuccess();
-        }
+        // Feedback temporaire en attendant la réponse de l'API
+        setFeedback("Vérification en cours...");
     };
 
     const handleExtraLogic = async () => {
@@ -97,10 +92,10 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
                     socket.emit("submitAnswer", {
                         sessionId: storedUserData.sessionId,
                         questionId: question.id,
-                        answer: result.correct ? "success" : "failure",
+                        answer: result.answer,
                     });
 
-                    setFeedback(result.message || (result.correct ? "Bonne réponse !" : "Essayez encore."));
+                    setFeedback(result.message || "Interaction terminée.");
                     if (result.correct) onSuccess();
                 },
             });

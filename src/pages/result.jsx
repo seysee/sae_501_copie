@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import Hint from "./hint";
+import Hint from "../components/hint";
 import axios from "axios";
 import { decryptParam } from '../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
 

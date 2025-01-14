@@ -65,14 +65,6 @@ export default function Game() {
 
     const handleSuccess = () => {
         console.log("Question réussie !");
-        const storedPlayer = getStoredUserData();
-        if (!storedPlayer || !socket) return;
-
-        socket.emit('submitAnswer', {
-            sessionId: storedPlayer.sessionId,
-            questionId: question?.id,
-            answer: "success",
-        });
     };
 
     const storedPlayer = getStoredUserData();
