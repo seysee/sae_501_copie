@@ -113,7 +113,7 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
             {assetsLoaded.map((asset, index) => (
                 <img key={index} src={asset} alt={`asset-${index}`} className="mb-4" />
             ))}
-            {question.type === "text" ? (
+            {question.type === "text" || question.type === "number" ? (
                 <form className="flex flex-col items-center space-y-4" onSubmit={handleSubmit}>
                     <input
                         type="text"

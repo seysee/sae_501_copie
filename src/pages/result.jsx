@@ -1,120 +1,99 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import io from 'socket.io-client';
-import axios from 'axios';
-import { decryptParam } from '../lib/cryptoUtils';
-import Hint from "../components/hint";
+import Hint from "./hint";
+import axios from "axios";
+import { decryptParam } from '../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
 
-let socket;
-
-export default function Result() {
+const Result = () => {
     const router = useRouter();
     const [feedback, setFeedback] = useState('');
     const [correct, setCorrect] = useState(false);
-    const [showButton, setShowButton] = useState(false);
-    const { questionId, answer } = router.query;
-
-    useEffect(() => {
-        if (!socket) {
-            socket = io({ path: '/api/socket' });
-            const storedPlayerStr = sessionStorage.getItem('userData');
-            if (storedPlayerStr) {
-                const storedPlayer = JSON.parse(storedPlayerStr);
-                if (storedPlayer.sessionId) {
-                    socket.emit('joinSession', storedPlayer.sessionId, {
-                        name: storedPlayer.name,
-                        id: storedPlayer.id,
-                    });
-                }
-            }
-        }
-        const redirectHandler = () => {
-            window.location.href = '/enigma';
-        };
-        socket.on('redirectToEnigma', redirectHandler);
-        return () => {
-            socket.off('redirectToEnigma', redirectHandler);
-        };
-    }, []);
+    let {questionId, answer} = router.query;
 
     useEffect(() => {
         if (questionId && answer) {
             try {
+                console.log('Question ID avant décryptage :', questionId);
+                console.log('Réponse avant décryptage :', answer);
+
                 const decryptedQuestionId = decryptParam(questionId);
                 const decryptedAnswer = decryptParam(answer);
+
+                console.log('Question ID déchiffré :', decryptedQuestionId);
+                console.log('Réponse déchiffrée :', decryptedAnswer);
+
                 verifyResponse(decryptedQuestionId, decryptedAnswer);
                 rememberQuestion(decryptedQuestionId);
-            } catch (error) {}
+            } catch (error) {
+                console.error("Erreur de déchiffrement :", error);
+            }
+        } else {
+            console.log("Les paramètres questionId ou answer ne sont pas encore disponibles.");
         }
     }, [questionId, answer]);
 
-    useEffect(() => {
-        defineButtonVisibility();
-    }, []);
+    const rememberQuestion = async (questionId) => {
+        const storedPlayer = sessionStorage.getItem('userData');
+        const playerData = JSON.parse(storedPlayer);
+        const sessionId = playerData?.sessionId;
 
-    const defineButtonVisibility = async () => {
+        if (!sessionId) {
+            console.error("Aucune session ID trouvée.");
+            return;
+        }
+
         try {
-            const storedPlayerStr = sessionStorage.getItem('userData');
-            if (!storedPlayerStr) return;
-            const storedPlayer = JSON.parse(storedPlayerStr);
-            if (!storedPlayer.sessionId || !storedPlayer.id) return;
+            console.log("Session ID :", sessionId);
 
-            const sessionId = storedPlayer.sessionId;
-            const myId = storedPlayer.id;
+            // Récupérer les données de la session
+            const responseGet = await axios.get("/api/session", {
+                params: {
+                    id: sessionId,
+                },
+            });
 
-            // Récupère la session (qui contient activePlayerIndex)
-            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
-            const serverSession = sessionResp.data;
-            const aIndex = serverSession.activePlayerIndex;
+            console.log("(result.jsx:40) Données récupérées :", responseGet.data);
 
-            // Récupère tous les joueurs de la session
-            const playersResp = await axios.get("/api/player", { params: { sessionId: sessionId } });
-            const players = playersResp.data;
-
-            // Si un seul joueur, toujours afficher le bouton
-            if (players.length === 1) {
-                setShowButton(true);
-                return;
-            }
-
-            // Sinon, logique du joueur actif
-            if (typeof aIndex === 'number' && Array.isArray(players)) {
-                if (parseInt(players[aIndex]?.id) === parseInt(myId)) {
-                    setShowButton(true);
-                } else {
-                    setShowButton(false);
+            // Convertir les questions existantes en tableau si elles sont une chaîne JSON
+            let existingQuestions = [];
+            if (typeof responseGet.data.questions === "string") {
+                try {
+                    existingQuestions = JSON.parse(responseGet.data.questions); // Assure qu'on travaille avec un tableau
+                } catch (error) {
+                    console.error("Erreur lors du parsing des questions existantes :", error);
                 }
             }
-        } catch (err) {}
-    };
 
-    const handleReturnHome = useCallback(() => {
-        const storedPlayerStr = sessionStorage.getItem('userData');
-        if (!storedPlayerStr) return;
-        const storedPlayer = JSON.parse(storedPlayerStr);
-        if (storedPlayer.sessionId) {
-            socket.emit('returnHome', storedPlayer.sessionId);
+            console.log("Questions existantes (après parsing) :", existingQuestions);
+
+            // Ajouter la nouvelle question si elle n'existe pas déjà
+            const updatedQuestions = [...new Set([...existingQuestions, parseInt(questionId)])]; // Évite les doublons
+
+            console.log("Questions mises à jour :", updatedQuestions);
+
+            // Mettre à jour la session avec les nouvelles questions
+            const responsePut = await axios.put("/api/session", {
+                id: sessionId,
+                questions: updatedQuestions, // Stocker sous forme de chaîne JSON dans la BDD
+            });
+
+            console.log("Réponse de l'API PUT :", responsePut.data);
+        } catch (error) {
+            console.error("Erreur lors de la mise à jour de la session :", error);
         }
-    }, []);
-
-    const rememberQuestion = async (qid) => {
-        try {
-            await axios.post("/api/question/remember", { questionId: qid });
-        } catch (error) {}
     };
 
-    const verifyResponse = async (qId, ans) => {
+    const verifyResponse = async (questionId, answer) => {
         try {
             const response = await axios.post("/api/question/answer", {
-                id: qId,
-                answer: ans
+                id: questionId, // Correspondance correcte avec l'API
+                answer,
             });
+            console.log('Réponse API :', response.data);
             setFeedback(response.data.message);
             setCorrect(response.data.correct);
-            setTimeout(() => {
-                defineButtonVisibility();
-            }, 500);
         } catch (error) {
+            console.error("Erreur lors de la vérification :", error);
             setFeedback("Erreur lors de la vérification. Veuillez réessayer.");
         }
     };
@@ -125,20 +104,24 @@ export default function Result() {
             <p className="text-xl">{feedback}</p>
             {correct ? (
                 <>
-                    <p className="text-2xl text-green-500">Bonne Réponse!</p>
+                    <p className="text-2xl text-green-500">
+                        Bonne Réponse!
+                    </p>
                     <Hint />
                 </>
             ) : (
-                <p className="text-2xl text-red-500">Mauvaise Réponse!</p>
+                <p className="text-2xl text-red-500">
+                    Mauvaise Réponse!
+                </p>
             )}
-            {showButton && (
-                <button
-                    onClick={handleReturnHome}
-                    className="mt-4 py-2 px-6 bg-black text-white rounded-lg"
-                >
-                    Prochaine question
-                </button>
-            )}
+            <button
+                onClick={() => router.push('/enigma')}
+                className="mt-4 py-2 px-6 bg-black text-white rounded-lg"
+            >
+                Question suivante
+            </button>
         </div>
     );
-}
+};
+
+export default Result;

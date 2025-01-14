@@ -20,7 +20,7 @@ export default function Salon() {
 
             // Initialisation de la connexion Socket.IO
             const socketConnection = io('http://localhost:3000', {
-            // const socketConnection = io('https://821c-195-220-84-59.ngrok-free.app', {
+            // const socketConnection = io('https://469b-195-220-84-41.ngrok-free.app', {
                 path: '/api/socket',
             });
             setSocket(socketConnection);
@@ -122,19 +122,40 @@ export default function Salon() {
             });
             const questions = response.data;
 
-            if (!questions || questions.length < 10) {
-                console.error("Pas assez de questions disponibles.");
-                return;
-            }
-
-            // Étape 2 : Mettre à jour la session avec les questions sélectionnées
             await axios.put('/api/session', {
                 id: session.id,
                 status: 1,
                 killerId: 1,
             });
 
-            // Étape 3 : Informer les joueurs que la partie commence
+            setGameCreated(true);
+
+            const playerNumber = players.length;
+            let roleCount = 0;
+
+            // Déterminer combien de joueurs auront le rôle '1'
+            if (playerNumber >= 3 && playerNumber <= 4) {
+                roleCount = 1;
+            } else if (playerNumber >= 5 && playerNumber <= 6) {
+                roleCount = 2;
+            }
+
+            // Sélectionner les rôles
+            const selectedIndices = [];
+            while (selectedIndices.length < roleCount) {
+                const randomIndex = Math.floor(Math.random() * playerNumber);
+                if (!selectedIndices.includes(randomIndex)) {
+                    selectedIndices.push(randomIndex);
+                }
+            }
+
+            for (let i = 0; i < playerNumber; i++) {
+                const role = selectedIndices.includes(i) ? 1 : 0;
+                await axios.put("/api/player", {
+                    id: players[i].id,
+                    role: role,
+                });
+            }
             socket.emit('startGame', storedPlayer.sessionId); // Informer tous les utilisateurs que la partie démarre
         } catch (error) {
             console.error('Erreur lors de la mise à jour de la session ou de la récupération des questions :', error);
