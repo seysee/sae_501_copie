@@ -6,6 +6,7 @@ import Modal from '../components/_modal';
 import AllHints from '../components/_allHints';
 import _button from "../components/_button";
 import skinsData from "/src/data/skins";
+import { useRouter } from 'next/router';
 
 export default function Profile() {
     const [suspects, setSuspects] = useState(null);
@@ -13,14 +14,13 @@ export default function Profile() {
     const [error, setError] = useState(null);
     const [socket, setSocket] = useState(null);
     const [votes, setVotes] = useState([]);
-
     const [voters, setVoters] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
     const [initialTime, setInitialTime] = useState(60);
     const [votedSuspectId, setVotedSuspectId] = useState(null);
-
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
+    const router = useRouter();
     const [showHints, setShowHints] = useState(false);
     const skins = skinsData.skins;
 
@@ -37,7 +37,13 @@ export default function Profile() {
             fetchPlayersBySessionId(storedUserData.sessionId);
 
             if (socket && storedUserData?.sessionId) {
-                socket.emit('getVoteEndTime', storedUserData.sessionId, initialTime);
+                socket.emit('getVoteEndTime', storedUserData.sessionId, (response) => {
+                    if (response?.endTime) {
+                        const timeLeft = synchronizeTimer(response.endTime);
+                        setInitialTime(timeLeft);
+                        if (timeLeft === 0) setDisableVote(true);
+                    }
+                });
             }
         }
     }, [socket]);
@@ -98,13 +104,12 @@ export default function Profile() {
 
         socketConnection.on('endVote', (message) => {
             setDisableVote(true);
+            console.log('Le temps est écoulé. Les votes sont désormais fermés.');
         });
 
         return () => {
-            if (socketConnection) {
-                socketConnection.disconnect()
-                ;
-            }
+            if (socketConnection) { socketConnection.disconnect()
+            ;}
         };
     }, []);
 
@@ -191,6 +196,10 @@ export default function Profile() {
     const handleTimeUp = () => {
         setDisableVote(true);
         console.log('Le temps est écoulé. Les votes sont désormais fermés.');
+
+        setTimeout(() => {
+            router.push('/endGame');
+        }, 3000);
     };
 
     const synchronizeTimer = (endTime) => {
@@ -215,7 +224,6 @@ export default function Profile() {
                     <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
                 )}
             </div>
-
 
             {error ? (
                 <p className="text-red-500 text-2xl font-semibold text-center">{error}</p>
@@ -279,6 +287,22 @@ export default function Profile() {
                 <p className="text-gray-400 font-Amatic text-2xl animate-pulse">Loading...</p>
             )}
 
+            {voters.length > 0 && (
+                <div className="w-full max-w-6xl mx-auto mt-10">
+                    <h1 className="font-Amatic text-3xl mb-4">Joueurs ayant voté :</h1>
+                    <div className="flex flex-wrap gap-3">
+                        {voters.map((voter, index) => (
+                            <div
+                                key={index}
+                                className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+                            >
+                                <p className="font-Amatic text-xl font-medium truncate">{voter}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <div
                 className={`absolute ${showHints ? "block" : "hidden"}`}
             >
@@ -295,4 +319,3 @@ export default function Profile() {
         </div>
     );
 }
-
