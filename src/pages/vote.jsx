@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import Timer from '../components/_timer';
@@ -13,7 +13,7 @@ export default function Profile() {
 
     const [voters, setVoters] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
-    const [initialTime, setInitialTime] = useState(90);
+    const [initialTime, setInitialTime] = useState(10);
     const [votedSuspectId, setVotedSuspectId] = useState(null);
 
     const [showModal, setShowModal] = useState(false);
@@ -83,7 +83,7 @@ export default function Profile() {
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        socketConnection.on('voteStart', ({ endTime }) => {
+        socketConnection.on('voteStart', ({endTime}) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
@@ -95,8 +95,10 @@ export default function Profile() {
         });
 
         return () => {
-            if (socketConnection) { socketConnection.disconnect()
-            ;}
+            if (socketConnection) {
+                socketConnection.disconnect()
+                ;
+            }
         };
     }, []);
 
@@ -143,7 +145,7 @@ export default function Profile() {
     const fetchPlayersBySessionId = async (sessionId) => {
         try {
             const response = await axios.get("/api/player", {
-                params: { sessionId: sessionId },
+                params: {sessionId: sessionId},
             });
             setPlayers(response.data);
         } catch (err) {
@@ -188,7 +190,7 @@ export default function Profile() {
 
             {!disableVote && (
                 <div>
-                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false} />
+                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
                 </div>
             )}
 
@@ -202,42 +204,34 @@ export default function Profile() {
                 <div className="w-full max-w-6xl mx-auto">
                     <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {suspects.map((suspect, index) => {
+                        {suspects.map((suspect, index) => {
+                            const votesForSuspect = votes ? votes.filter(vote => vote.suspectId === suspect.id).length : 0;
 
-                        const votesForSuspect = votes ? votes.filter(vote => vote.suspectId === suspect.id).length : 0;
+                            return (
+                                <div key={index} className="flex flex-col items-center">
+                                    <button
+                                        onClick={() => voteForSuspect(suspect)}
+                                        disabled={disableVote || votedSuspectId === suspect.id}
+                                        className={`relative border border-gray-600 bg-gray-800 flex justify-between items-center p-4 w-full rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ${
+                                            disableVote ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
+                                    >
+                                        <p className="font-Amatic text-2xl text-white font-medium truncate">
+                                            {suspect.name}
+                                        </p>
+                                        {votesForSuspect > 0 && (
+                                            <div className="absolute right-3 top-3 flex flex-wrap gap-0.5">
+                                                {/* Générer un cercle rouge pour chaque vote */}
+                                                {Array.from({length: votesForSuspect}).map((_, i) => (
 
-                        return (
-                            <div key={index} className="flex flex-col items-center">
-                                <button
-                                    onClick={() => voteForSuspect(suspect)}
-                                    disabled={disableVote || votedSuspectId === suspect.id}
-                                    className={`relative border border-gray-600 bg-gray-800 flex justify-between items-center p-4 w-full rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ${
-                                        disableVote ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
-                                >
-                                    <p className="font-Amatic text-2xl text-white font-medium truncate">
-                                        {suspect.name}
-                                    </p>
-                                    {votesForSuspect > 0 && (
-                                        <div className="absolute right-3 top-3 flex flex-wrap gap-1">
-                                            {/* Générer un cercle rouge pour chaque vote */}
-                                            {Array.from({length: votesForSuspect}).map((_, i) => (
-                                                <svg
-                                                    key={i}
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="w-6 h-6 text-red-500"
-                                                    viewBox="0 0 24 24"
-                                                    fill="currentColor"
-                                                >
-                                                    <circle cx="12" cy="12" r="6"/>
-                                                </svg>
-                                            ))}
-                                        </div>
-                                    )}
-                                </button>
-                            </div>
-                        );
-                    })}
+                                                    <img className="w-6 h-6" src="/amonUsPastille.png"/>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             ) : (
