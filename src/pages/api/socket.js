@@ -3,7 +3,9 @@ import { Server } from 'socket.io';
 import questions from '../../data/questions.json';
 import { encryptParam } from '../../lib/cryptoUtils';
 import { sessions } from '../../lib/store';
-const sessionVote = {}; // sessionVote[sessionId] = [ ... ]
+const sessionVote = {}; // sessionVote[sessionId] = [ ...
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
 export default function handler(req, res) {
     if (!res.socket.server.io) {
@@ -106,11 +108,23 @@ export default function handler(req, res) {
                 }
 
                 sessionData.answered = true;
-                sessionData.lastPlayerId = playerId; // <-- on stocke le dernier qui a répondu
+                sessionData.lastPlayerId = playerId;
                 const nbPlayers = sessionData.players.length;
+
+                // Incrémente de 1 (une seule fois) l'index du joueur actif
                 sessionData.activePlayerIndex = (sessionData.activePlayerIndex + 1) % nbPlayers;
                 console.log("Le prochain joueur actif est index:", sessionData.activePlayerIndex);
-                // ... on chiffre questionId et answer pour la redirection
+
+                // Mise à jour dans la base de données pour persister l'index actif
+                try {
+                    await prisma.sessions.update({
+                        where: { id: parseInt(sessionId) },
+                        data: { activePlayerIndex: sessionData.activePlayerIndex }
+                    });
+                } catch (e) {
+                    console.error("Erreur lors de la mise à jour de l'activePlayerIndex :", e);
+                }
+
                 const encryptedQuestionId = encryptParam(questionId);
                 const encryptedAnswer = encryptParam(answer);
 
@@ -118,6 +132,7 @@ export default function handler(req, res) {
                     redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
                 });
             });
+
 
 
             socket.on('returnHome', (sessionId) => {
