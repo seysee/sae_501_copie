@@ -1,7 +1,8 @@
 import { Server } from 'socket.io';
-import { encryptParam } from '../../lib/cryptoUtils';
-import { PrismaClient } from '@prisma/client';
 
+import { encryptParam } from '../../lib/cryptoUtils';
+
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const sessions = {}; // Store en mémoire pour les sessions
 const sessionVote = {}; // Store en mémoire pour les votes par session
@@ -44,12 +45,10 @@ export default function handler(req, res) {
                     };
                 }
 
-
-                const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.id);
+const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.id);
                 if (!existingPlayer) {
                     sessions[sessionId].players.push(player);
                 }
-
                 socket.join(sessionId);
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
@@ -85,7 +84,7 @@ export default function handler(req, res) {
                 if (sessions[sessionId].questions.length === 0) {
                     try {
                         const dbQuestions = await prisma.questions.findMany({
-                            where: { id: { notIn: toFilterQuestion }, active: true },
+                        where: {  id: { notIn: toFilterQuestion }, active: true },
                         });
                         sessions[sessionId].questions = shuffle(dbQuestions);
                     } catch (error) {
@@ -113,7 +112,9 @@ export default function handler(req, res) {
             });
 
             // Soumission de la réponse
+
             socket.on('submitAnswer', async ({ sessionId, questionId, answer, playerId }) => {
+
                 console.log(`Réponse reçue pour la question ${questionId} :, answer`);
 
                 const sessionData = sessions[sessionId];
@@ -125,7 +126,6 @@ export default function handler(req, res) {
                 // Mettre à jour l'index du joueur actif
                 const currentIndex = sessionData.activePlayerIndex || 0;
                 const newIndex = (currentIndex + 1) % sessionData.players.length;
-
                 try {
                     await prisma.sessions.update({
                         where: { id: parseInt(sessionId) },
@@ -255,6 +255,7 @@ export default function handler(req, res) {
                     sessions[sessionId].intervalId = intervalId;
                 }
             });
+
 
             socket.on('startVote', (sessionId, durationInSeconds) => {
                 const now = new Date();
