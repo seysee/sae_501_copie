@@ -1,9 +1,11 @@
-import {Server} from 'socket.io';
+// socket.js
+import { Server } from 'socket.io';
 import questions from '../../data/questions.json';
-import {encryptParam} from '../../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
-
-const sessions = {}; // Stock temporaire pour les sessions et leurs joueurs
-const sessionVote = {}; //STOCKER LES VOTES
+import { encryptParam } from '../../lib/cryptoUtils';
+import { sessions } from '../../lib/store';
+const sessionVote = {}; // sessionVote[sessionId] = [ ...
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
 export default function handler(req, res) {
     if (!res.socket.server.io) {
@@ -15,6 +17,15 @@ export default function handler(req, res) {
                 methods: ['GET', 'POST'],
             },
         });
+
+        // Fonction shuffle si nécessaire
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
         io.on('connection', (socket) => {
             console.log('Nouvelle connexion établie :', socket.id);
@@ -28,16 +39,20 @@ export default function handler(req, res) {
                     sessions[sessionId] = {
                         players: [],
                         questions: shuffle([...questions]),
-                        answered: false
+                        answered: false,
+                        answeredBy: {},
+                        lastPlayerId: null,
                     };
                 }
 
+
+
                 sessions[sessionId].players.push(player);
                 socket.join(sessionId);
-                console.log("(socket.js:36) ", sessions);
+
+                console.log("(socket.js) Sessions:", sessions);
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
-
 
             // Démarrer une partie
             socket.on('startGame', (sessionId) => {
@@ -45,56 +60,152 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('gameStarted', '/role');
             });
 
-
-            function shuffle(array) {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
+            // Lancer la question suivante
+            socket.on('launchQuestions', async (sessionId, toFilterQuestion) => {
+                let sessionDb;
+                try {
+                    sessionDb = await prisma.sessions.findUnique({
+                        where: { id: parseInt(sessionId) },
+                    });
+                } catch (e) {
+                    console.error("Erreur findUnique sessions :", e);
+                    return;
                 }
-                return array;
-            }
+                if (!sessionDb) {
+                    console.error(`Session BDD ${sessionId} introuvable.`);
+                    return;
+                }
 
-            socket.on('launchQuestions', (sessionId, toFilterQuestion) => {
-                console.log(`${sessionId} est en train de lancer les questions.`);
+                // On prend l’index BDD
+                const aIndex = sessionDb.activePlayerIndex || 0;
 
-                if (sessions[sessionId]) {
-                    if (sessions[sessionId].questions.length === 0) {
-                        sessions[sessionId].questions = shuffle([...questions]);
-                    }
-                    const availableQuestions = sessions[sessionId].questions
-                        .filter(q => !toFilterQuestion.includes(q.id));
+                // Récupère tes joueurs (depuis la BDD ou le store en mémoire)
+                let players;
+                try {
+                    players = await prisma.players.findMany({
+                        where: { sessionId: parseInt(sessionId) },
+                        orderBy: { id: 'asc' },
+                    });
+                } catch (e) {
+                    console.error("Erreur findMany players :", e);
+                    return;
+                }
 
-                    console.log("Questions disponibles après filtrage :", availableQuestions);
+                // On suppose que sessions[sessionId].questions contient les questions
+                // (Tu peux conserver le store en mémoire pour ça, ou tout stocker en BDD)
+                const sessionData = sessions[sessionId];
+                if (!sessionData) {
+                    console.error(`Session en mémoire ${sessionId} introuvable.`);
+                    return;
+                }
 
-                    if (availableQuestions.length > 0) { // Vérifier si des questions sont disponibles
-                        const firstQuestion = availableQuestions[0]; // Utiliser [0] pour obtenir la première question
-                        sessions[sessionId].answered = false;
-                        sessions[sessionId].answeredBy = {};
-                        io.to(sessionId).emit('nextQuestion', firstQuestion);
-                    } else {
-                        console.log("Aucune question disponible pour cette session.");
-                    }
+                // Filtrer les questions déjà posées
+                if (sessionData.questions.length === 0) {
+                    sessionData.questions = shuffle([...questions]);
+                }
+                const availableQuestions = sessionData.questions.filter(
+                    (q) => !toFilterQuestion.includes(q.id)
+                );
+
+                if (availableQuestions.length > 0) {
+                    const firstQuestion = availableQuestions[0];
+                    sessionData.answered = false;
+                    sessionData.answeredBy = {};
+
+                    // Le joueur actif actuel
+                    const activePlayer = players[aIndex];
+
+                    io.to(sessionId).emit('nextQuestion', {
+                        question: firstQuestion,
+                        activePlayer: activePlayer,
+                    });
                 } else {
-                    console.error(`Session ${sessionId} introuvable.`);
+                    console.log("Aucune question disponible pour cette session.");
                 }
             });
 
+            // Lorsque le joueur actif soumet une réponse
+            // socket.js
 
-            socket.on('submitAnswer', ({sessionId, questionId, answer}) => {
-                console.log(`Réponse reçue pour la question ${questionId} :`, answer);
-                if (sessions[sessionId]) {
-                    console.log("(socket.js:84) here");
-                    sessions[sessionId].answered = true;
-
-                    const encryptedQuestionId = encryptParam(questionId);
-                    const encryptedAnswer = encryptParam(answer);
-
-                    io.to(sessionId).emit('answerSubmitted', {
-                        redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
+            socket.on('submitAnswer', async ({ sessionId, questionId, answer, playerId }) => {
+                // Récupère la session dans la BDD
+                let sessionDb;
+                try {
+                    sessionDb = await prisma.sessions.findUnique({
+                        where: { id: parseInt(sessionId) },
                     });
-                } else {
-                    console.error(`Session ${sessionId} introuvable.`);
+                } catch (e) {
+                    console.error("Erreur findUnique sessions :", e);
+                    return;
                 }
+                if (!sessionDb) {
+                    console.error(`Session BDD ${sessionId} introuvable.`);
+                    return;
+                }
+
+                // Récupère la liste des joueurs (de la session *en BDD*, ou de ton store)
+                // Si tu as déjà une table Players, c’est mieux de la lire depuis la BDD :
+                let players;
+                try {
+                    players = await prisma.players.findMany({
+                        where: { sessionId: parseInt(sessionId) },
+                        orderBy: { id: 'asc' }, // ou tout autre critère
+                    });
+                } catch (e) {
+                    console.error("Erreur findMany players :", e);
+                    return;
+                }
+
+                // L’index actuel (depuis la BDD)
+                const currentIndex = sessionDb.activePlayerIndex || 0;
+                const nbPlayers = players.length;
+                // Prochain index
+                const newIndex = (currentIndex + 1) % nbPlayers;
+
+                // Met à jour la base de données
+                try {
+                    await prisma.sessions.update({
+                        where: { id: parseInt(sessionId) },
+                        data: { activePlayerIndex: newIndex },
+                    });
+                    console.log(`Prochain joueur actif (BDD) : index = ${newIndex}`);
+                } catch (e) {
+                    console.error("Erreur lors de la mise à jour de l'activePlayerIndex :", e);
+                }
+
+                // (Facultatif) on stocke lastPlayerId dans le store mémoire, ou dans la BDD
+                if (sessions[sessionId]) {
+                    sessions[sessionId].lastPlayerId = playerId;
+                    sessions[sessionId].answered = true;
+                }
+
+                // Rediriger vers result
+                const encryptedQuestionId = encryptParam(questionId);
+                const encryptedAnswer = encryptParam(answer);
+
+                io.to(sessionId).emit('answerSubmitted', {
+                    redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
+                });
+            });
+
+
+
+
+            socket.on('returnHome', (sessionId) => {
+                console.log(`Le joueur de la session ${sessionId} demande le retour à l'accueil.`);
+                // On émet un événement commun pour TOUS les joueurs de la session
+                io.to(sessionId).emit('redirectToEnigma');
+            });
+            // Exemple : si tu veux passer au joueur suivant **après** la bonne réponse
+            // tu peux écouter un event du type "setNextPlayer" déclenché depuis result.jsx
+            // ou bien l'appeler directement en fin de "submitAnswer", c'est au choix.
+            socket.on('setNextPlayer', (sessionId) => {
+                const sessionData = sessions[sessionId];
+                if (!sessionData) return;
+
+                const nbPlayers = sessionData.players.length;
+                sessionData.activePlayerIndex = (sessionData.activePlayerIndex + 1) % nbPlayers;
+                console.log(`Prochain joueur: index = ${sessionData.activePlayerIndex}`);
             });
 
 

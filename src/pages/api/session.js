@@ -1,42 +1,42 @@
 // pages/api/session.js
-import {PrismaClient} from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { sessions } from '../../lib/store';
 
 const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
     try {
         if (req.method === 'GET') {
-            const {id, code} = req.query;
+            const { id, code } = req.query;
             if (id) {
-                // -----------------------------------------------------RÉCUPERE SESSION PAR ID---------------------------------------------------------//
-                const session = await prisma.sessions.findUnique({
-                    where: {id: parseInt(id)},
+                const sessionDb = await prisma.sessions.findUnique({
+                    where: { id: parseInt(id) },
                 });
-                if (!session) {
-                    return res.status(404).json({message: 'Session not found'});
+                if (!sessionDb) {
+                    return res.status(404).json({ message: 'Session not found' });
                 }
-                res.status(200).json(session);
-            } else if (code) {
-                console.log("start")
-                // -----------------------------------------------------RÉCUPERE SESSION PAR ID---------------------------------------------------------//
-                const session = await prisma.sessions.findFirst({
-                    where: {code: code},
-                });
-                console.log("had fetched")
-                if (!session) {
-                    return res.status(404).json({message: 'Session not found'});
-                }
-                res.status(200).json(session);
-                console.log("returned")
-            } else {
-                // -----------------------------------------------------RÉCUPERE SESSIONS---------------------------------------------------------//
-                const sessions = await prisma.sessions.findMany();
-                res.status(200).json(sessions);
+                res.status(200).json(sessionDb);
             }
-
+            else if (code) {
+                console.log("start");
+                // Récupère la session par code
+                const session = await prisma.sessions.findFirst({
+                    where: { code: code },
+                });
+                console.log("had fetched");
+                if (!session) {
+                    return res.status(404).json({ message: 'Session not found' });
+                }
+                res.status(200).json(session);
+                console.log("returned");
+            } else {
+                // Récupère toutes les sessions
+                const sessionsList = await prisma.sessions.findMany();
+                res.status(200).json(sessionsList);
+            }
         } else if (req.method === 'POST') {
-            //-----------------------------------------------------CRÉE UNE SESSION---------------------------------------------------------//
-            const {code, playersNumber, status, hostId} = req.body;
+            // Création d'une session
+            const { code, playersNumber, status, hostId } = req.body;
             const session = await prisma.sessions.create({
                 data: {
                     code,
@@ -47,30 +47,27 @@ export default async function handler(req, res) {
             });
             res.status(201).json(session);
         } else if (req.method === 'PUT') {
-            // -----------------------------------------------------MET A JOUR SESSION PAR ID---------------------------------------------------------//
-            let {id, code, playersNumber, status, hostId, questions, killerId, hints} = req.body;
+            // Mise à jour d'une session par ID
+            let { id, code, playersNumber, status, hostId, questions, killerId, hints } = req.body;
             console.log("Requête PUT reçue avec :", req.body);
 
-            // Vérifier si la session existe
             const existingSession = await prisma.sessions.findUnique({
-                where: {id},
+                where: { id },
             });
 
             if (!existingSession) {
-                return res.status(404).json({message: 'Session not found'});
+                return res.status(404).json({ message: 'Session not found' });
             }
 
             if (questions) {
                 questions = JSON.stringify(questions);
             }
             const cleanData = (data) =>
-                Object.fromEntries(
-                    Object.entries(data).filter(([_, value]) => value !== undefined)
-                );
+                Object.fromEntries(Object.entries(data).filter(([_, value]) => value !== undefined));
 
             try {
                 const updatedSession = await prisma.sessions.update({
-                    where: {id},
+                    where: { id },
                     data: cleanData({
                         code,
                         playersNumber,
@@ -83,36 +80,32 @@ export default async function handler(req, res) {
                 });
 
                 res.status(200).json(updatedSession);
-            }
-            catch (error) {
+            } catch (error) {
                 console.error("Erreur lors de la mise à jour de la session :", error);
-                res.status(500).json({message: 'Erreur interne du serveur', error: error.message});
+                res.status(500).json({ message: 'Erreur interne du serveur', error: error.message });
             }
         } else if (req.method === 'DELETE') {
-            // -----------------------------------------------------DELETE SESSION PAR ID---------------------------------------------------------//
-            const {id} = req.query;
+            // Suppression d'une session par ID
+            const { id } = req.query;
 
-            // Vérifier si la session existe
             const existingSession = await prisma.sessions.findUnique({
-                where: {id: parseInt(id)},
+                where: { id: parseInt(id) },
             });
 
             if (!existingSession) {
-                return res.status(404).json({message: 'Session not found'});
+                return res.status(404).json({ message: 'Session not found' });
             }
 
-            // Supprimer la session
             await prisma.sessions.delete({
-                where: {id: parseInt(id)},
+                where: { id: parseInt(id) },
             });
 
-            res.status(200).json({message: 'Session deleted successfully'});
+            res.status(200).json({ message: 'Session deleted successfully' });
         } else {
-            res.status(405).json({message: 'Method Not Allowed'});
+            res.status(405).json({ message: 'Method Not Allowed' });
         }
-    }
-    catch (error) {
+    } catch (error) {
         console.error('Erreur API /session:', error);
-        res.status(500).json({message: 'Erreur interne du serveur'});
+        res.status(500).json({ message: 'Erreur interne du serveur' });
     }
 }
