@@ -10,7 +10,6 @@ export default function Salon() {
     const [gameCreated, setGameCreated] = useState(false);
     const [isHost, setIsHost] = useState(false);
     const [socket, setSocket] = useState(null);
-
     const router = useRouter(); // Correctement utiliser useRouter
 
     useEffect(() => {
@@ -21,7 +20,7 @@ export default function Salon() {
 
             // Initialisation de la connexion Socket.IO
             const socketConnection = io('http://localhost:3000', {
-            // const socketConnection = io('https://dd08-195-220-84-42.ngrok-free.app', {
+            // const socketConnection = io('https://469b-195-220-84-41.ngrok-free.app', {
                 path: '/api/socket',
             });
             setSocket(socketConnection);
@@ -117,12 +116,16 @@ export default function Salon() {
         }
 
         try {
-            const randomNumber = Math.floor(Math.random() * 5) + 1;
+            // Étape 1 : Récupérer 10 questions depuis l'API
+            const response = await axios.get('/api/question/question', {
+                params: { limit: 10 }, // Exemple avec un filtre de difficulté
+            });
+            const questions = response.data;
 
             await axios.put('/api/session', {
                 id: session.id,
                 status: 1,
-                killerId: randomNumber,
+                killerId: 1,
             });
 
             setGameCreated(true);
@@ -154,9 +157,8 @@ export default function Salon() {
                 });
             }
             socket.emit('startGame', storedPlayer.sessionId); // Informer tous les utilisateurs que la partie démarre
-
         } catch (error) {
-            console.error('Erreur lors de la mise à jour de la session :', error);
+            console.error('Erreur lors de la mise à jour de la session ou de la récupération des questions :', error);
         }
     };
 
