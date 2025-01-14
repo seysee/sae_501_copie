@@ -41,10 +41,10 @@ export default function handler(req, res) {
                         questions: shuffle([...questions]),
                         answered: false,
                         answeredBy: {},
-                        activePlayerIndex: 0,
-                        lastPlayerId: null, // <-- on initialise
+                        lastPlayerId: null,
                     };
                 }
+
 
 
                 sessions[sessionId].players.push(player);
@@ -61,12 +61,41 @@ export default function handler(req, res) {
             });
 
             // Lancer la question suivante
-            socket.on('launchQuestions', (sessionId, toFilterQuestion) => {
-                console.log(`${sessionId} est en train de lancer les questions.`);
+            socket.on('launchQuestions', async (sessionId, toFilterQuestion) => {
+                let sessionDb;
+                try {
+                    sessionDb = await prisma.sessions.findUnique({
+                        where: { id: parseInt(sessionId) },
+                    });
+                } catch (e) {
+                    console.error("Erreur findUnique sessions :", e);
+                    return;
+                }
+                if (!sessionDb) {
+                    console.error(`Session BDD ${sessionId} introuvable.`);
+                    return;
+                }
 
+                // On prend l’index BDD
+                const aIndex = sessionDb.activePlayerIndex || 0;
+
+                // Récupère tes joueurs (depuis la BDD ou le store en mémoire)
+                let players;
+                try {
+                    players = await prisma.players.findMany({
+                        where: { sessionId: parseInt(sessionId) },
+                        orderBy: { id: 'asc' },
+                    });
+                } catch (e) {
+                    console.error("Erreur findMany players :", e);
+                    return;
+                }
+
+                // On suppose que sessions[sessionId].questions contient les questions
+                // (Tu peux conserver le store en mémoire pour ça, ou tout stocker en BDD)
                 const sessionData = sessions[sessionId];
                 if (!sessionData) {
-                    console.error(`Session ${sessionId} introuvable.`);
+                    console.error(`Session en mémoire ${sessionId} introuvable.`);
                     return;
                 }
 
@@ -83,11 +112,9 @@ export default function handler(req, res) {
                     sessionData.answered = false;
                     sessionData.answeredBy = {};
 
-                    // Qui est le joueur actif ?
-                    const { activePlayerIndex, players } = sessionData;
-                    const activePlayer = players[activePlayerIndex];
+                    // Le joueur actif actuel
+                    const activePlayer = players[aIndex];
 
-                    // Envoyer la question + l'info du joueur actif
                     io.to(sessionId).emit('nextQuestion', {
                         question: firstQuestion,
                         activePlayer: activePlayer,
@@ -101,30 +128,58 @@ export default function handler(req, res) {
             // socket.js
 
             socket.on('submitAnswer', async ({ sessionId, questionId, answer, playerId }) => {
-                const sessionData = sessions[sessionId];
-                if (!sessionData) {
-                    console.error(`Session ${sessionId} introuvable.`);
+                // Récupère la session dans la BDD
+                let sessionDb;
+                try {
+                    sessionDb = await prisma.sessions.findUnique({
+                        where: { id: parseInt(sessionId) },
+                    });
+                } catch (e) {
+                    console.error("Erreur findUnique sessions :", e);
+                    return;
+                }
+                if (!sessionDb) {
+                    console.error(`Session BDD ${sessionId} introuvable.`);
                     return;
                 }
 
-                sessionData.answered = true;
-                sessionData.lastPlayerId = playerId;
-                const nbPlayers = sessionData.players.length;
+                // Récupère la liste des joueurs (de la session *en BDD*, ou de ton store)
+                // Si tu as déjà une table Players, c’est mieux de la lire depuis la BDD :
+                let players;
+                try {
+                    players = await prisma.players.findMany({
+                        where: { sessionId: parseInt(sessionId) },
+                        orderBy: { id: 'asc' }, // ou tout autre critère
+                    });
+                } catch (e) {
+                    console.error("Erreur findMany players :", e);
+                    return;
+                }
 
-                // Incrémente de 1 (une seule fois) l'index du joueur actif
-                sessionData.activePlayerIndex = (sessionData.activePlayerIndex + 1) % nbPlayers;
-                console.log("Le prochain joueur actif est index:", sessionData.activePlayerIndex);
+                // L’index actuel (depuis la BDD)
+                const currentIndex = sessionDb.activePlayerIndex || 0;
+                const nbPlayers = players.length;
+                // Prochain index
+                const newIndex = (currentIndex + 1) % nbPlayers;
 
-                // Mise à jour dans la base de données pour persister l'index actif
+                // Met à jour la base de données
                 try {
                     await prisma.sessions.update({
                         where: { id: parseInt(sessionId) },
-                        data: { activePlayerIndex: sessionData.activePlayerIndex }
+                        data: { activePlayerIndex: newIndex },
                     });
+                    console.log(`Prochain joueur actif (BDD) : index = ${newIndex}`);
                 } catch (e) {
                     console.error("Erreur lors de la mise à jour de l'activePlayerIndex :", e);
                 }
 
+                // (Facultatif) on stocke lastPlayerId dans le store mémoire, ou dans la BDD
+                if (sessions[sessionId]) {
+                    sessions[sessionId].lastPlayerId = playerId;
+                    sessions[sessionId].answered = true;
+                }
+
+                // Rediriger vers result
                 const encryptedQuestionId = encryptParam(questionId);
                 const encryptedAnswer = encryptParam(answer);
 
@@ -132,6 +187,7 @@ export default function handler(req, res) {
                     redirectUrl: `/result?questionId=${encodeURIComponent(encryptedQuestionId)}&answer=${encodeURIComponent(encryptedAnswer)}`,
                 });
             });
+
 
 
 
