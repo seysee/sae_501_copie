@@ -97,13 +97,13 @@ export default function Game() {
             answer,
             playerId: storedPlayer.id,
         });
+        console.log("ICI MAYBEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",storedPlayer.id)
         console.log("Événement submitAnswer émis");
     };
 
-    const handleActionSuccess = (message) => {
-        console.log(message);
-        setFeedback(message);
+    const handleActionSuccess = () => {
         const storedPlayer = getStoredUserData();
+        console.log("ICI NONONONONONONONONONON", storedPlayer.id)
         socket.emit('submitAnswer', {
             sessionId: storedPlayer.sessionId,
             questionId: question?.id,

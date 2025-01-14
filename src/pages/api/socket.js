@@ -142,11 +142,13 @@ export default function handler(req, res) {
 
             socket.on('submitAnswer', async ({sessionId, questionId, answer, playerId}) => {
                 // Récupère la session dans la BDD
+                console.log("ICI C'EST TOUT ------------------------------",sessionId, questionId, answer, playerId);
                 let sessionDb;
                 try {
                     sessionDb = await prisma.sessions.findUnique({
                         where: {id: parseInt(sessionId)},
                     });
+                    console.log("SESSION DB RECUP : ", sessionDb)
                 } catch (e) {
                     console.error("Erreur findUnique sessions :", e);
                     return;
@@ -164,6 +166,8 @@ export default function handler(req, res) {
                         where: {sessionId: parseInt(sessionId)},
                         orderBy: {id: 'asc'}, // ou tout autre critère
                     });
+                    console.log("PLAYER DB : ", players)
+
                 } catch (e) {
                     console.error("Erreur findMany players :", e);
                     return;
@@ -181,6 +185,8 @@ export default function handler(req, res) {
                         where: {id: parseInt(sessionId)},
                         data: {activePlayerIndex: newIndex},
                     });
+                    console.log("TESST PRISMA.SESSION.UPDATE")
+
                     console.log(`Prochain joueur actif (BDD) : index = ${newIndex}`);
                 } catch (e) {
                     console.error("Erreur lors de la mise à jour de l'activePlayerIndex :", e);
