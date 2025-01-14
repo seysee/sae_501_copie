@@ -71,5 +71,11 @@
     "question": "Reproduisez le dessin",
     "answer": "trace_success",
     "type": "action"
+  },
+  {
+    "id": 13,
+    "question": "Reformez le puzzle pour gagner !",
+    "answer": "puzzle_success",
+    "type": "action"
   }
 ]
