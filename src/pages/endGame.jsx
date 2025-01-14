@@ -5,6 +5,44 @@ export default function EndGame() {
     const [suspects, setSuspects] = useState(null);
     const [error, setError] = useState(null);
 
+    const getStoredUserData = () => {
+        try {
+            const storedPlayer = sessionStorage.getItem('userData');
+            if (storedPlayer) {
+                return JSON.parse(storedPlayer);
+            }
+        } catch (error) {
+            console.error('Erreur lors de la récupération des données utilisateur:', error);
+        }
+        return null;
+    };
+
+    useEffect(() => {
+        const fetchSuspects = async () => {
+            const storedPlayer = getStoredUserData();
+            if (!storedPlayer) return;
+
+            try {
+                const response = await axios.get("/api/suspect");
+                console.log("response.data:", response.data);
+
+                const suspect = response.data.find(s => s.id === storedPlayer.sessionId);
+                if (suspect) {
+                    console.log("Suspect trouvé:", suspect);
+                    setSuspects(suspect);
+                } else {
+                    setError("Aucun suspect trouvé pour cette session.");
+                }
+            } catch (err) {
+                console.error('Erreur lors de la récupération des suspects:', err);
+                setError('Erreur lors de la récupération des suspects.');
+            }
+        };
+
+        fetchSuspects();
+    }, []);
+
+    /*
     useEffect(() => {
         const storedPlayer = getStoredUserData();
         console.log("storedPlayer:", storedPlayer);
@@ -32,18 +70,7 @@ export default function EndGame() {
             setError('Aucune session active.');
         }
     }, []);
-
-    const getStoredUserData = () => {
-        try {
-            const storedPlayer = sessionStorage.getItem('userData');
-            if (storedPlayer) {
-                return JSON.parse(storedPlayer);
-            }
-        } catch (error) {
-            console.error('Erreur lors de la récupération des données utilisateur:', error);
-        }
-        return null;
-    };
+    */
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
