@@ -152,7 +152,15 @@ export default function handler(req, res) {
 
                 io.to(sessionId).emit('voteSuccess', sessionVote[sessionId]);
             });
+
+            socket.on("returnHome", (sessionId) => {
+                io.to(sessionId).emit('redirectToEnigma');
+            })
+
+
         });
+
+
 
         res.socket.server.io = io;
     }

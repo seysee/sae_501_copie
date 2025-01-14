@@ -1,99 +1,120 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import io from 'socket.io-client';
+import axios from 'axios';
+import { decryptParam } from '../lib/cryptoUtils';
 import Hint from "../components/hint";
-import axios from "axios";
-import { decryptParam } from '../lib/cryptoUtils'; // Chemin vers votre fichier d'utilitaires
 
-const Result = () => {
+let socket;
+
+export default function Result() {
     const router = useRouter();
     const [feedback, setFeedback] = useState('');
     const [correct, setCorrect] = useState(false);
-    let {questionId, answer} = router.query;
+    const [showButton, setShowButton] = useState(false);
+    const { questionId, answer } = router.query;
+
+    useEffect(() => {
+        if (!socket) {
+            socket = io({ path: '/api/socket' });
+            const storedPlayerStr = sessionStorage.getItem('userData');
+            if (storedPlayerStr) {
+                const storedPlayer = JSON.parse(storedPlayerStr);
+                if (storedPlayer.sessionId) {
+                    socket.emit('joinSession', storedPlayer.sessionId, {
+                        name: storedPlayer.name,
+                        id: storedPlayer.id,
+                    });
+                }
+            }
+        }
+        const redirectHandler = () => {
+            window.location.href = '/enigma';
+        };
+        socket.on('redirectToEnigma', redirectHandler);
+        return () => {
+            socket.off('redirectToEnigma', redirectHandler);
+        };
+    }, []);
 
     useEffect(() => {
         if (questionId && answer) {
             try {
-                console.log('Question ID avant décryptage :', questionId);
-                console.log('Réponse avant décryptage :', answer);
-
                 const decryptedQuestionId = decryptParam(questionId);
                 const decryptedAnswer = decryptParam(answer);
-
-                console.log('Question ID déchiffré :', decryptedQuestionId);
-                console.log('Réponse déchiffrée :', decryptedAnswer);
-
                 verifyResponse(decryptedQuestionId, decryptedAnswer);
                 rememberQuestion(decryptedQuestionId);
-            } catch (error) {
-                console.error("Erreur de déchiffrement :", error);
-            }
-        } else {
-            console.log("Les paramètres questionId ou answer ne sont pas encore disponibles.");
+            } catch (error) {}
         }
     }, [questionId, answer]);
 
-    const rememberQuestion = async (questionId) => {
-        const storedPlayer = sessionStorage.getItem('userData');
-        const playerData = JSON.parse(storedPlayer);
-        const sessionId = playerData?.sessionId;
+    useEffect(() => {
+        defineButtonVisibility();
+    }, []);
 
-        if (!sessionId) {
-            console.error("Aucune session ID trouvée.");
-            return;
-        }
-
+    const defineButtonVisibility = async () => {
         try {
-            console.log("Session ID :", sessionId);
+            const storedPlayerStr = sessionStorage.getItem('userData');
+            if (!storedPlayerStr) return;
+            const storedPlayer = JSON.parse(storedPlayerStr);
+            if (!storedPlayer.sessionId || !storedPlayer.id) return;
 
-            // Récupérer les données de la session
-            const responseGet = await axios.get("/api/session", {
-                params: {
-                    id: sessionId,
-                },
-            });
+            const sessionId = storedPlayer.sessionId;
+            const myId = storedPlayer.id;
 
-            console.log("(result.jsx:40) Données récupérées :", responseGet.data);
+            // Récupère la session (qui contient activePlayerIndex)
+            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
+            const serverSession = sessionResp.data;
+            const aIndex = serverSession.activePlayerIndex;
 
-            // Convertir les questions existantes en tableau si elles sont une chaîne JSON
-            let existingQuestions = [];
-            if (typeof responseGet.data.questions === "string") {
-                try {
-                    existingQuestions = JSON.parse(responseGet.data.questions); // Assure qu'on travaille avec un tableau
-                } catch (error) {
-                    console.error("Erreur lors du parsing des questions existantes :", error);
-                }
+            // Récupère tous les joueurs de la session
+            const playersResp = await axios.get("/api/player", { params: { sessionId: sessionId } });
+            const players = playersResp.data;
+
+            // Si un seul joueur, toujours afficher le bouton
+            if (players.length === 1) {
+                setShowButton(true);
+                return;
             }
 
-            console.log("Questions existantes (après parsing) :", existingQuestions);
-
-            // Ajouter la nouvelle question si elle n'existe pas déjà
-            const updatedQuestions = [...new Set([...existingQuestions, parseInt(questionId)])]; // Évite les doublons
-
-            console.log("Questions mises à jour :", updatedQuestions);
-
-            // Mettre à jour la session avec les nouvelles questions
-            const responsePut = await axios.put("/api/session", {
-                id: sessionId,
-                questions: updatedQuestions, // Stocker sous forme de chaîne JSON dans la BDD
-            });
-
-            console.log("Réponse de l'API PUT :", responsePut.data);
-        } catch (error) {
-            console.error("Erreur lors de la mise à jour de la session :", error);
-        }
+            // Sinon, logique du joueur actif
+            if (typeof aIndex === 'number' && Array.isArray(players)) {
+                if (parseInt(players[aIndex]?.id) === parseInt(myId)) {
+                    setShowButton(true);
+                } else {
+                    setShowButton(false);
+                }
+            }
+        } catch (err) {}
     };
 
-    const verifyResponse = async (questionId, answer) => {
+    const handleReturnHome = useCallback(() => {
+        const storedPlayerStr = sessionStorage.getItem('userData');
+        if (!storedPlayerStr) return;
+        const storedPlayer = JSON.parse(storedPlayerStr);
+        if (storedPlayer.sessionId) {
+            socket.emit('returnHome', storedPlayer.sessionId);
+        }
+    }, []);
+
+    const rememberQuestion = async (qid) => {
+        try {
+            await axios.post("/api/question/remember", { questionId: qid });
+        } catch (error) {}
+    };
+
+    const verifyResponse = async (qId, ans) => {
         try {
             const response = await axios.post("/api/question/answer", {
-                id: questionId, // Correspondance correcte avec l'API
-                answer,
+                id: qId,
+                answer: ans
             });
-            console.log('Réponse API :', response.data);
             setFeedback(response.data.message);
             setCorrect(response.data.correct);
+            setTimeout(() => {
+                defineButtonVisibility();
+            }, 500);
         } catch (error) {
-            console.error("Erreur lors de la vérification :", error);
             setFeedback("Erreur lors de la vérification. Veuillez réessayer.");
         }
     };
@@ -104,24 +125,20 @@ const Result = () => {
             <p className="text-xl">{feedback}</p>
             {correct ? (
                 <>
-                    <p className="text-2xl text-green-500">
-                        Bonne Réponse!
-                    </p>
+                    <p className="text-2xl text-green-500">Bonne Réponse!</p>
                     <Hint />
                 </>
             ) : (
-                <p className="text-2xl text-red-500">
-                    Mauvaise Réponse!
-                </p>
+                <p className="text-2xl text-red-500">Mauvaise Réponse!</p>
             )}
-            <button
-                onClick={() => router.push('/enigma')}
-                className="mt-4 py-2 px-6 bg-black text-white rounded-lg"
-            >
-                Question suivante
-            </button>
+            {showButton && (
+                <button
+                    onClick={handleReturnHome}
+                    className="mt-4 py-2 px-6 bg-black text-white rounded-lg"
+                >
+                    Prochaine question
+                </button>
+            )}
         </div>
     );
-};
-
-export default Result;
+}
