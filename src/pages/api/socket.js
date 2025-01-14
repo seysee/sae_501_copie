@@ -114,7 +114,6 @@ const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.i
             // Soumission de la réponse
 
             socket.on('submitAnswer', async ({ sessionId, questionId, answer, playerId }) => {
-
                 console.log(`Réponse reçue pour la question ${questionId} :, answer`);
 
                 const sessionData = sessions[sessionId];
@@ -126,6 +125,7 @@ const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.i
                 // Mettre à jour l'index du joueur actif
                 const currentIndex = sessionData.activePlayerIndex || 0;
                 const newIndex = (currentIndex + 1) % sessionData.players.length;
+
                 try {
                     await prisma.sessions.update({
                         where: { id: parseInt(sessionId) },
@@ -151,6 +151,7 @@ const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.i
                 // On émet un événement commun pour TOUS les joueurs de la session
                 io.to(sessionId).emit('redirectToEnigma');
             });
+
             // Exemple : si tu veux passer au joueur suivant **après** la bonne réponse
             // tu peux écouter un event du type "setNextPlayer" déclenché depuis result.jsx
             // ou bien l'appeler directement en fin de "submitAnswer", c'est au choix.
@@ -265,6 +266,11 @@ const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.i
                 }
                 sessions[sessionId].endTime = endTime; // Stocker la fin du vote
                 io.to(sessionId).emit('voteStart', { endTime }); // Émettre l'événement de début de vote
+            });
+
+
+            socket.on('endGame', (sessionId) => {
+                io.to(sessionId).emit('gameEnded', '/endGame');
             });
 
 
