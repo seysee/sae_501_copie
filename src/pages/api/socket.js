@@ -207,13 +207,6 @@ const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.i
                     console.log(`Le joueur ${userId} a voté pour le suspect ${suspectId}.`);
                 }
 
-                const playersInSession = Object.keys(players).filter(playerId => players[playerId].sessionId === sessionId);
-                const allVoted = playersInSession.every(playerId => sessionVote[sessionId]?.some(vote => vote.userId === playerId));
-                if (allVoted) {
-                    console.log(`Tous les joueurs de la session ${sessionId} ont voté.`);
-                    io.to(sessionId).emit('gameEnded', '/endGame');
-                }
-
                 console.log(`Mise à jour des votes pour la session ${sessionId} :`, sessionVote[sessionId]);
                 socket.join(sessionId);
                 io.to(sessionId).emit('voteSuccess', sessionVote[sessionId]);
