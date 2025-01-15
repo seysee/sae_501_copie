@@ -4,6 +4,7 @@ import axios from 'axios';
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
     const [error, setError] = useState(null);
+    const [isVisible, setIsVisible] = useState(false);
 
     const getStoredUserData = () => {
         try {
@@ -31,6 +32,7 @@ export default function EndGame() {
                 if (sessionData.killerId) {
                     const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
                     setSuspect(suspectData);
+                    setTimeout(() => setIsVisible(true), 100);
                 } else {
                     setError("Aucun tueur assigné pour cette session.");
                 }
@@ -48,8 +50,14 @@ export default function EndGame() {
                 <p className="text-2xl font-Amatic text-red-500">{error}</p>
             ) : suspect ? (
                 <div className="text-center">
-                    <p className="text-4xl font-Amatic text-red-500 font-bold">
-                        Le tueur était <span>{suspect.name}</span> ...
+                    <p
+                        className={`text-4xl font-Amatic font-bold transition-opacity duration-[5000ms] ${
+                            isVisible ? "opacity-100" : "opacity-0"
+                        }`}
+                    >
+                        Le tueur était{" "}
+                        <span className="text-red-500">{suspect.name}</span>
+                        ...
                     </p>
                 </div>
             ) : (
