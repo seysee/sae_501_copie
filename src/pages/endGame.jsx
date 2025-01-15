@@ -25,7 +25,7 @@ export default function EndGame() {
             return;
         }
 
-        const fetchSessionAndSuspect = async () => {
+        const fetchKiller = async () => {
             try {
                 const { data: sessionData } = await axios.get(`/api/session?id=${sessionId}`);
                 if (sessionData.killerId) {
@@ -39,8 +39,7 @@ export default function EndGame() {
                 setError("Erreur lors de la récupération des informations.");
             }
         };
-
-        fetchSessionAndSuspect();
+        fetchKiller();
     }, []);
 
     return (
