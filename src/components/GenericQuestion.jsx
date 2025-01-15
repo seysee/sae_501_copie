@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import Button from "./_button";
+import Timer from "./_timer";
 
 export default function GenericQuestion({ question, onSuccess, socket }) {
     const [assetsLoaded, setAssetsLoaded] = useState([]);
     const [extraLogic, setExtraLogic] = useState(null);
     const [feedback, setFeedback] = useState('');
     const [answer, setAnswer] = useState('');
+    const [paused, setPaused] = useState(false);
+    const [timeUp, setTimeUp] = useState(false);
     const getStoredUserData = () => {
         try {
             const storedPlayer = sessionStorage.getItem("userData");
@@ -99,9 +102,23 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
         }
     };
 
+    const handleTimeUp = () => {
+        setTimeUp(true);
+        setFeedback("Temps écoulé. Vous avez perdu !");
+        if (socket) {
+            const storedUserData = getStoredUserData();
+            socket.emit("submitAnswer", {
+                sessionId: storedUserData?.sessionId,
+                questionId: question.id,
+                answer: "time_up",
+            });
+        }
+    };
+
     return (
         <div className="flex flex-col items-center justify-center text-white">
             <h1 className="text-4xl mb-4 font-Amatic font-bold">{question.question}</h1>
+            <Timer initialTime={question.duration} onTimeUp={handleTimeUp} paused={paused || timeUp} />
             {assetsLoaded.map((asset, index) => (
                 <img key={index} src={asset} alt={`asset-${index}`} className="mb-4" />
             ))}
