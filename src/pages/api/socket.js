@@ -7,7 +7,8 @@ const sessionVote = {}; // sessionVote[sessionId] = [ ...
 import {PrismaClient} from '@prisma/client';
 
 const prisma = new PrismaClient();
-const sessionTimerVote = null;
+const sessionTimerVote = {};
+const timerAlreadyEnd = {};
 export default function handler(req, res) {
     if (!res.socket.server.io) {
         console.log('Initialisation du serveur Socket.IO...');
@@ -282,31 +283,36 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('allVotes', sessionVote[sessionId]);
             });
 
-
-            // ça permet de configurer une durée de début et de fin
-            socket.on('getVoteEndTime', (sessionId, timer) => {
-                if (!sessionTimerVote[sessionId]) {
-                    sessionTimerVote[sessionId] = timer;
-                }
+            socket.on('getVoteEndTime', (sessionId, timer ) => {
                 socket.join(sessionId);
+
+                if (!sessionTimerVote[sessionId]) {
+                    sessionTimerVote[sessionId] = timer; // Initialiser le timer pour la session
+                }
+                if (timerAlreadyEnd[sessionId] === true){
+                    const message = "vote fini"
+                    io.to(sessionId).emit('endVote', { message });
+                    return
+                }
                 let returnTimer = sessionTimerVote[sessionId];
 
-                // Vérifiez si un intervalle existe déjà pour cette session et évitez d'en créer un autre
                 if (!sessions[sessionId]?.intervalId) {
                     const intervalId = setInterval(() => {
                         if (returnTimer > 0) {
                             returnTimer -= 1;
-                            sessionTimerVote[sessionId] = returnTimer; // Mettre à jour le temps restant
-                            io.to(sessionId).emit('VoteTime', { returnTimer });
+                            sessionTimerVote[sessionId] = returnTimer; // Mettre à jour le timer
+                            io.to(sessionId).emit('VoteTime', { returnTimer }); // Émettre le temps restant
                         } else {
-                            clearInterval(intervalId);
-                            io.to(sessionId).emit('endVote', { returnTimer: 0 });
+                            clearInterval(intervalId); // Stopper l'intervalle
+                            timerAlreadyEnd[sessionId] = true;
+                            io.to(sessionId).emit('endVote', { returnTimer: 0 }); // Notifier la fin du vote
                             if (sessions[sessionId]) {
-                                delete sessions[sessionId].intervalId; // Supprimer la référence à l'intervalle
+                                delete sessions[sessionId].intervalId; // Supprimer la référence de l'intervalle
                             }
                         }
                     }, 1000);
 
+                    // Stocker l'intervalle pour éviter des doublons
                     if (!sessions[sessionId]) {
                         sessions[sessionId] = {};
                     }
@@ -314,17 +320,15 @@ export default function handler(req, res) {
                 }
             });
 
-
             socket.on('startVote', (sessionId, durationInSeconds) => {
                 const now = new Date();
                 const endTime = new Date(now.getTime() + durationInSeconds * 1000);
                 if (!sessions[sessionId]) {
                     sessions[sessionId] = {};
                 }
-                sessions[sessionId].endTime = endTime;
-                io.to(sessionId).emit('voteStart', {endTime});
+                sessions[sessionId].endTime = endTime; // Stocker la fin du vote
+                io.to(sessionId).emit('voteStart', { endTime }); // Émettre l'événement de début de vote
             });
-
 
         });
 
