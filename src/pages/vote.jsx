@@ -27,15 +27,8 @@ export default function Profile() {
             fetchPlayersBySessionId(storedUserData.sessionId);
 
             if (socket && storedUserData?.sessionId) {
-                socket.emit('getVoteEndTime', storedUserData.sessionId, (response) => {
-                    if (response?.endTime) {
-                        const timeLeft = synchronizeTimer(response.endTime);
-                        setInitialTime(timeLeft);
-                        if (timeLeft === 0) setDisableVote(true);
-                    }
-                });
+                socket.emit('getVoteEndTime', storedUserData.sessionId, initialTime);
             }
-
         }
     }, [socket]);
 
@@ -49,7 +42,7 @@ export default function Profile() {
             console.error('Erreur de vote reçue :', errorMessage);
             alert(errorMessage);
         });
-
+        startVote(initialTime)
         const handleVotesUpdate = (votes) => {
             console.log('Mise à jour des votes reçue :', votes);
             setVotes(votes);
@@ -83,7 +76,8 @@ export default function Profile() {
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        socketConnection.on('voteStart', ({endTime}) => {
+        // Écouter les événements de démarrage et fin de vote
+        socketConnection.on('voteStart', ({ endTime }) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
@@ -91,7 +85,17 @@ export default function Profile() {
 
         socketConnection.on('voteEndTime', () => {
             setDisableVote(true);
-            console.log('Le temps est écoulé. Les votes sont désormais fermés.');
+        });
+
+        socketConnection.on('VoteTime', ({ returnTimer }) => {
+            console.log('Temps restant reçu :', returnTimer);
+            setInitialTime(returnTimer); // Mettre à jour le timer affiché
+        });
+
+        socketConnection.on('endVote', ({ message }) => {
+            console.log('Fin du vote:', message);
+            setDisableVote(true); // Désactiver les votes
+            alert(message); // Afficher un message de fin (optionnel)
         });
 
         return () => {
@@ -131,6 +135,16 @@ export default function Profile() {
         }
         return null;
     };
+
+    const startVote = (durationInSeconds) => {
+        const storedUserData = getStoredUserData();
+        const sessionId = storedUserData?.sessionId;
+
+        if (socket && sessionId) {
+            socket.emit('startVote', sessionId, durationInSeconds);
+        }
+    };
+
 
     const fetchSuspects = async () => {
         try {
@@ -181,8 +195,9 @@ export default function Profile() {
     const synchronizeTimer = (endTime) => {
         const endTimestamp = new Date(endTime).getTime();
         const nowTimestamp = Date.now();
-        return Math.max((endTimestamp - nowTimestamp) / 1000, 0);
+        return Math.max(Math.floor((endTimestamp - nowTimestamp) / 1000), 0);
     };
+
 
     return (
         <div className="min-h-screen flex flex-col p-4 items-center justify-center">
