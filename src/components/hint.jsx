@@ -1,5 +1,5 @@
-import {useEffect, useState} from "react";
-import {useRouter} from "next/router";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import axios from "axios";
 
 export default function Hint() {
@@ -12,8 +12,7 @@ export default function Hint() {
             if (storedPlayer) {
                 return JSON.parse(storedPlayer);
             }
-        }
-        catch (error) {
+        } catch (error) {
             console.error("Erreur lors de la récupération des données utilisateur :", error);
         }
         return null;
@@ -22,11 +21,10 @@ export default function Hint() {
     const fetchSessionBySessionId = async (sessionId) => {
         try {
             const response = await axios.get("/api/session", {
-                params: {id: parseInt(sessionId)},
+                params: { id: parseInt(sessionId) },
             });
             return response.data;
-        }
-        catch (error) {
+        } catch (error) {
             console.error("Erreur lors de la récupération de la session :", error);
             throw error;
         }
@@ -38,8 +36,7 @@ export default function Hint() {
                 params: { id: suspectId },
             });
             return response.data;
-        }
-        catch (error) {
+        } catch (error) {
             console.error("Erreur lors de la récupération du suspect :", error);
             throw error;
         }
@@ -48,34 +45,37 @@ export default function Hint() {
     const fetchHintsBySuspectId = async (suspectId) => {
         try {
             const response = await axios.get("/api/suspect_hints", {
-                params: {suspectId: suspectId}, // suspectId envoyé ici
+                params: { suspectId: suspectId },
             });
             return response.data;
-        }
-        catch (error) {
+        } catch (error) {
             console.error("Erreur lors de la récupération des indices :", error);
             throw error;
         }
     };
 
-    const pickingHint = (hints, usedHints) => {
-        const availableHints = hints.filter((hint) => !usedHints.includes(hint.id));
-
-        if (availableHints.length === 0) {
-            console.log("Pas d'indice disponible")
-            return null;
+    function pickingHint(allHints, usedHints) {
+        if (Array.isArray(usedHints) && usedHints.length > 0) {
+            const chosenId = usedHints[0];
+            const foundHint = allHints.find((h) => h.id === chosenId);
+            if (foundHint) {
+                return foundHint;
+            }
+            // Sinon, on tombe dans la logique aléatoire
         }
 
-        // Sélectionne un indice aléatoire parmi les indices disponibles
+        const availableHints = allHints.filter((h) => !usedHints.includes(h.id));
+        if (availableHints.length === 0) {
+            console.log("Pas d'indice disponible");
+            return null;
+        }
         const randomIndex = Math.floor(Math.random() * availableHints.length);
         return availableHints[randomIndex];
-    };
-
+    }
 
     useEffect(() => {
         const loadHints = async () => {
             const storedPlayer = getStoredUserData();
-
             if (!storedPlayer) {
                 router.push("/profile");
                 return;
@@ -90,15 +90,29 @@ export default function Hint() {
                 const suspect = await fetchSuspectById(session.killerId);
                 console.log("Suspect récupéré :", suspect);
 
-                const hints = await fetchHintsBySuspectId(suspect.id);
-                console.log("Indices récupérés :", hints);
+                const allHints = await fetchHintsBySuspectId(suspect.id);
+                console.log("Indices récupérés :", allHints);
 
-                const selectedHint = pickingHint(hints, session.hints);
+                // AJOUT: parser la colonne "hints"
+                let usedHintsArray = [];
+                try {
+                    if (typeof session.hints === 'string') {
+                        usedHintsArray = JSON.parse(session.hints); // on parse le JSON
+                        if (!Array.isArray(usedHintsArray)) {
+                            usedHintsArray = [];
+                        }
+                    }
+                } catch (e) {
+                    console.error("Erreur parse session.hints :", e);
+                    usedHintsArray = [];
+                }
+
+                // On appelle pickingHint avec un vrai tableau pour usedHints
+                const selectedHint = pickingHint(allHints, usedHintsArray);
                 console.log("Indice sélectionné :", selectedHint);
 
                 setHint(selectedHint);
-            }
-            catch (error) {
+            } catch (error) {
                 console.error("Erreur lors du chargement des données :", error);
             }
         };
@@ -108,8 +122,11 @@ export default function Hint() {
 
     return (
         <div>
-            {hint ? <p className="font-Amatic text-center m-6 text-[20px]">{hint.hintText}</p> :
-                <p className="font-Amatic text-center m-6">Chargement de l'indice...</p>}
+            {hint ? (
+                <p className="font-Amatic text-center m-6 text-[20px]">{hint.hintText}</p>
+            ) : (
+                <p className="font-Amatic text-center m-6">Chargement de l'indice...</p>
+            )}
         </div>
     );
 }
