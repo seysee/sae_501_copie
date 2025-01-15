@@ -77,25 +77,18 @@ export default function Profile() {
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
         // Écouter les événements de démarrage et fin de vote
-        socketConnection.on('voteStart', ({ endTime }) => {
+        socketConnection.on('voteStart', ({endTime}) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
         });
 
-        socketConnection.on('voteEndTime', () => {
+        socketConnection.on('VoteTime', ({returnTimer}) => {
+            setInitialTime(returnTimer);
+        });
+
+        socketConnection.on('endVote',(message) => {
             setDisableVote(true);
-        });
-
-        socketConnection.on('VoteTime', ({ returnTimer }) => {
-            console.log('Temps restant reçu :', returnTimer);
-            setInitialTime(returnTimer); // Mettre à jour le timer affiché
-        });
-
-        socketConnection.on('endVote', ({ message }) => {
-            console.log('Fin du vote:', message);
-            setDisableVote(true); // Désactiver les votes
-            alert(message); // Afficher un message de fin (optionnel)
         });
 
         return () => {
@@ -203,15 +196,15 @@ export default function Profile() {
         <div className="min-h-screen flex flex-col p-4 items-center justify-center">
             <h1 className="text-5xl font-Amatic mb-7">Place au vote</h1>
 
-            {!disableVote && (
-                <div>
-                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
-                </div>
-            )}
+            <div>
+                {disableVote ? (
+                    <p className="text-red-500 font-Amatic text-2xl">Le vote est terminé</p>
+                ) : (
+                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false} />
+                )}
+            </div>
 
-            {disableVote && (
-                <p className="text-red-500 font-Amatic text-2xl">Le vote est terminé</p>
-            )}
+
 
             {error ? (
                 <p className="text-red-500 text-2xl font-semibold text-center">{error}</p>
