@@ -208,6 +208,16 @@ export default function Profile() {
         setDisableVote(true);
         console.log('Le temps est écoulé. Les votes sont désormais fermés.');
 
+        const storedUserData = getStoredUserData();
+        if (storedUserData?.sessionId) {
+            socket.emit('endGameResults', {
+                sessionId: storedUserData.sessionId,
+                killerId: suspects.find((suspect) => suspect.isKiller)?.id,
+                votes,
+            });
+        }
+
+        socket.emit('endGame', getStoredUserData().sessionId, suspects);
         setTimeout(() => {
             router.push('/endGame');
         }, 3000);
