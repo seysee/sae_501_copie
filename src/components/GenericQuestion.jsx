@@ -29,16 +29,13 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
 
     useEffect(() => {
         if (question.assets) {
-            const loadAssets = async () => {
-                try {
-                    const assets = JSON.parse(question.assets || "[]");
-                    const loadedAssets = assets.map((asset) => `/assets/${asset}`);
-                    setAssetsLoaded(loadedAssets);
-                } catch (error) {
-                    console.error("Erreur lors du chargement des assets :", error);
-                }
-            };
-            loadAssets();
+            const container = document.getElementById("game-container");
+            if (container) {
+                container.dataset.assets = question.assets;
+                console.log("Injected assets into container:", question.assets);
+            } else {
+                console.error("Game container not found.");
+            }
         }
     }, [question.assets]);
 
