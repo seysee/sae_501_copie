@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from "react";
+import skinsData from "../data/skins";
 
 export default function RoleSlide() {
     const [player, setPlayer] = useState({});
     const [isRoleVisible, setIsRoleVisible] = useState(false);
+    const skins = skinsData.skins;
 
+    const getPlayerSkin = () => {
+        const storedPlayer = getStoredUserData()
+        const playerSkin = skins.find((skin) => skin.id === storedPlayer.skin )
+        return playerSkin.skin
+    }
     const getStoredUserData = () => {
         try {
             const storedPlayer = sessionStorage.getItem("userData");
@@ -26,7 +33,6 @@ export default function RoleSlide() {
 
     return (
         <div className="w-full top-0 absolute">
-            {/* Wrapper contenant la flèche, le texte, et le rôle */}
             <div
                 className={`absolute top-0 left-0 right-0 transition-transform duration-500 ${
                     isRoleVisible ? "translate-y-20" : "translate-y-0"
@@ -40,9 +46,9 @@ export default function RoleSlide() {
                     ) : (
                         <h1 className="text-4xl font-extrabold font-Amatic text-red-500">Saboteur</h1>
                     )}
+                    <img width="50px" src={getPlayerSkin(player.skin)}/>
                 </div>
 
-                {/* Flèche et texte pour basculer l'affichage */}
                 <div
                     className="flex justify-center h-12"
                     onClick={toggleRoleVisibility}
