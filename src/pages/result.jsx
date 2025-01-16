@@ -106,6 +106,7 @@ export default function Result() {
     }, []);
 
     // Fonction pour charger tous les hints accumulés
+    // Fonction pour charger tous les hints accumulés
     const loadAccumulatedHintsSoFar = async () => {
         try {
             const storedPlayerStr = sessionStorage.getItem('userData');
@@ -130,9 +131,14 @@ export default function Result() {
                 });
                 const suspectHints = allHintsResp.data;
 
-                const matched = suspectHints.filter((h) => usedHints.includes(h.id));
-                matched.sort((a, b) => b.id - a.id);
-                setLatestUnlockedHint(matched[0] || null);
+                // Construire le tableau des indices dans l'ordre d'ajout contenu dans usedHints
+                const matched = usedHints
+                    .map(id => suspectHints.find(h => h.id === id))
+                    .filter(h => h !== undefined);
+
+                // Le nouvel indice débloqué est le dernier élément de l'array
+                const newestHint = matched.length > 0 ? matched[matched.length - 1] : null;
+                setLatestUnlockedHint(newestHint);
                 setAccumulatedHints(matched);
 
                 // Sauvegarder les indices dans sessionStorage
@@ -147,6 +153,7 @@ export default function Result() {
             console.error("Erreur loadAccumulatedHintsSoFar :", err);
         }
     };
+
 
 
     const defineButtonVisibility = async () => {
@@ -204,10 +211,18 @@ export default function Result() {
             const storedPlayer = JSON.parse(storedPlayerStr);
             const sessionId = storedPlayer.sessionId;
 
+            // Récupérer la session
             const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
             const sessionData = sessionResp.data;
             if (!sessionData) return null;
 
+            // Vérifier si un indice a déjà été débloqué pour la question en cours
+            if (sessionData.answeredCount && sessionData.answeredCount > 0) {
+                console.log("Un indice a déjà été débloqué pour cette question.");
+                return null;
+            }
+
+            // Récupérer la liste des indices déjà utilisés
             let usedHints = [];
             try {
                 usedHints = JSON.parse(sessionData.hints);
@@ -219,7 +234,7 @@ export default function Result() {
             const killerId = sessionData.killerId;
             if (!killerId) return null;
 
-            // Récupérer les hints non encore utilisés
+            // Récupérer les indices disponibles (ceux qui n'ont pas encore été utilisés)
             const hintsResp = await axios.get("/api/suspect_hints", { params: { suspectId: killerId } });
             const suspectHints = hintsResp.data;
             const availableHints = suspectHints.filter(h => !usedHints.includes(h.id));
@@ -229,33 +244,38 @@ export default function Result() {
                 return null;
             }
 
-            // Choisir un nouvel indice au hasard
+            // Choisir un indice aléatoirement parmi les indices disponibles
             const randomIndex = Math.floor(Math.random() * availableHints.length);
             const chosenHint = availableHints[randomIndex];
 
-            // Mettre à jour la liste des indices utilisés
+            // Mettre à jour la liste des indices utilisés en ajoutant le nouvel indice
             usedHints.push(chosenHint.id);
 
-            // Mettre à jour la BDD
+            // Mettre à jour la BDD :
+            // - en enregistrant la nouvelle liste dans la colonne "hints"
+            // - en passant answeredCount à 1 pour verrouiller l'ajout supplémentaire
             await axios.put("/api/session", {
                 id: sessionData.id,
-                hints: JSON.stringify(usedHints)
+                hints: JSON.stringify(usedHints),
+                answeredCount: 1
             });
-            if(socket) {
-                          socket.emit('newHintAdded', sessionId);
-                       }
 
-            // Stocker et afficher directement le nouvel indice
+            // Notifier via Socket.IO pour synchroniser l'affichage entre les joueurs
+            if (socket) {
+                socket.emit('newHintAdded', sessionId);
+            }
+
+            // Mettre à jour l'état local pour afficher l'indice débloqué
             setLatestUnlockedHint(chosenHint);
-
             console.log("Nouvel indice débloqué:", chosenHint.id);
 
-            return chosenHint; // Retourner le nouvel indice débloqué
+            return chosenHint; // Retourner l'indice débloqué
         } catch (error) {
             console.error("Erreur lors de l'ajout d'un nouvel indice:", error);
             return null;
         }
     };
+
 
 
 
@@ -316,11 +336,13 @@ export default function Result() {
             {!isLoading && <p className="text-2xl mb-8 text-center font-Amatic">{feedback}</p>}
 
             {/* Indice sans background */}
-            {!isLoading && correct && accumulatedHints.length > 0 && (
-                     <div className="text-3xl text-white font-bold font-Amatic mb-8">
-                             <Hint hint={accumulatedHints[0]} />
-                         </div>
-                 )}
+            {/* Indice sans background */}
+            {!isLoading && correct && latestUnlockedHint && (
+                <div className="text-3xl text-white font-bold font-Amatic mb-8">
+                    <Hint hint={latestUnlockedHint} />
+                </div>
+            )}
+
 
             {/* Bouton pour passer à la prochaine question */}
             {showButton && !isLoading && (
