@@ -376,7 +376,7 @@ export default function Profile() {
                 <Button
                     label="Terminer le vote"
                     onClick={triggerEndGame}
-                    className="bg-red-600 text-white font-Amatic px-6 py-3 rounded-lg shadow hover:bg-red-500 transition"
+                    className="text-xl bg-red-700 text-white font-Amatic px-6 py-3 rounded-lg shadow hover:bg-red-800 transition"
                 />
             </div>
 
