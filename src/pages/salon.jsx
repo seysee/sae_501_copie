@@ -3,6 +3,7 @@ import Button from '../components/_button';
 import axios from 'axios';
 import io from 'socket.io-client';
 import { useRouter } from 'next/router';
+import skinsData from "/src/data/skins";
 
 export default function Salon() {
     const [session, setSession] = useState(null);
@@ -12,8 +13,12 @@ export default function Salon() {
     const [socket, setSocket] = useState(null);
     const [copySuccess, setCopySuccess] = useState('');
     const router = useRouter();
+    const skins = skinsData.skins;
 
-    // Fonction utilitaire pour récupérer les données utilisateur stockées
+    const getPlayerSkin = (playerSkinId) => {
+        const playerSkin = skins.find((skin) => skin.id === playerSkinId )
+        return playerSkin.skin
+    }
     const getStoredUserData = () => {
         try {
             const storedPlayer = sessionStorage.getItem('userData');
@@ -268,8 +273,8 @@ export default function Salon() {
                                 <div className="bg-gray-800 p-4 rounded-lg">
                                     <ul className="list-disc list-inside space-y-2">
                                         {players.map((player, index) => (
-                                            <li key={index} className="text-yellow-400 font-bold">
-                                                {player.name}
+                                            <li key={index} className="text-yellow-400 font-bold flex flex-row items-center">
+                                                {player.name} <img width="30px" src={getPlayerSkin(player.skin)}/>
                                             </li>
                                         ))}
                                     </ul>
