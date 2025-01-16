@@ -76,8 +76,7 @@ export default function Profile() {
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        // Écouter les événements de démarrage et fin de vote
-        socketConnection.on('voteStart', ({endTime}) => {
+        socketConnection.on('voteStart', ({ endTime }) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
@@ -291,11 +290,4 @@ export default function Profile() {
     );
 }
 
-/* à faire :
-- mettre une petite pastille "a voté" sur le suspect
-- mettre les joueurs qui ont voté quand qq vote
-- que quand quelqu'un vote ça mette en synchro pour tous les utilisateurs
-- quand on appuie sur un suspect, ça doit nous demander "valider votre vote" avant
-- mettre un timer pour la fin du vote, et après ça on peut pas plus voter
- */
 
