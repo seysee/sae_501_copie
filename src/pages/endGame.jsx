@@ -5,7 +5,6 @@ import Button from "../components/_button";
 
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
-    const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
     const [showFooter, setShowFooter] = useState(false);
@@ -36,12 +35,7 @@ export default function EndGame() {
                 const { data: sessionData } = await axios.get(`/api/session?id=${sessionId}`);
                 if (sessionData.killerId) {
                     const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
-                    console.log('Données du suspect (killerId) :', suspectData);
                     setSuspect(suspectData);
-
-                    const majorityCorrect = sessionStorage.getItem('isMajorityCorrect');
-                    console.log("Valeur brute de isMajorityCorrect :", majorityCorrect);
-                    setResult(majorityCorrect === 'true');
 
                     setTimeout(() => setIsVisible(true), 300);
                     setTimeout(() => setShowFooter(true), 3500);
@@ -73,11 +67,6 @@ export default function EndGame() {
                 <p className="text-2xl font-Amatic text-red-500">{error}</p>
             ) : suspect ? (
                 <div className="text-center">
-                    {result ? (
-                        <h1>Bravo !</h1>
-                    ) : (
-                        <h1>Perdu !</h1>
-                    )}
                     <p
                         className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${
                             isVisible ? "opacity-100" : "opacity-0"
