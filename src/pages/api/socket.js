@@ -44,6 +44,7 @@ export default function handler(req, res) {
                     };
                 }
 
+
                 const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.id);
                 if (!existingPlayer) {
                     sessions[sessionId].players.push(player);
@@ -111,7 +112,6 @@ export default function handler(req, res) {
             });
 
             // Soumission de la réponse
-
             socket.on('submitAnswer', async ({ sessionId, questionId, answer, playerId }) => {
                 console.log(`Réponse reçue pour la question ${questionId} :, answer`);
 
@@ -150,8 +150,6 @@ export default function handler(req, res) {
                 // On émet un événement commun pour TOUS les joueurs de la session
                 io.to(sessionId).emit('redirectToEnigma');
             });
-
-
             // Exemple : si tu veux passer au joueur suivant **après** la bonne réponse
             // tu peux écouter un event du type "setNextPlayer" déclenché depuis result.jsx
             // ou bien l'appeler directement en fin de "submitAnswer", c'est au choix.
@@ -207,6 +205,7 @@ export default function handler(req, res) {
                     console.log(`Le joueur ${userId} a voté pour le suspect ${suspectId}.`);
                 }
 
+
                 console.log(`Mise à jour des votes pour la session ${sessionId} :`, sessionVote[sessionId]);
                 socket.join(sessionId);
                 io.to(sessionId).emit('voteSuccess', sessionVote[sessionId]);
@@ -256,7 +255,6 @@ export default function handler(req, res) {
                 }
             });
 
-
             socket.on('startVote', (sessionId, durationInSeconds) => {
                 const now = new Date();
                 const endTime = new Date(now.getTime() + durationInSeconds * 1000);
@@ -271,7 +269,6 @@ export default function handler(req, res) {
             socket.on('endGame', (sessionId) => {
                 io.to(sessionId).emit('gameEnded', '/endGame');
             });
-
 
         });
 
