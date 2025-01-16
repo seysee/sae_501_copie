@@ -7,6 +7,7 @@ import AllHints from '../components/_allHints';
 import _button from "../components/_button";
 import skinsData from "/src/data/skins";
 import { useRouter } from 'next/router';
+import Button from "../components/_button";
 
 export default function Profile() {
     const [suspects, setSuspects] = useState(null);
@@ -255,6 +256,32 @@ export default function Profile() {
         setShowHints((prev) => !prev);
     };
 
+    const triggerEndGame = () => {
+        const sessionId = getStoredUserData()?.sessionId;
+
+        if (!sessionId || !socket) {
+            console.error("Session ID ou socket manquant.");
+            return;
+        }
+
+        socket.emit('endGameButton', sessionId);
+    };
+
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on('gameEndedButton', (redirectUrl) => {
+            if (redirectUrl) {
+                console.log('Redirection vers :', redirectUrl);
+                router.push(redirectUrl).catch(console.error);
+            }
+        });
+
+        return () => {
+            if (socket) socket.off('gameEndedButton');
+        };
+    }, [socket]);
+
     return (
         <div className="min-h-screen flex flex-col p-4 items-center justify-center">
             <h1 className="text-5xl font-Amatic mb-7">Place au vote</h1>
@@ -273,7 +300,9 @@ export default function Profile() {
                 <div className="w-full max-w-6xl mx-auto">
                     <div className="flex flex-row justify-between items-center">
                         <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
-                        <_button label="indices" className="max-w-24 text-white h-12 text-lg flex justify-center items-center" onClick={toggleHints}/>
+                        <_button label="indices"
+                                 className="max-w-24 text-white h-12 text-lg flex justify-center items-center"
+                                 onClick={toggleHints}/>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {suspects.map((suspect, index) => {
@@ -357,6 +386,14 @@ export default function Profile() {
                 onConfirm={confirmVote}
                 suspectName={selectedSuspect?.name}
             />
+
+            <div className="mt-5">
+                <Button
+                    label="Terminer le vote"
+                    onClick={triggerEndGame}
+                    className="bg-red-600 text-white font-Amatic px-6 py-3 rounded-lg shadow hover:bg-red-500 transition"
+                />
+            </div>
 
         </div>
     );
