@@ -1,8 +1,7 @@
 import { Server } from 'socket.io';
-
 import { encryptParam } from '../../lib/cryptoUtils';
-
 import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 const sessions = {}; // Store en mémoire pour les sessions
 const sessionVote = {}; // Store en mémoire pour les votes par session
@@ -45,7 +44,7 @@ export default function handler(req, res) {
                     };
                 }
 
-const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.id);
+                const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.id);
                 if (!existingPlayer) {
                     sessions[sessionId].players.push(player);
                 }
@@ -84,7 +83,7 @@ const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.i
                 if (sessions[sessionId].questions.length === 0) {
                     try {
                         const dbQuestions = await prisma.questions.findMany({
-                        where: {  id: { notIn: toFilterQuestion }, active: true },
+                            where: { id: { notIn: toFilterQuestion }, active: true },
                         });
                         sessions[sessionId].questions = shuffle(dbQuestions);
                     } catch (error) {
@@ -151,6 +150,7 @@ const existingPlayer = sessions[sessionId].players.find((p) => p.id === player.i
                 // On émet un événement commun pour TOUS les joueurs de la session
                 io.to(sessionId).emit('redirectToEnigma');
             });
+
 
             // Exemple : si tu veux passer au joueur suivant **après** la bonne réponse
             // tu peux écouter un event du type "setNextPlayer" déclenché depuis result.jsx

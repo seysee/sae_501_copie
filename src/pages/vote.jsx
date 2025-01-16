@@ -14,10 +14,12 @@ export default function Profile() {
     const [error, setError] = useState(null);
     const [socket, setSocket] = useState(null);
     const [votes, setVotes] = useState([]);
+
     const [voters, setVoters] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
     const [initialTime, setInitialTime] = useState(60);
     const [votedSuspectId, setVotedSuspectId] = useState(null);
+
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
     const router = useRouter();
