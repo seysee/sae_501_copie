@@ -199,6 +199,8 @@ export default function Profile() {
             console.log('StoredUserData', storedUserData.sessionId);
             console.log('SUSPECT ID VOTÉ', selectedSuspect.id);
 
+            sessionStorage.setItem('votedSuspectId', selectedSuspect.id);
+
             socket.emit('voteForSuspect', selectedSuspect.id, storedUserData.id, storedUserData.sessionId);
         }
 

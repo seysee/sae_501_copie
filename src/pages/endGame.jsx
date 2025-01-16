@@ -37,6 +37,15 @@ export default function EndGame() {
                     const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
                     setSuspect(suspectData);
 
+                    const votedSuspectId = sessionStorage.getItem('votedSuspectId');
+                    if (votedSuspectId) {
+                        if (votedSuspectId === sessionData.killerId.toString()) {
+                            setError("Bravo ! Vous avez trouvé le tueur !");
+                        } else {
+                            setError("Perdu ! Ce n'était pas le bon suspect.");
+                        }
+                    }
+
                     setTimeout(() => setIsVisible(true), 300);
                     setTimeout(() => setShowFooter(true), 3500);
                 } else {
