@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import Timer from '../components/_timer';
 import Modal from '../components/_modal';
+import AllHints from '../components/_allHints';
+import _button from "../components/_button";
 
 export default function Profile() {
     const [suspects, setSuspects] = useState(null);
@@ -13,11 +15,12 @@ export default function Profile() {
 
     const [voters, setVoters] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
-    const [initialTime, setInitialTime] = useState(90);
+    const [initialTime, setInitialTime] = useState(60);
     const [votedSuspectId, setVotedSuspectId] = useState(null);
 
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
+    const [showHints, setShowHints] = useState(false);
 
     useEffect(() => {
         const storedUserData = getStoredUserData();
@@ -27,15 +30,8 @@ export default function Profile() {
             fetchPlayersBySessionId(storedUserData.sessionId);
 
             if (socket && storedUserData?.sessionId) {
-                socket.emit('getVoteEndTime', storedUserData.sessionId, (response) => {
-                    if (response?.endTime) {
-                        const timeLeft = synchronizeTimer(response.endTime);
-                        setInitialTime(timeLeft);
-                        if (timeLeft === 0) setDisableVote(true);
-                    }
-                });
+                socket.emit('getVoteEndTime', storedUserData.sessionId, initialTime);
             }
-
         }
     }, [socket]);
 
@@ -49,7 +45,7 @@ export default function Profile() {
             console.error('Erreur de vote reçue :', errorMessage);
             alert(errorMessage);
         });
-
+        startVote(initialTime)
         const handleVotesUpdate = (votes) => {
             console.log('Mise à jour des votes reçue :', votes);
             setVotes(votes);
@@ -83,20 +79,25 @@ export default function Profile() {
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        socketConnection.on('voteStart', ({ endTime }) => {
+        socketConnection.on('voteStart', ({endTime}) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
         });
 
-        socketConnection.on('voteEndTime', () => {
+        socketConnection.on('VoteTime', ({returnTimer}) => {
+            setInitialTime(returnTimer);
+        });
+
+        socketConnection.on('endVote', (message) => {
             setDisableVote(true);
-            console.log('Le temps est écoulé. Les votes sont désormais fermés.');
         });
 
         return () => {
-            if (socketConnection) { socketConnection.disconnect()
-            ;}
+            if (socketConnection) {
+                socketConnection.disconnect()
+                ;
+            }
         };
     }, []);
 
@@ -130,6 +131,15 @@ export default function Profile() {
         return null;
     };
 
+    const startVote = (durationInSeconds) => {
+        const storedUserData = getStoredUserData();
+        const sessionId = storedUserData?.sessionId;
+
+        if (socket && sessionId) {
+            socket.emit('startVote', sessionId, durationInSeconds);
+        }
+    };
+
     const fetchSuspects = async () => {
         try {
             const response = await axios.get("/api/suspect");
@@ -143,7 +153,7 @@ export default function Profile() {
     const fetchPlayersBySessionId = async (sessionId) => {
         try {
             const response = await axios.get("/api/player", {
-                params: { sessionId: sessionId },
+                params: {sessionId: sessionId},
             });
             setPlayers(response.data);
         } catch (err) {
@@ -179,65 +189,64 @@ export default function Profile() {
     const synchronizeTimer = (endTime) => {
         const endTimestamp = new Date(endTime).getTime();
         const nowTimestamp = Date.now();
-        return Math.max((endTimestamp - nowTimestamp) / 1000, 0);
+        return Math.max(Math.floor((endTimestamp - nowTimestamp) / 1000), 0);
     };
+
+    const toggleHints = () => {
+        setShowHints((prev) => !prev);
+    };
+
 
     return (
         <div className="min-h-screen flex flex-col p-4 items-center justify-center">
             <h1 className="text-5xl font-Amatic mb-7">Place au vote</h1>
 
-            {!disableVote && (
-                <div>
-                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false} />
-                </div>
-            )}
+            <div>
+                {disableVote ? (
+                    <p className="text-red-500 font-Amatic text-2xl">Le vote est terminé</p>
+                ) : (
+                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
+                )}
+            </div>
 
-            {disableVote && (
-                <p className="text-red-500 font-Amatic text-2xl">Le vote est terminé</p>
-            )}
 
             {error ? (
                 <p className="text-red-500 text-2xl font-semibold text-center">{error}</p>
             ) : suspects ? (
                 <div className="w-full max-w-6xl mx-auto">
-                    <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
+                    <div className="flex flex-row justify-between items-center">
+                        <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
+                        <_button label="Voir indices" className="w-1/2 text-white h-12 text-lg flex justify-center items-center" onClick={toggleHints}/>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {suspects.map((suspect, index) => {
+                        {suspects.map((suspect, index) => {
+                            const votesForSuspect = votes ? votes.filter(vote => vote.suspectId === suspect.id).length : 0;
 
-                        const votesForSuspect = votes ? votes.filter(vote => vote.suspectId === suspect.id).length : 0;
+                            return (
+                                <div key={index} className="flex flex-col items-center">
+                                    <button
+                                        onClick={() => voteForSuspect(suspect)}
+                                        disabled={disableVote || votedSuspectId === suspect.id}
+                                        className={`relative border border-gray-600 bg-gray-800 flex justify-between items-center p-4 w-full rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ${
+                                            disableVote ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
+                                    >
+                                        <p className="font-Amatic text-2xl text-white font-medium truncate">
+                                            {suspect.name}
+                                        </p>
+                                        {votesForSuspect > 0 && (
+                                            <div className="absolute right-3 top-3 flex flex-wrap gap-0.5">
+                                                {/* Générer un cercle rouge pour chaque vote */}
+                                                {Array.from({length: votesForSuspect}).map((_, i) => (
 
-                        return (
-                            <div key={index} className="flex flex-col items-center">
-                                <button
-                                    onClick={() => voteForSuspect(suspect)}
-                                    disabled={disableVote || votedSuspectId === suspect.id}
-                                    className={`relative border border-gray-600 bg-gray-800 flex justify-between items-center p-4 w-full rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ${
-                                        disableVote ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
-                                >
-                                    <p className="font-Amatic text-2xl text-white font-medium truncate">
-                                        {suspect.name}
-                                    </p>
-                                    {votesForSuspect > 0 && (
-                                        <div className="absolute right-3 top-3 flex flex-wrap gap-1">
-                                            {/* Générer un cercle rouge pour chaque vote */}
-                                            {Array.from({length: votesForSuspect}).map((_, i) => (
-                                                <svg
-                                                    key={i}
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="w-6 h-6 text-red-500"
-                                                    viewBox="0 0 24 24"
-                                                    fill="currentColor"
-                                                >
-                                                    <circle cx="12" cy="12" r="6"/>
-                                                </svg>
-                                            ))}
-                                        </div>
-                                    )}
-                                </button>
-                            </div>
-                        );
-                    })}
+                                                    <img className="w-6 h-6" src="/amonUsPastille.png"/>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             ) : (
@@ -277,6 +286,11 @@ export default function Profile() {
                     </div>
                 </div>
             )}
+            <div
+                className={`absolute ${showHints ? "block" : "hidden"}`}
+            >
+                <AllHints onClose={() => setShowHints(false)}/>
+            </div>
 
             <Modal
                 isOpen={showModal}
@@ -288,12 +302,4 @@ export default function Profile() {
         </div>
     );
 }
-
-/* à faire :
-- mettre une petite pastille "a voté" sur le suspect
-- mettre les joueurs qui ont voté quand qq vote
-- que quand quelqu'un vote ça mette en synchro pour tous les utilisateurs
-- quand on appuie sur un suspect, ça doit nous demander "valider votre vote" avant
-- mettre un timer pour la fin du vote, et après ça on peut pas plus voter
- */
 
