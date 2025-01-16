@@ -61,7 +61,6 @@ export default function Hint() {
             if (foundHint) {
                 return foundHint;
             }
-            // Sinon, on tombe dans la logique aléatoire
         }
 
         const availableHints = allHints.filter((h) => !usedHints.includes(h.id));
@@ -107,7 +106,6 @@ export default function Hint() {
                     usedHintsArray = [];
                 }
 
-                // On appelle pickingHint avec un vrai tableau pour usedHints
                 const selectedHint = pickingHint(allHints, usedHintsArray);
                 console.log("Indice sélectionné :", selectedHint);
 

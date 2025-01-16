@@ -3,6 +3,8 @@ import axios from 'axios';
 import io from 'socket.io-client';
 import Timer from '../components/_timer';
 import Modal from '../components/_modal';
+import AllHints from '../components/_allHints';
+import _button from "../components/_button";
 
 export default function Profile() {
     const [suspects, setSuspects] = useState(null);
@@ -13,11 +15,12 @@ export default function Profile() {
 
     const [voters, setVoters] = useState([]);
     const [disableVote, setDisableVote] = useState(false);
-    const [initialTime, setInitialTime] = useState(10);
+    const [initialTime, setInitialTime] = useState(60);
     const [votedSuspectId, setVotedSuspectId] = useState(null);
 
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
+    const [showHints, setShowHints] = useState(false);
 
     useEffect(() => {
         const storedUserData = getStoredUserData();
@@ -76,7 +79,7 @@ export default function Profile() {
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        socketConnection.on('voteStart', ({ endTime }) => {
+        socketConnection.on('voteStart', ({endTime}) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
@@ -86,7 +89,7 @@ export default function Profile() {
             setInitialTime(returnTimer);
         });
 
-        socketConnection.on('endVote',(message) => {
+        socketConnection.on('endVote', (message) => {
             setDisableVote(true);
         });
 
@@ -136,7 +139,6 @@ export default function Profile() {
             socket.emit('startVote', sessionId, durationInSeconds);
         }
     };
-
 
     const fetchSuspects = async () => {
         try {
@@ -190,6 +192,10 @@ export default function Profile() {
         return Math.max(Math.floor((endTimestamp - nowTimestamp) / 1000), 0);
     };
 
+    const toggleHints = () => {
+        setShowHints((prev) => !prev);
+    };
+
 
     return (
         <div className="min-h-screen flex flex-col p-4 items-center justify-center">
@@ -199,17 +205,19 @@ export default function Profile() {
                 {disableVote ? (
                     <p className="text-red-500 font-Amatic text-2xl">Le vote est terminé</p>
                 ) : (
-                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false} />
+                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
                 )}
             </div>
-
 
 
             {error ? (
                 <p className="text-red-500 text-2xl font-semibold text-center">{error}</p>
             ) : suspects ? (
                 <div className="w-full max-w-6xl mx-auto">
-                    <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
+                    <div className="flex flex-row justify-between items-center">
+                        <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
+                        <_button label="Voir indices" className="w-1/2 text-white h-12 text-lg flex justify-center items-center" onClick={toggleHints}/>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {suspects.map((suspect, index) => {
                             const votesForSuspect = votes ? votes.filter(vote => vote.suspectId === suspect.id).length : 0;
@@ -278,6 +286,11 @@ export default function Profile() {
                     </div>
                 </div>
             )}
+            <div
+                className={`absolute ${showHints ? "block" : "hidden"}`}
+            >
+                <AllHints onClose={() => setShowHints(false)}/>
+            </div>
 
             <Modal
                 isOpen={showModal}
