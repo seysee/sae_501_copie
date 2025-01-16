@@ -270,6 +270,11 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('gameEnded', '/endGame');
             });
 
+
+            socket.on('endGameButton', (sessionId) => {
+                io.to(sessionId).emit('gameEndedButton', '/endGame');
+            });
+
         });
 
 
