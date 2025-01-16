@@ -96,11 +96,6 @@ export default function Result() {
         processQuestion();
     }, [questionId, answer]);
 
-
-
-
-
-
     useEffect(() => {
         defineButtonVisibility();
     }, []);
@@ -309,14 +304,6 @@ export default function Result() {
         }
         return result;
     };
-
-
-
-
-
-
-
-
 
     // Détermine le dernier indice ajouté (premier élément du tableau trié décroissant)
     const latestHint = accumulatedHints.length > 0 ? accumulatedHints[0] : null;
