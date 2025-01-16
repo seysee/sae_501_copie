@@ -36,13 +36,17 @@ export default function EndGame() {
                 const { data: sessionData } = await axios.get(`/api/session?id=${sessionId}`);
                 if (sessionData.killerId) {
                     const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
+                    if (!suspectData) {
+                        setError("Impossible de récupérer les informations du tueur.");
+                        return;
+                    }
                     setSuspect(suspectData);
 
                     const isMajorityCorrect = sessionStorage.getItem('isMajorityCorrect') === 'true';
                     setResult(isMajorityCorrect);
 
-                    setTimeout(() => setIsVisible(true), 100);
-                    setTimeout(() => setShowFooter(true), 3000);
+                    setTimeout(() => setIsVisible(true), 300);
+                    setTimeout(() => setShowFooter(true), 3500);
                 } else {
                     setError("Aucun tueur assigné pour cette session.");
                 }
@@ -71,8 +75,18 @@ export default function EndGame() {
                 <p className="text-2xl font-Amatic text-red-500">{error}</p>
             ) : suspect ? (
                 <div className="text-center">
+                    {result !== null && (
+                        <p
+                            className={`text-4xl font-Amatic font-bold transition-opacity mb-2 duration-1000 ${
+                                result ? 'text-green-500' : 'text-red-500' }
+                                isVisible ? "opacity-100" : "opacity-0"
+                            }`}
+                        >
+                            {result ? 'Bravo !' : 'Perdu !'}
+                        </p>
+                    )}
                     <p
-                        className={`text-4xl font-Amatic font-bold transition-opacity mb-5 duration-[5000ms] ${
+                        className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${
                             isVisible ? "opacity-100" : "opacity-0"
                         }`}
                     >
@@ -80,11 +94,6 @@ export default function EndGame() {
                         <span className="text-red-500">{suspect.name}</span>
                         ...
                     </p>
-                    {result !== null && (
-                        <p className="text-3xl font-Amatic font-bold mb-12">
-                            {result ? "Bravo ! Vous avez trouvé le bon suspect !" : "Perdu ! La majorité s'est trompée."}
-                        </p>
-                    )}
                     <div
                         className={`transition-opacity duration-1000 ${
                             showFooter ? "opacity-100" : "opacity-0"
@@ -96,7 +105,7 @@ export default function EndGame() {
                         </p>
                         <Button
                             onClick={handleReturnHome}
-                            className="text-xl w-40 px-4 py-2 text-gray-300 border border-gray-300 rounded-lg shadow-md hover:border-gray-400 hover:text-gray-400 transition duration-300"
+                            className=" w-40 px-4 py-2 text-xl text-gray-300 border border-gray-300 rounded-lg shadow-md hover:border-gray-400 hover:text-gray-400 transition duration-300"
                             label={"Terminer la partie"}
                         />
                     </div>
