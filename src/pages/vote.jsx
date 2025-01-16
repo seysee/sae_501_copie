@@ -26,7 +26,6 @@ export default function Profile() {
 
     const getPlayerSkin = (playerSkinId) => {
         const playerSkin = skins.find((skin) => skin.id === playerSkinId )
-        console.log(playerSkin)
         return playerSkin.skin
     }
 
