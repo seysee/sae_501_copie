@@ -152,9 +152,9 @@ export default function Salon() {
             const playerNumber = players.length;
             let roleCount = 0;
 
-            if (playerNumber >= 3 && playerNumber <= 4) {
+            if (playerNumber <= 4) {
                 roleCount = 1;
-            } else if (playerNumber >= 5 && playerNumber <= 6) {
+            } else if (playerNumber > 4) {
                 roleCount = 2;
             }
 
