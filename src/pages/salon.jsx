@@ -130,11 +130,6 @@ export default function Salon() {
         }
 
         try {
-            const response = await axios.get('/api/question/question', {
-                params: { limit: 10 },
-            });
-            const questions = response.data;
-
             await axios.put('/api/session', {
                 id: session.id,
                 status: 1,

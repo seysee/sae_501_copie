@@ -14,6 +14,14 @@ export default async function memoryImages({ containerId, questionId, sessionId,
     }
     container.dataset.gameStarted = "true";
 
+    // Style général cohérent avec l'appli
+    const commonStyles = `
+        display: block;
+        margin: 0 auto;
+        text-align: center;
+        color: white;
+        font-family: 'Amatic SC', cursive;
+    `;
     // Image à afficher
     const imageSrc = "/puzzle/4_images_enigma.png";
 
@@ -21,16 +29,23 @@ export default async function memoryImages({ containerId, questionId, sessionId,
     const imgElement = document.createElement("img");
     imgElement.src = imageSrc;
     imgElement.style = `
+        ${commonStyles}
         max-width: 100%;
         max-height: 100%;
-        display: block;
-        margin: 0 auto;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        animation: fadeIn 1s ease-in-out;
     `;
     container.appendChild(imgElement);
 
     // Création du timer
     const timerElement = document.createElement("p");
-    timerElement.style = "color: white; text-align: center; margin-top: 10px;";
+    timerElement.style = `
+        ${commonStyles}
+        margin-top: 10px;
+        font-size: 1.5rem;
+        font-weight: bold;
+    `;
     container.appendChild(timerElement);
 
     let timeLeft = 5;
@@ -52,18 +67,26 @@ export default async function memoryImages({ containerId, questionId, sessionId,
 
         // Question
         const questionElement = document.createElement("p");
-        questionElement.style = "color: white; margin-bottom: 10px; text-align: center;";
+        questionElement.style = `
+            ${commonStyles}
+            margin-bottom: 10px;
+            font-size: 2rem;
+        `;
         questionElement.textContent = "De quelle couleur était le banc ?";
         container.appendChild(questionElement);
 
         // Champ texte
         const inputElement = document.createElement("input");
         inputElement.type = "text";
-        inputElement.placeholder = "Ta réponse";
+        inputElement.placeholder = "Votre réponse";
         inputElement.style = `
-            display: block;
-            margin: 0 auto 10px;
-            padding: 5px;
+            ${commonStyles}
+            padding: 10px;
+            border: 2px solid #ffc107;
+            background-color: black;
+            color: white;
+            border-radius: 5px;
+            font-size: 1.2rem;
         `;
         container.appendChild(inputElement);
 
@@ -71,14 +94,16 @@ export default async function memoryImages({ containerId, questionId, sessionId,
         const buttonElement = document.createElement("button");
         buttonElement.textContent = "Valider";
         buttonElement.style = `
-            display: block;
-            margin: 0 auto;
-            padding: 5px 10px;
+            ${commonStyles}
+            padding: 10px 20px;
+            background-color: #ffc107;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2rem;
             cursor: pointer;
+            margin-top: 10px;
         `;
-        container.appendChild(buttonElement);
-
-        // Gestion du clic sur "Valider"
         buttonElement.addEventListener("click", async () => {
             const userAnswer = inputElement.value.trim();
             if (!userAnswer) return;
@@ -110,5 +135,7 @@ export default async function memoryImages({ containerId, questionId, sessionId,
                 onComplete({ correct: false, message: "Erreur réseau ou serveur." });
             }
         });
+
+        container.appendChild(buttonElement);
     }
 }
