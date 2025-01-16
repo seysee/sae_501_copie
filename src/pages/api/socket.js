@@ -57,6 +57,18 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('gameStarted', '/role');
             });
 
+            socket.on('newHintAdded', async (sessionId) => {
+                       try {
+                              // On peut éventuellement récupérer la session mise à jour depuis la BDD
+                                   const sessionData = await prisma.sessions.findUnique({
+                                       where: { id: parseInt(sessionId) },
+                               });
+                               // Diffuse l’événement aux autres clients de la session.
+                                   socket.to(sessionId).emit('refreshHints');
+                           } catch (error) {
+                               console.error("Erreur lors de l'émission de refreshHints :", error);
+                           }
+                   });
             // Lancer les questions
             socket.on('launchQuestions', async (sessionId, toFilterQuestion) => {
                 console.log(`${sessionId} est en train de lancer les questions.`);
