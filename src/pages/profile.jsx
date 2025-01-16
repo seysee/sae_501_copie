@@ -79,8 +79,8 @@ export default function Profile() {
         console.log(skin)
         try {
             const response = await axios.post('/api/player', {
-                    name: pseudo,
-                    skin
+                name: pseudo,
+                skin
             });
             if (response.status === 201) {
                 sessionStorage.setItem('userData', JSON.stringify(response.data));
