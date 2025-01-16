@@ -6,6 +6,7 @@ import Button from "../components/_button";
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
     const [error, setError] = useState(null);
+    const [voteMessage, setVoteMessage] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
     const [showFooter, setShowFooter] = useState(false);
     const router = useRouter();
@@ -33,24 +34,15 @@ export default function EndGame() {
         const fetchKiller = async () => {
             try {
                 const { data: sessionData } = await axios.get(`/api/session?id=${sessionId}`);
-                if (sessionData.killerId) {
-                    const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
-                    setSuspect(suspectData);
+                const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
+                setSuspect(suspectData);
 
-                    const votedSuspectId = sessionStorage.getItem('votedSuspectId');
-                    if (votedSuspectId) {
-                        if (votedSuspectId === sessionData.killerId.toString()) {
-                            setError("Bravo ! Vous avez trouvé le tueur !");
-                        } else {
-                            setError("Perdu ! Ce n'était pas le bon suspect.");
-                        }
-                    }
+                const votedSuspectId = sessionStorage.getItem('votedSuspectId');
+                const isCorrect = votedSuspectId === sessionData.killerId.toString();
+                setVoteMessage(isCorrect ? "Bravo ! Vous avez trouvé le tueur !" : "Perdu ! Ce n'était pas le bon suspect.");
 
-                    setTimeout(() => setIsVisible(true), 300);
-                    setTimeout(() => setShowFooter(true), 3500);
-                } else {
-                    setError("Aucun tueur assigné pour cette session.");
-                }
+                setTimeout(() => setIsVisible(true), 300);
+                setTimeout(() => setShowFooter(true), 3500);
             } catch (err) {
                 console.error(err);
                 setError("Erreur lors de la récupération des informations.");
@@ -74,36 +66,33 @@ export default function EndGame() {
         <div className="min-h-screen flex flex-col items-center justify-center p-4 text-white">
             {error ? (
                 <p className="text-2xl font-Amatic text-red-500">{error}</p>
-            ) : suspect ? (
-                <div className="text-center">
-                    <p
-                        className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${
-                            isVisible ? "opacity-100" : "opacity-0"
-                        }`}
-                    >
-                        Le tueur était{" "}
-                        <span className="text-red-500">{suspect.name}</span>
-                        ...
-                    </p>
-                    <div
-                        className={`transition-opacity duration-1000 ${
-                            showFooter ? "opacity-100" : "opacity-0"
-                        }`}
-                    >
-                        <p className="mt-4 mb-2 text-xl font-Amatic text-gray-300">
-                            Merci d'avoir joué, <span className="font-bold">{playerName}</span> ! Nous espérons te
-                            revoir bientôt.
-                        </p>
-                        <Button
-                            onClick={handleReturnHome}
-                            className=" w-40 px-4 py-2 text-xl text-gray-300 border border-gray-300 rounded-lg shadow-md hover:border-gray-400 hover:text-gray-400 transition duration-300"
-                            label={"Terminer la partie"}
-                        />
-                    </div>
-                </div>
             ) : (
-                <p className="text-2xl font-Amatic text-gray-400 animate-pulse">Chargement...</p>
+                suspect && (
+                    <div className="text-center">
+                        <p className={`text-4xl font-Amatic font-bold transition-opacity mb-6 ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                            {voteMessage}
+                        </p>
+
+                        <p className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                            Le tueur était <span className="text-red-500">{suspect.name}</span>.
+                        </p>
+
+                        {showFooter && (
+                            <div>
+                                <p className="mt-4 mb-2 text-xl font-Amatic text-gray-300">
+                                    Merci d'avoir joué, <span className="font-bold">{playerName}</span> ! Nous espérons te revoir bientôt.
+                                </p>
+                                <Button
+                                    onClick={handleReturnHome}
+                                    className="w-40 px-4 py-2 text-xl text-gray-300 border border-gray-300 rounded-lg shadow-md hover:border-gray-400 hover:text-gray-400 transition duration-300"
+                                    label={"Terminer la partie"}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )
             )}
+            {!suspect && !error && <p className="text-2xl font-Amatic text-gray-400 animate-pulse">Chargement...</p>}
         </div>
     );
 }
