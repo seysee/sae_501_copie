@@ -36,14 +36,12 @@ export default function EndGame() {
                 const { data: sessionData } = await axios.get(`/api/session?id=${sessionId}`);
                 if (sessionData.killerId) {
                     const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
-                    if (!suspectData) {
-                        setError("Impossible de récupérer les informations du tueur.");
-                        return;
-                    }
+                    console.log('Données du suspect (killerId) :', suspectData);
                     setSuspect(suspectData);
 
-                    const isMajorityCorrect = sessionStorage.getItem('isMajorityCorrect') === 'true';
-                    setResult(isMajorityCorrect);
+                    const majorityCorrect = sessionStorage.getItem('isMajorityCorrect');
+                    console.log("Valeur brute de isMajorityCorrect :", majorityCorrect);
+                    setResult(majorityCorrect === 'true');
 
                     setTimeout(() => setIsVisible(true), 300);
                     setTimeout(() => setShowFooter(true), 3500);
@@ -75,15 +73,10 @@ export default function EndGame() {
                 <p className="text-2xl font-Amatic text-red-500">{error}</p>
             ) : suspect ? (
                 <div className="text-center">
-                    {result !== null && (
-                        <p
-                            className={`text-4xl font-Amatic font-bold transition-opacity mb-2 duration-1000 ${
-                                result ? 'text-green-500' : 'text-red-500' }
-                                isVisible ? "opacity-100" : "opacity-0"
-                            }`}
-                        >
-                            {result ? 'Bravo !' : 'Perdu !'}
-                        </p>
+                    {result ? (
+                        <h1>Bravo !</h1>
+                    ) : (
+                        <h1>Perdu !</h1>
                     )}
                     <p
                         className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${
