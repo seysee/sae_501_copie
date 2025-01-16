@@ -277,8 +277,6 @@ export default function handler(req, res) {
 
         });
 
-
-
         res.socket.server.io = io;
     }
     res.end();
