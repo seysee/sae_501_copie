@@ -69,17 +69,17 @@ export default function EndGame() {
             ) : (
                 suspect && (
                     <div className="text-center">
-                        <p className={`text-4xl font-Amatic font-bold transition-opacity mb-6 ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                        <p className={`text-4xl font-Amatic font-bold transition-opacity mb-6 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
                             {voteMessage}
                         </p>
 
                         <p className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
-                            Le tueur était <span className="text-red-500">{suspect.name}</span>.
+                            Le tueur était <span className="text-red-500">{suspect.name}</span>...
                         </p>
 
                         {showFooter && (
                             <div>
-                                <p className="mt-4 mb-2 text-xl font-Amatic text-gray-300">
+                                <p className="mt-4 mb-2 text-xl font-Amatic text-gray-300 ">
                                     Merci d'avoir joué, <span className="font-bold">{playerName}</span> ! Nous espérons te revoir bientôt.
                                 </p>
                                 <Button
