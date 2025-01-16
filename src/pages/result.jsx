@@ -47,6 +47,18 @@ export default function Result() {
     }, []);
 
     useEffect(() => {
+          if (socket) {
+                  socket.on('refreshHints', () => {
+                           loadAccumulatedHintsSoFar();
+                       });
+
+                       return () => {
+                           socket.off('refreshHints');
+                      };
+              }
+    }, []);
+
+    useEffect(() => {
         const processQuestion = async () => {
             if (questionId && answer) {
                 const answeredData = sessionStorage.getItem(`answered_${questionId}`);
@@ -54,8 +66,16 @@ export default function Result() {
                     try {
                         const decryptedQuestionId = decryptParam(questionId);
                         const decryptedAnswer = decryptParam(answer);
-                        await verifyResponse(decryptedQuestionId, decryptedAnswer);
+                        const result = await verifyResponse(decryptedQuestionId, decryptedAnswer);
                         await rememberQuestion(decryptedQuestionId);
+                        // Sauvegarde dans sessionStorage pour éviter de retraiter la même question
+                        sessionStorage.setItem(
+                            `answered_${questionId}`,
+                            JSON.stringify({
+                                correct: result.correct,
+                                feedback: result.message
+                            })
+                        );
                     } catch (error) {
                         console.error("Erreur de décryptage ou de vérification :", error);
                         setIsLoading(false);
@@ -64,8 +84,8 @@ export default function Result() {
                     const parsedData = JSON.parse(answeredData);
                     setCorrect(parsedData.correct);
                     setFeedback(parsedData.feedback);
-                    setLatestUnlockedHint(parsedData.latestUnlockedHint);
-                    setAccumulatedHints(parsedData.accumulatedHints || []);
+                    // Récupère les indices depuis la BDD pour être à jour
+                    loadAccumulatedHintsSoFar();
                     setIsLoading(false);
                 }
             } else {
@@ -75,6 +95,7 @@ export default function Result() {
 
         processQuestion();
     }, [questionId, answer]);
+
 
 
 
@@ -111,7 +132,7 @@ export default function Result() {
 
                 const matched = suspectHints.filter((h) => usedHints.includes(h.id));
                 matched.sort((a, b) => b.id - a.id);
-
+                setLatestUnlockedHint(matched[0] || null);
                 setAccumulatedHints(matched);
 
                 // Sauvegarder les indices dans sessionStorage
@@ -220,6 +241,9 @@ export default function Result() {
                 id: sessionData.id,
                 hints: JSON.stringify(usedHints)
             });
+            if(socket) {
+                          socket.emit('newHintAdded', sessionId);
+                       }
 
             // Stocker et afficher directement le nouvel indice
             setLatestUnlockedHint(chosenHint);
@@ -237,6 +261,7 @@ export default function Result() {
 
 
     const verifyResponse = async (qId, ans) => {
+        let result = { correct: false, message: "" };
         try {
             const response = await axios.post("/api/question/answer", {
                 id: qId,
@@ -244,31 +269,28 @@ export default function Result() {
             });
             setFeedback(response.data.message);
             setCorrect(response.data.correct);
+            result.correct = response.data.correct;
+            result.message = response.data.message;
 
-            let unlockedHint = null;
             if (response.data.correct) {
-                unlockedHint = await addNewHint();  // Débloque un nouvel indice
-                await loadAccumulatedHintsSoFar();  // Recharge les indices mis à jour
+                // Débloquer un indice (celui‑ci déclenchera une synchro via socket)
+                await addNewHint();
             }
-
-            // Sauvegarder l'état complet dans sessionStorage
-            sessionStorage.setItem(`answered_${questionId}`, JSON.stringify({
-                correct: response.data.correct,
-                feedback: response.data.message,
-                latestUnlockedHint: unlockedHint,
-                accumulatedHints: accumulatedHints  // Sauvegarder les indices
-            }));
         } catch (error) {
             setFeedback("Erreur lors de la vérification. Veuillez réessayer.");
+            result.message = "Erreur lors de la vérification.";
         } finally {
             setIsLoading(false);
             setTimeout(() => {
                 defineButtonVisibility();
             }, 500);
-
-            loadAccumulatedHintsSoFar();  // Charger les indices déjà débloqués
+            // Recharge la liste des indices depuis la BDD
+            loadAccumulatedHintsSoFar();
         }
+        return result;
     };
+
+
 
 
 
@@ -294,11 +316,11 @@ export default function Result() {
             {!isLoading && <p className="text-2xl mb-8 text-center font-Amatic">{feedback}</p>}
 
             {/* Indice sans background */}
-            {!isLoading && correct && latestUnlockedHint && (
-                <div className="text-3xl text-white font-bold font-Amatic mb-8">
-                    <Hint hint={latestUnlockedHint} />
-                </div>
-            )}
+            {!isLoading && correct && accumulatedHints.length > 0 && (
+                     <div className="text-3xl text-white font-bold font-Amatic mb-8">
+                             <Hint hint={accumulatedHints[0]} />
+                         </div>
+                 )}
 
             {/* Bouton pour passer à la prochaine question */}
             {showButton && !isLoading && (
