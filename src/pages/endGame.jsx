@@ -63,36 +63,41 @@ export default function EndGame() {
     const playerName = getStoredUserData()?.name || "Joueur";
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 text-white">
+        <div className="min-h-screen flex flex-col justify-center items-center p-4 text-white">
             {error ? (
                 <p className="text-2xl font-Amatic text-red-500">{error}</p>
             ) : (
                 suspect && (
-                    <div className="text-center">
-                        <p className={`text-4xl font-Amatic font-bold transition-opacity mb-6 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
-                            {voteMessage}
-                        </p>
+                    <>
+                        <div className="text-center">
+                            <p className={`text-4xl font-Amatic font-bold transition-opacity mb-6 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                                {voteMessage}
+                            </p>
 
-                        <p className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
-                            Le tueur était <span className="text-red-500">{suspect.name}</span>...
-                        </p>
+                            <p className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                                Le tueur était <span className="text-red-500">{suspect.name}</span>.
+                            </p>
+                        </div>
 
-                        {showFooter && (
-                            <div>
-                                <p className="mt-4 mb-2 text-xl font-Amatic text-gray-300 ">
-                                    Merci d'avoir joué, <span className="font-bold">{playerName}</span> ! Nous espérons te revoir bientôt.
-                                </p>
-                                <Button
-                                    onClick={handleReturnHome}
-                                    className="w-40 px-4 py-2 text-xl text-gray-300 border border-gray-300 rounded-lg shadow-md hover:border-gray-400 hover:text-gray-400 transition duration-300"
-                                    label={"Terminer la partie"}
-                                />
-                            </div>
-                        )}
-                    </div>
+                        <div className="mt-12">
+                            <p className={`text-xl font-Amatic text-gray-300 transition-opacity duration-[5000ms] delay-500 ${showFooter ? "opacity-100" : "opacity-0"}`}>
+                                Merci d'avoir joué, <span className="font-bold">{playerName}</span> ! Nous espérons te revoir bientôt.
+                            </p>
+                            <Button
+                                onClick={handleReturnHome}
+                                className={`mt-4 w-40 px-4 py-2 text-xl text-gray-300 border border-gray-300 rounded-lg shadow-md hover:border-gray-400 hover:text-gray-400 transition duration-[5000ms] delay-500 ${
+                                    showFooter ? "opacity-100" : "opacity-0"
+                                }`}
+                                label={"Terminer la partie"}
+                            />
+                        </div>
+                    </>
                 )
             )}
+
             {!suspect && !error && <p className="text-2xl font-Amatic text-gray-400 animate-pulse">Chargement...</p>}
         </div>
     );
+
+
 }
