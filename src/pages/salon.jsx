@@ -134,9 +134,9 @@ export default function Salon() {
             let roleCount = 0;
 
             // Déterminer combien de joueurs auront le rôle '1'
-            if (playerNumber >= 3 && playerNumber <= 4) {
+            if (playerNumber <= 4) {
                 roleCount = 1;
-            } else if (playerNumber >= 5 && playerNumber <= 6) {
+            } else if (playerNumber > 4) {
                 roleCount = 2;
             }
 
