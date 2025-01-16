@@ -49,7 +49,6 @@ export default function handler(req, res) {
                 if (!existingPlayer) {
                     sessions[sessionId].players.push(player);
                 }
-
                 socket.join(sessionId);
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
@@ -267,9 +266,16 @@ export default function handler(req, res) {
             });
 
 
+            socket.on('endGame', (sessionId) => {
+                io.to(sessionId).emit('gameEnded', '/endGame');
+            });
+
+
+            socket.on('endGameButton', (sessionId) => {
+                io.to(sessionId).emit('gameEndedButton', '/endGame');
+            });
+
         });
-
-
 
         res.socket.server.io = io;
     }

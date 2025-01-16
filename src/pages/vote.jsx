@@ -6,6 +6,8 @@ import Modal from '../components/_modal';
 import AllHints from '../components/_allHints';
 import _button from "../components/_button";
 import skinsData from "/src/data/skins";
+import { useRouter } from 'next/router';
+import Button from "../components/_button";
 
 export default function Profile() {
     const [suspects, setSuspects] = useState(null);
@@ -21,6 +23,7 @@ export default function Profile() {
 
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
+    const router = useRouter();
     const [showHints, setShowHints] = useState(false);
     const skins = skinsData.skins;
 
@@ -36,6 +39,15 @@ export default function Profile() {
             fetchSuspects();
             fetchPlayersBySessionId(storedUserData.sessionId);
 
+            /*if (socket && storedUserData?.sessionId) {
+                socket.emit('getVoteEndTime', storedUserData.sessionId, (response) => {
+                    if (response?.endTime) {
+                        const timeLeft = synchronizeTimer(response.endTime);
+                        setInitialTime(timeLeft);
+                        if (timeLeft === 0) setDisableVote(true);
+                    }
+                });
+            }*/
             if (socket && storedUserData?.sessionId) {
                 socket.emit('getVoteEndTime', storedUserData.sessionId, initialTime);
             }
@@ -86,7 +98,7 @@ export default function Profile() {
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        socketConnection.on('voteStart', ({endTime}) => {
+        socketConnection.on('voteStart', ({ endTime }) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
@@ -98,13 +110,23 @@ export default function Profile() {
 
         socketConnection.on('endVote', (message) => {
             setDisableVote(true);
+            console.log('Le temps est écoulé. Les votes sont désormais fermés.');
+        });
+
+        socketConnection.on('gameEnded', (redirectUrl) => {
+            console.log('Événement "gameEnded" reçu. Redirection vers :', redirectUrl);
+            if (redirectUrl) {
+                router.push(redirectUrl).then(() => {
+                    console.log('Redirection réussie vers /endGame');
+                }).catch((error) => {
+                    console.error('Erreur lors de la redirection :', error);
+                });
+            }
         });
 
         return () => {
-            if (socketConnection) {
-                socketConnection.disconnect()
-                ;
-            }
+            if (socketConnection) { socketConnection.disconnect()
+            ;}
         };
     }, []);
 
@@ -124,7 +146,7 @@ export default function Profile() {
         } catch (error) {
             console.error("Error emitting getSessionVote:", error);
         }
-    }, [socket]); // Ajoutez socket comme dépendance pour que cet useEffect réagisse à son initialisation
+    }, [socket]);
 
     const getStoredUserData = () => {
         try {
@@ -177,6 +199,8 @@ export default function Profile() {
             console.log('StoredUserData', storedUserData.sessionId);
             console.log('SUSPECT ID VOTÉ', selectedSuspect.id);
 
+            sessionStorage.setItem('votedSuspectId', selectedSuspect.id);
+
             socket.emit('voteForSuspect', selectedSuspect.id, storedUserData.id, storedUserData.sessionId);
         }
 
@@ -191,6 +215,20 @@ export default function Profile() {
     const handleTimeUp = () => {
         setDisableVote(true);
         console.log('Le temps est écoulé. Les votes sont désormais fermés.');
+
+        const storedUserData = getStoredUserData();
+        if (storedUserData?.sessionId) {
+            socket.emit('endGameResults', {
+                sessionId: storedUserData.sessionId,
+                killerId: suspects.find((suspect) => suspect.isKiller)?.id,
+                votes,
+            });
+        }
+
+        socket.emit('endGame', getStoredUserData().sessionId, suspects);
+        setTimeout(() => {
+            router.push('/endGame');
+        }, 3000);
     };
 
     const synchronizeTimer = (endTime) => {
@@ -203,6 +241,31 @@ export default function Profile() {
         setShowHints((prev) => !prev);
     };
 
+    const triggerEndGame = () => {
+        const sessionId = getStoredUserData()?.sessionId;
+
+        if (!sessionId || !socket) {
+            console.error("Session ID ou socket manquant.");
+            return;
+        }
+
+        socket.emit('endGameButton', sessionId);
+    };
+
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on('gameEndedButton', (redirectUrl) => {
+            if (redirectUrl) {
+                console.log('Redirection vers :', redirectUrl);
+                router.push(redirectUrl).catch(console.error);
+            }
+        });
+
+        return () => {
+            if (socket) socket.off('gameEndedButton');
+        };
+    }, [socket]);
 
     return (
         <div className="min-h-screen flex flex-col p-4 items-center justify-center">
@@ -216,14 +279,15 @@ export default function Profile() {
                 )}
             </div>
 
-
             {error ? (
                 <p className="text-red-500 text-2xl font-semibold text-center">{error}</p>
             ) : suspects ? (
                 <div className="w-full max-w-6xl mx-auto">
                     <div className="flex flex-row justify-between items-center">
                         <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
-                        <_button label="indices" className="max-w-24 text-white h-12 text-lg flex justify-center items-center" onClick={toggleHints}/>
+                        <_button label="indices"
+                                 className="max-w-24 text-white h-12 text-lg flex justify-center items-center"
+                                 onClick={toggleHints}/>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {suspects.map((suspect, index) => {
@@ -279,6 +343,22 @@ export default function Profile() {
                 <p className="text-gray-400 font-Amatic text-2xl animate-pulse">Loading...</p>
             )}
 
+            {voters.length > 0 && (
+                <div className="w-full max-w-6xl mx-auto mt-10">
+                    <h1 className="font-Amatic text-3xl mb-4">Joueurs ayant voté :</h1>
+                    <div className="flex flex-wrap gap-3">
+                        {voters.map((voter, index) => (
+                            <div
+                                key={index}
+                                className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+                            >
+                                <p className="font-Amatic text-xl font-medium truncate">{voter}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <div
                 className={`absolute ${showHints ? "block" : "hidden"}`}
             >
@@ -292,7 +372,14 @@ export default function Profile() {
                 suspectName={selectedSuspect?.name}
             />
 
+            <div className="mt-5">
+                <Button
+                    label="Terminer le vote"
+                    onClick={triggerEndGame}
+                    className="text-xl bg-red-700 text-white font-Amatic px-6 py-3 rounded-lg shadow hover:bg-red-800 transition"
+                />
+            </div>
+
         </div>
     );
 }
-
