@@ -39,13 +39,7 @@ export default function Profile() {
             fetchPlayersBySessionId(storedUserData.sessionId);
 
             if (socket && storedUserData?.sessionId) {
-                socket.emit('getVoteEndTime', storedUserData.sessionId, (response) => {
-                    if (response?.endTime) {
-                        const timeLeft = synchronizeTimer(response.endTime);
-                        setInitialTime(timeLeft);
-                        if (timeLeft === 0) setDisableVote(true);
-                    }
-                });
+                socket.emit('getVoteEndTime', storedUserData.sessionId, initialTime);
             }
         }
     }, [socket]);
