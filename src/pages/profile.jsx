@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import {useState, useEffect} from 'react';
+import {useRouter} from 'next/router';
 import axios from 'axios';
 import Button from '../components/_button';
+import _skin from "../components/_skin";
 
 export default function Profile() {
     const [pseudo, setPseudo] = useState('');
+    const [skin, setSkin] = useState(null);
     const [error, setError] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
 
@@ -17,9 +19,9 @@ export default function Profile() {
         "nègre", "negro", "bougnoule", "chinetoque", "sale arabe", "juif", "chintok", "sale noir",
         "pédé", "tafiole", "tapette", "féminazi", "misogyne", "pute", "viol", "violeur", "raciste",
         "xénophobe", "haineux", "sataniste", "démon", "tortionnaire", "tueur", "assassin",
-        "meurtrier","meurtre", "mort", "tuer", "tué", "massacre", "génocide", "torture", "terroriste", "kamikaze", "jihadiste",
+        "meurtrier", "meurtre", "mort", "tuer", "tué", "massacre", "génocide", "torture", "terroriste", "kamikaze", "jihadiste",
         "esclavage", "nazi", "fasciste", "salopard", "sac à merde",
-        "fuck", "f*ck", "fu*k", "fuc*",  "shit", "bitch", "asshole", "bastard", "motherfucker", "slut", "whore", "jerk",
+        "fuck", "f*ck", "fu*k", "fuc*", "shit", "bitch", "asshole", "bastard", "motherfucker", "slut", "whore", "jerk",
         "nigga", "nigger", "fucker", "dick", "damn", "pussy", "wanker", "prick", "twat",
         "bollocks", "scumbag", "arsehole", "harlot", "racist", "bigot",
         "queer", "fag", "dyke", "cock", "bollocks", "f***", "arse", "idiot", "cretin",
@@ -35,7 +37,7 @@ export default function Profile() {
         "yellow_skin", "darkie", "slave", "massa", "master_race",
         "sodomie", "éjaculation", "gangbang", "hardcore", "porno", "porn",
         "chatte", "cul", "vagin", "bite", "couille",
-        "dildo", "fellation", "pédophile","pedophile", "masturbateur", "prostituée", "escort",
+        "dildo", "fellation", "pédophile", "pedophile", "masturbateur", "prostituée", "escort",
         "gode", "hardcore_sex", "bareback", "cumshot", "pegging", "bdsm", "kink", "sex_addict",
         "pervers", "idiot", "stupide", "débile", "taré", "mongolien", "trisomique",
         "esclave", "babouin", "chimpanzé", "clochard", "negr0", "boche", "chicano", "enculeur",
@@ -66,13 +68,20 @@ export default function Profile() {
             setError('Le pseudo ne peut pas être vide.');
             return;
         }
+        if (!skin) {
+            setError('Veuillez choisir un skin.');
+            return;
+        }
         if (containsBannedWord(pseudo)) {
             setError('Le pseudo contient des mots inappropriés. Veuillez en choisir un autre.');
             return;
         }
-
+        console.log(skin)
         try {
-            const response = await axios.post('/api/player', { name: pseudo });
+            const response = await axios.post('/api/player', {
+                    name: pseudo,
+                    skin
+            });
             if (response.status === 201) {
                 sessionStorage.setItem('userData', JSON.stringify(response.data));
                 router.push('/');
@@ -82,11 +91,16 @@ export default function Profile() {
             setError('Une erreur est survenue. Veuillez réessayer.');
         }
     };
+    const handleSkinSelect = (id) => {
+        console.log("Skin sélectionné :", id);
+        setSkin(id)
+    };
+
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white relative">
             {/* Bouton retour, affiché uniquement si isConnected === true */}
-            { (
+            {(
                 <button
                     onClick={() => router.back()}
                     className="absolute top-4 left-0 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
@@ -122,6 +136,9 @@ export default function Profile() {
                     className="w-full p-3 bg-black text-white border border-gray-500 rounded-lg mb-6"
                 />
                 {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+
+                <_skin onSkinSelect={handleSkinSelect}/>
+
                 <Button
                     label="Enregistrer"
                     onClick={handleSavePseudo}
