@@ -47,15 +47,15 @@ export default function Result() {
     }, []);
 
     useEffect(() => {
-          if (socket) {
-                  socket.on('refreshHints', () => {
-                           loadAccumulatedHintsSoFar();
-                       });
+        if (socket) {
+            socket.on('refreshHints', () => {
+                loadAccumulatedHintsSoFar();
+            });
 
-                       return () => {
-                           socket.off('refreshHints');
-                      };
-              }
+            return () => {
+                socket.off('refreshHints');
+            };
+        }
     }, []);
 
     useEffect(() => {
