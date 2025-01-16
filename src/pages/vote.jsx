@@ -205,17 +205,13 @@ export default function Profile() {
     };
 
     const handleTimeUp = () => {
-        sessionStorage.setItem('isMajorityCorrect', isMajorityCorrect);
         setDisableVote(true);
         console.log('Le temps est écoulé. Les votes sont désormais fermés.');
 
         const storedUserData = getStoredUserData();
         if (storedUserData?.sessionId) {
-            socket.emit('endGameResults', {
-                sessionId: storedUserData.sessionId,
-                killerId: suspects.find((suspect) => suspect.isKiller)?.id,
-                votes,
-            });
+            console.error('Session ID manquant ou invalide.');
+            return;
         }
 
         const killerId = suspects.find((suspect) => suspect.isKiller)?.id;
@@ -230,6 +226,8 @@ export default function Profile() {
         );
 
         const isMajorityCorrect = mostVotedSuspectId === killerId;
+        sessionStorage.setItem('isMajorityCorrect', isMajorityCorrect);
+        console.log('isMajorityCorrect:', isMajorityCorrect);
         socket.emit('endGameResults', {
             sessionId: storedUserData.sessionId,
             isMajorityCorrect,
@@ -237,6 +235,7 @@ export default function Profile() {
 
         socket.emit('endGame', getStoredUserData().sessionId, suspects);
         setTimeout(() => {
+            sessionStorage.setItem('isMajorityCorrect', isMajorityCorrect);
             router.push('/endGame');
         }, 3000);
     };
