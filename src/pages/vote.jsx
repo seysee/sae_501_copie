@@ -205,6 +205,7 @@ export default function Profile() {
     };
 
     const handleTimeUp = () => {
+        sessionStorage.setItem('isMajorityCorrect', isMajorityCorrect);
         setDisableVote(true);
         console.log('Le temps est écoulé. Les votes sont désormais fermés.');
 
@@ -216,6 +217,23 @@ export default function Profile() {
                 votes,
             });
         }
+
+        const killerId = suspects.find((suspect) => suspect.isKiller)?.id;
+        const voteCounts = votes.reduce((acc, vote) => {
+            acc[vote.suspectId] = (acc[vote.suspectId] || 0) + 1;
+            return acc;
+        }, {});
+
+        const [mostVotedSuspectId] = Object.entries(voteCounts).reduce(
+            (max, entry) => (entry[1] > max[1] ? entry : max),
+            [null, 0]
+        );
+
+        const isMajorityCorrect = mostVotedSuspectId === killerId;
+        socket.emit('endGameResults', {
+            sessionId: storedUserData.sessionId,
+            isMajorityCorrect,
+        });
 
         socket.emit('endGame', getStoredUserData().sessionId, suspects);
         setTimeout(() => {

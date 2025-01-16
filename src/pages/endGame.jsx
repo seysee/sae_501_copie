@@ -5,6 +5,7 @@ import Button from "../components/_button";
 
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
+    const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
     const [showFooter, setShowFooter] = useState(false);
@@ -36,6 +37,10 @@ export default function EndGame() {
                 if (sessionData.killerId) {
                     const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
                     setSuspect(suspectData);
+
+                    const isMajorityCorrect = sessionStorage.getItem('isMajorityCorrect') === 'true';
+                    setResult(isMajorityCorrect);
+
                     setTimeout(() => setIsVisible(true), 100);
                     setTimeout(() => setShowFooter(true), 3000);
                 } else {
@@ -49,12 +54,12 @@ export default function EndGame() {
         fetchKiller();
     }, []);
 
-    const clearSession = () => {
+    /*const clearSession = () => {
         sessionStorage.removeItem("userData");
-    };
+    };*/
 
     const handleReturnHome = () => {
-        clearSession();
+        /*clearSession();*/
         router.push("/");
     };
 
@@ -67,7 +72,7 @@ export default function EndGame() {
             ) : suspect ? (
                 <div className="text-center">
                     <p
-                        className={`text-4xl font-Amatic font-bold transition-opacity mb-16 duration-[5000ms] ${
+                        className={`text-4xl font-Amatic font-bold transition-opacity mb-5 duration-[5000ms] ${
                             isVisible ? "opacity-100" : "opacity-0"
                         }`}
                     >
@@ -75,6 +80,11 @@ export default function EndGame() {
                         <span className="text-red-500">{suspect.name}</span>
                         ...
                     </p>
+                    {result !== null && (
+                        <p className="text-3xl font-Amatic font-bold mb-12">
+                            {result ? "Bravo ! Vous avez trouvé le bon suspect !" : "Perdu ! La majorité s'est trompée."}
+                        </p>
+                    )}
                     <div
                         className={`transition-opacity duration-1000 ${
                             showFooter ? "opacity-100" : "opacity-0"
