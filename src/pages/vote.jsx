@@ -216,48 +216,12 @@ export default function Profile() {
 
         const storedUserData = getStoredUserData();
         if (storedUserData?.sessionId) {
-            console.error('Session ID manquant ou invalide.');
-            return;
+            socket.emit('endGameResults', {
+                sessionId: storedUserData.sessionId,
+                killerId: suspects.find((suspect) => suspect.isKiller)?.id,
+                votes,
+            });
         }
-
-        const killer = suspects.find((suspect) => suspect.isKiller);
-        if (!killer) {
-            console.error('Aucun tueur trouvé parmi les suspects.');
-            return;
-        }
-
-        const killerId = killer.id;
-        console.log('ID du tueur (killerId) :', killerId);
-
-        const voteCounts = votes.reduce((acc, vote) => {
-            acc[vote.suspectId] = (acc[vote.suspectId] || 0) + 1;
-            return acc;
-        }, {});
-
-        console.log('Votes enregistrés :', voteCounts);
-
-        const [mostVotedSuspectId, mostVotes] = Object.entries(voteCounts).reduce(
-            (max, entry) => (entry[1] > max[1] ? entry : max),
-            [null, 0]
-        );
-
-        console.log('Suspect ayant le plus de votes (mostVotedSuspectId) :', mostVotedSuspectId);
-        console.log('Nombre de votes pour ce suspect :', mostVotes);
-
-        const mostVotedIdInt = parseInt(mostVotedSuspectId, 10);
-        const killerIdInt = parseInt(killerId, 10);
-
-        console.log('MostVotedSuspectId (après conversion) :', mostVotedIdInt, 'Type :', typeof mostVotedIdInt);
-        console.log('KillerId (après conversion) :', killerIdInt, 'Type :', typeof killerIdInt);
-
-        const isMajorityCorrect = mostVotedIdInt === killerIdInt;
-        console.log('La majorité a voté correctement :', isMajorityCorrect);
-
-        sessionStorage.setItem('isMajorityCorrect', isMajorityCorrect.toString());
-        socket.emit('endGameResults', {
-            sessionId: storedUserData.sessionId,
-            isMajorityCorrect,
-        });
 
         socket.emit('endGame', getStoredUserData().sessionId, suspects);
         setTimeout(() => {
