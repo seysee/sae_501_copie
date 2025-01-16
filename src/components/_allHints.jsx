@@ -81,7 +81,6 @@ export default function AllHints({ onClose }) {
     }, []);
     return (
         <div className="bg-black border-white border rounded relative p-4">
-            {/* SVG pour fermer la modal */}
             <div className="absolute top-2 right-2 cursor-pointer" onClick={onClose}>
                 <svg
                     height="30px"
@@ -96,8 +95,8 @@ export default function AllHints({ onClose }) {
                 </svg>
             </div>
 
-            {/* Contenu des indices */}
             {hint ? (
+                hint > 0 ? (
                 hint.map((hintItem, index) => (
                     <p
                         key={index}
@@ -106,6 +105,11 @@ export default function AllHints({ onClose }) {
                         {hintItem.hintText}
                     </p>
                 ))
+                ) : (
+                    <p className="font-Amatic text-center m-6 text-[20px]">
+                        Vous n'avez pas d'indice, tentez votre chance
+                    </p>
+                )
             ) : (
                 <p className="font-Amatic text-center m-6">
                     Chargement de l'indice...

@@ -3,7 +3,7 @@ import Button from '../components/_button';
 import axios from 'axios';
 import io from 'socket.io-client';
 import { useRouter } from 'next/router';
-import skinsData from "../data/skins";
+import skinsData from "/src/data/skins";
 
 export default function Salon() {
     const [session, setSession] = useState(null);

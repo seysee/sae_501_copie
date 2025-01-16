@@ -5,6 +5,7 @@ import Timer from '../components/_timer';
 import Modal from '../components/_modal';
 import AllHints from '../components/_allHints';
 import _button from "../components/_button";
+import skinsData from "/src/data/skins";
 
 export default function Profile() {
     const [suspects, setSuspects] = useState(null);
@@ -21,6 +22,13 @@ export default function Profile() {
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
     const [showHints, setShowHints] = useState(false);
+    const skins = skinsData.skins;
+
+    const getPlayerSkin = (playerSkinId) => {
+        const playerSkin = skins.find((skin) => skin.id === playerSkinId )
+        console.log(playerSkin)
+        return playerSkin.skin
+    }
 
     useEffect(() => {
         const storedUserData = getStoredUserData();
@@ -216,7 +224,7 @@ export default function Profile() {
                 <div className="w-full max-w-6xl mx-auto">
                     <div className="flex flex-row justify-between items-center">
                         <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
-                        <_button label="Voir indices" className="w-1/2 text-white h-12 text-lg flex justify-center items-center" onClick={toggleHints}/>
+                        <_button label="indices" className="max-w-24 text-white h-12 text-lg flex justify-center items-center" onClick={toggleHints}/>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {suspects.map((suspect, index) => {
@@ -260,8 +268,9 @@ export default function Profile() {
                         {players.map((player, index) => (
                             <div
                                 key={index}
-                                className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+                                className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center"
                             >
+                                <img width="30px" src={getPlayerSkin(player.skin)} />
                                 <p className="font-Amatic text-xl font-medium truncate">{player.name}</p>
                             </div>
                         ))}
@@ -271,21 +280,6 @@ export default function Profile() {
                 <p className="text-gray-400 font-Amatic text-2xl animate-pulse">Loading...</p>
             )}
 
-            {voters.length > 0 && (
-                <div className="w-full max-w-6xl mx-auto mt-10">
-                    <h1 className="font-Amatic text-3xl mb-4">Joueurs ayant voté :</h1>
-                    <div className="flex flex-wrap gap-3">
-                        {voters.map((voter, index) => (
-                            <div
-                                key={index}
-                                className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
-                            >
-                                <p className="font-Amatic text-xl font-medium truncate">{voter}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
             <div
                 className={`absolute ${showHints ? "block" : "hidden"}`}
             >
