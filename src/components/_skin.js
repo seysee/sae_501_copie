@@ -1,15 +1,11 @@
 import { useState } from "react";
+import skinsData from "/src/data/skins";
 
 export default function _skin({ onSkinSelect }) {
     const [selectedSkinId, setSelectedSkinId] = useState(null);
 
-    const skins = [
-        { id: 1, name: "Pretty cat", skin: "/skins/players/catSkin.png" },
-        { id: 2, name: "Lava robot", skin: "/skins/players/lavaSkin.png" },
-        { id: 3, name: "Puppy leaf", skin: "/skins/players/leafSkin.png" },
-        { id: 4, name: "Ski man", skin: "/skins/players/rockSkin.png" },
-        { id: 5, name: "Big rock", skin: "/skins/players/skiSkin.png" }
-    ];
+    // Utilisation de skinsData.skins pour accéder au tableau des skins
+    const skins = skinsData.skins;
 
     const handleSkinClick = (id) => {
         setSelectedSkinId(id);
