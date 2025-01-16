@@ -53,7 +53,7 @@ export default function Role() {
     useEffect(() => {
         const timerRouterPush = setTimeout(() => {
             router.push('/enigma');
-        }, 10000);
+        }, 8000);
 
         return () => clearTimeout(timerRouterPush); // Nettoie le timer si le composant est démonté.
     }, []);

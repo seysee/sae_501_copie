@@ -22,6 +22,7 @@ export default async function handler(req, res) {
                 str.toLowerCase()
                     .normalize("NFD")
                     .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase()
                     .trim();
 
             console.log("(answer.js:28) answer, question.solution", answer, question.solution);
