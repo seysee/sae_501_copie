@@ -1,4 +1,4 @@
-export default async function colorGame({ containerId, questionId, sessionId, onComplete }) {
+export default async function colorGame({ containerId, questionId, sessionId, onComplete, socket }) {
     const container = document.getElementById(containerId);
 
     if (!container) {
@@ -172,8 +172,8 @@ export default async function colorGame({ containerId, questionId, sessionId, on
         sessionStorage.removeItem("selectedTargetColor");
 
         // Soumission de la réponse
-        if (window.socket && sessionId) {
-            window.socket.emit("submitAnswer", { sessionId, questionId, answer: "color_success" });
+        if (socket && sessionId) {
+            socket.emit("submitAnswer", { sessionId, questionId, answer: "color_success" });
         }
 
         if (onComplete) {

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export default async function gameBalance({ containerId, questionId, sessionId, onComplete }) {
+export default async function gameBalance({ containerId, questionId, sessionId, onComplete, socket }) {
     const radiusThreshold = 10;
     const container = document.getElementById(containerId);
 
@@ -119,8 +119,8 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
             });
 
             // Envoie également via le socket
-            if (window.socket) {
-                window.socket.emit("submitAnswer", {
+            if (socket) {
+                socket.emit("submitAnswer", {
                     sessionId,
                     questionId,
                     answer: success ? "success" : "failure",

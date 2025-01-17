@@ -1,4 +1,4 @@
-export default async function blowGame({ containerId, questionId, sessionId, onComplete }) {
+export default async function blowGame({ containerId, questionId, sessionId, onComplete, socket }) {
     const container = document.getElementById(containerId);
 
     if (!container) {
@@ -83,8 +83,8 @@ export default async function blowGame({ containerId, questionId, sessionId, onC
         }
 
         // Envoi de la réponse via socket
-        if (window.socket && sessionId) {
-            window.socket.emit("submitAnswer", { sessionId, questionId, answer: "blow_success" });
+        if (socket && sessionId) {
+            socket.emit("submitAnswer", { sessionId, questionId, answer: "blow_success" });
         }
     };
 

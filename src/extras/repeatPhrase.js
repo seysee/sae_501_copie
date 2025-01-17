@@ -1,4 +1,4 @@
-export default async function repeatPhraseGame({ containerId, questionId, sessionId, onComplete }) {
+export default async function repeatPhraseGame({ containerId, questionId, sessionId, onComplete, socket }) {
     const container = document.getElementById(containerId);
 
     if (!container) {
@@ -74,8 +74,8 @@ export default async function repeatPhraseGame({ containerId, questionId, sessio
         }
 
         // Envoi de la réponse via socket
-        if (window.socket && sessionId) {
-            window.socket.emit("submitAnswer", { sessionId, questionId, answer: "repeat_success" });
+        if (socket && sessionId) {
+            socket.emit("submitAnswer", { sessionId, questionId, answer: "repeat_success" });
         }
     }
 
