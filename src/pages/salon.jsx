@@ -293,10 +293,26 @@ export default function Salon() {
                             <div>
                                 <p className="text-xl font-Amatic mb-4">Utilisateurs :</p>
                                 <div className="bg-gray-800 p-4 rounded-lg">
-                                    <ul className="list-disc list-inside space-y-2">
+                                    <ul className="space-y-2">
                                         {players.map((player, index) => (
-                                            <li key={index} className="text-yellow-400 font-bold flex flex-row items-center">
-                                                {player.name} <img width="30px" src={getPlayerSkin(player.skin)}/>
+                                            <li
+                                                key={index}
+                                                className="flex items-center justify-between text-yellow-400 font-bold"
+                                            >
+                                                {/* Conteneur pour le point et le nom */}
+                                                <div className="flex items-center">
+                                                    {/* Point blanc */}
+                                                    <span className="w-2 h-2 bg-white rounded-full mr-2 inline-block"></span>
+                                                    <span>{player.name}</span>
+                                                </div>
+                                                {/* Conteneur pour le skin avec une largeur fixe pour aligner */}
+                                                <div className="w-10 text-right">
+                                                    <img
+                                                        src={getPlayerSkin(player.skin)}
+                                                        width="30"
+                                                        alt="skin"
+                                                    />
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
@@ -305,6 +321,7 @@ export default function Salon() {
                         ) : (
                             <p className="text-gray-400">Aucun utilisateur pour le moment...</p>
                         )}
+
 
                         {session.status === 0 ? (
                             isHost && players.length >= 0 ? (
