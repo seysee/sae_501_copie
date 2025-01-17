@@ -51,18 +51,15 @@ export default function EndGame() {
         fetchKiller();
     }, []);
 
-    /*const clearSession = () => {
-        sessionStorage.removeItem("userData");
-    };*/
-
     const handleReturnHome = () => {
         try {
             const userData = JSON.parse(sessionStorage.getItem("userData"));
 
             if (userData) {
-                const { name } = userData;
-                const newUserData = { name };
-                sessionStorage.setItem("userData", JSON.stringify(newUserData));
+                const { name, skin, id } = userData;
+                const filteredUserData = { name, skin, id };
+
+                sessionStorage.setItem("userData", JSON.stringify(filteredUserData));
             }
 
             sessionStorage.removeItem("votedSuspectId");
@@ -73,7 +70,6 @@ export default function EndGame() {
             router.push("/");
         }
     };
-
 
     const playerName = getStoredUserData()?.name || "Joueur";
 
@@ -113,6 +109,5 @@ export default function EndGame() {
             {!suspect && !error && <p className="text-2xl font-Amatic text-gray-400 animate-pulse">Chargement...</p>}
         </div>
     );
-
 
 }
