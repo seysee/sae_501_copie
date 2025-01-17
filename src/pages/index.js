@@ -77,7 +77,6 @@ export default function Index() {
                 hostId: storedPlayer.id
             });
 
-            // Vérification des données reçues
             console.log('Session créée:', sessionResponse.data);
 
             // MISE À JOUR DU JOUEUR
@@ -89,7 +88,7 @@ export default function Index() {
                 gameData: null
             });
 
-            console.log('Données mises à jour :', updatedPlayer.data);  // Log des données pour vérifier
+            console.log('Données mises à jour :', updatedPlayer.data);
 
             // Mise à jour du sessionStorage
             const updatedUserData = { ...updatedPlayer.data, sessionId: sessionResponse.data.id };
@@ -114,21 +113,25 @@ export default function Index() {
                 <div className="box-area flex flex-col items-center justify-center">
                     <h1 className="text-6xl font-Amatic text-white mb-24">Parmi Nous</h1>
 
-                    {userPseudo && (
+                    {userPseudo ? (
                         <p className="text-2xl text-yellow-400 font-Amatic mb-8">
                             Bienvenue, <span className="font-bold">{userPseudo}</span> !
+                        </p>
+                    ) : (
+                        <p className="text-center text-red-500 font-Amatic text-2xl mb-8">
+                            Veuillez créer un profil pour accéder à ces fonctionnalités.
                         </p>
                     )}
 
                     <div className="w-4/5 max-w-md">
                         <Link href="/profile" passHref>
                             <Button
-                                label="Profil"
+                                label={userPseudo ? "Profil" : "Créer profil"}
                                 className="mb-4 bg-black text-white border-white"
                             />
                         </Link>
 
-                        {userPseudo ? (
+                        {userPseudo && (
                             <>
                                 <Button
                                     label="Créer partie"
@@ -142,10 +145,6 @@ export default function Index() {
                                     />
                                 </Link>
                             </>
-                        ) : (
-                            <p className="text-center text-red-500 mb-4">
-                                Veuillez créer un profil pour accéder à ces fonctionnalités.
-                            </p>
                         )}
 
                         <Link href="/rules" passHref>
@@ -155,7 +154,6 @@ export default function Index() {
                             />
                         </Link>
                     </div>
-
                 </div>
             )}
         </div>

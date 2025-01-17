@@ -12,7 +12,7 @@ model Players {
   sessionId Int?
   name      String?   @db.VarChar(50)
   role      Int?
-  skin      Int
+  skin      Int?
   gameData  String?   @db.Text
   Session   Sessions? @relation(fields: [sessionId], references: [id], onUpdate: Restrict, map: "Players_ibfk_1")
 

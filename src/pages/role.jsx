@@ -62,21 +62,39 @@ export default function Role() {
         <div className="flex flex-col items-center justify-center min-h-screen">
             <h2 className="font-Amatic text-xl mb-4">TON ROLE EST :</h2>
             {role === 0 ? (
-                <h1
-                    className={`font-Amatic text-4xl font-bold text-green-500 transition-opacity duration-[5000ms] ${
-                        isVisible ? 'opacity-100' : 'opacity-0'
-                    }`}
-                >
-                    ENQUÊTEUR
-                </h1>
+                <>
+                    <h1
+                        className={`font-Amatic text-4xl font-bold text-green-500 transition-opacity duration-[5000ms] ${
+                            isVisible ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    >
+                        ENQUÊTEUR
+                    </h1>
+                    <p
+                        className={`font-Amatic text-2xl text-green-500 mt-2 transition-opacity duration-[5000ms] ${
+                            isVisible ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    >
+                        Résolvez les énigmes et découvrez le tueur.
+                    </p>
+                </>
             ) : role === 1 ? (
-                <h1
-                    className={`font-Amatic text-4xl font-bold text-red-500 transition-opacity duration-[5000ms] ${
-                        isVisible ? 'opacity-100' : 'opacity-0'
-                    }`}
-                >
-                    SABOTEUR
-                </h1>
+                <>
+                    <h1
+                        className={`font-Amatic text-4xl font-bold text-red-500 transition-opacity duration-[5000ms] ${
+                            isVisible ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    >
+                        SABOTEUR
+                    </h1>
+                    <p
+                        className={`font-Amatic text-2xl text-red-500 mt-2 transition-opacity duration-[5000ms] ${
+                            isVisible ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    >
+                        Détournez l'attention pour induire l'équipe en erreur.
+                    </p>
+                </>
             ) : (
                 <h1
                     className={`font-Amatic text-4xl font-bold text-gray-500 transition-opacity duration-[5000ms] ${
