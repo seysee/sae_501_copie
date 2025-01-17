@@ -1,10 +1,5 @@
 export default async function equationGame({
-                                               containerId,
-                                               questionId,
-                                               sessionId,
-                                               onComplete,
-                                               socket
-                                           }) {
+                                               containerId,}) {
     const container = document.getElementById(containerId);
     if (!container) {
         console.error("Impossible de trouver le conteneur pour le jeu equationGame.");
