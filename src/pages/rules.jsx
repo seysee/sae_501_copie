@@ -1,14 +1,41 @@
+import React from "react";
 import Link from 'next/link';
 import Button from '../components/_button';
+import { useRouter } from 'next/router'; // <-- Import du hook
+
 import '../styles/App.css';
 
 export default function Rules() {
+    const router = useRouter(); // <-- Initialisation du router
+
     return (
         <div className="box-area relative min-h-screen flex justify-center text-white"
-             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', }}>
+             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
 
             <div className="w-full max-w-lg flex flex-col items-center py-20 h-screen overflow-y-auto space-y-12"
-                 style={{ scrollbarWidth: 'none', }}>
+                 style={{ scrollbarWidth: 'none' }}>
+
+                {/* Bouton Retour utilisant router.back() */}
+                <button
+                    onClick={() => router.back()}
+                    className="absolute top-4 left-0 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
+                    title="Retour"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-6 h-6"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15.75 19.5L8.25 12l7.5-7.5"
+                        />
+                    </svg>
+                </button>
 
                 <h1 className="text-6xl font-Amatic text-yellow-400">Règles du Jeu</h1>
 

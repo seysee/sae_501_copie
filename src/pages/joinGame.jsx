@@ -97,6 +97,28 @@ export default function JoinGame({ setSessionData, sessionData }) {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
+            {(
+                <button
+                    onClick={() => router.back()}
+                    className="absolute top-4 left-10 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
+                    title="Retour"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-6 h-6"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15.75 19.5L8.25 12l7.5-7.5"
+                        />
+                    </svg>
+                </button>
+            )}
             <h1 className="text-5xl font-Amatic mb-16">Rejoindre une partie</h1>
             <div className="w-full max-w-md">
                 <div className="mb-6">
