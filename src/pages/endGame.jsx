@@ -39,7 +39,7 @@ export default function EndGame() {
 
                 const votedSuspectId = sessionStorage.getItem('votedSuspectId');
                 const isCorrect = votedSuspectId === sessionData.killerId.toString();
-                setVoteMessage(isCorrect ? "Bravo ! Vous avez trouvé le tueur !" : "Perdu ! Ce n'était pas le bon suspect.");
+                setVoteMessage(isCorrect ? "Bravo ! Vous avez trouvé le suspect !" : "Perdu ! Ce n'était pas le bon suspect.");
 
                 setTimeout(() => setIsVisible(true), 300);
                 setTimeout(() => setShowFooter(true), 3500);
