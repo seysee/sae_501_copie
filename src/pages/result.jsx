@@ -37,12 +37,10 @@ export default function Result() {
                 }
             }
         }
-        const redirectHandler = () => {
-            window.location.href = '/enigma';
-        };
-        socket.on('redirectToEnigma', redirectHandler);
+
+        socket.on('redirectToEnigma', () => router.push('/enigma').then(r => null));
         return () => {
-            socket.off('redirectToEnigma', redirectHandler);
+            socket.off('redirectToEnigma', null);
         };
     }, []);
 
@@ -183,19 +181,52 @@ export default function Result() {
         } catch (err) {}
     };
 
-    const handleReturnHome = useCallback(() => {
-        const storedPlayerStr = sessionStorage.getItem('userData');
-        if (!storedPlayerStr) return;
-        const storedPlayer = JSON.parse(storedPlayerStr);
-        if (storedPlayer.sessionId) {
-            socket.emit('returnHome', storedPlayer.sessionId);
-        }
+    const handleNextQuestion = useCallback(() => {
+        const storedPlayer = JSON.parse(sessionStorage.getItem('userData'));
+        socket.emit('nextQuestion', storedPlayer.sessionId);
     }, []);
 
-    const rememberQuestion = async (qid) => {
+    const rememberQuestion = async (qId) => {
         try {
-            await axios.post("/api/question/remember", { questionId: qid });
-        } catch (error) {}
+            const storedPlayerStr = sessionStorage.getItem('userData');
+            if (!storedPlayerStr) return;
+            const storedPlayer = JSON.parse(storedPlayerStr);
+            const sessionId = storedPlayer.sessionId;
+
+            // 1. Récupérer la session actuelle depuis la BDD
+            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
+            const sessionData = sessionResp.data;
+            if (!sessionData) return;
+
+            // 2. Parser le champ `questions` (JSON) en tableau
+            let currentQuestions = [];
+            if (sessionData.questions) {
+                try {
+                    currentQuestions = JSON.parse(sessionData.questions);
+                    if (!Array.isArray(currentQuestions)) {
+                        currentQuestions = [];
+                    }
+                } catch (e) {
+                    currentQuestions = [];
+                }
+            }
+
+            // 3. Ajouter l’ID de la question si pas déjà présent
+            if (!currentQuestions.includes(qId)) {
+                currentQuestions.push(qId);
+            }
+
+            // 4. Mettre à jour le champ `questions` dans la session
+            await axios.put("/api/session", {
+                id: sessionId,
+                questions: currentQuestions, // Le PUT se chargera de stringify en BDD
+            });
+
+            // Tu peux ajouter un log pour vérifier :
+            console.log(`Question ${qId} ajoutée à la session ${sessionId}`);
+        } catch (error) {
+            console.error("Erreur lors de l'ajout de la question à la session :", error);
+        }
     };
 
     // Fonction qui enregistre un nouveau hint si des hints sont disponibles
@@ -271,10 +302,6 @@ export default function Result() {
         }
     };
 
-
-
-
-
     const verifyResponse = async (qId, ans) => {
         let result = { correct: false, message: "" };
         try {
@@ -334,7 +361,7 @@ export default function Result() {
             {/* Bouton pour passer à la prochaine question */}
             {showButton && !isLoading && (
                 <button
-                    onClick={handleReturnHome}
+                    onClick={handleNextQuestion}
                     className="mt-8 py-4 px-16 text-3xl font-extrabold border-4 border-white text-white rounded-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-110 shadow-2xl font-Amatic"
                 >
                     Passer à la prochaine question

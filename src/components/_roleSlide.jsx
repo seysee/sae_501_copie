@@ -4,13 +4,9 @@ import skinsData from "../data/skins";
 export default function RoleSlide() {
     const [player, setPlayer] = useState({});
     const [isRoleVisible, setIsRoleVisible] = useState(false);
+    const [playerSkin, setPlayerSkin] = useState(null);
     const skins = skinsData.skins;
 
-    const getPlayerSkin = () => {
-        const storedPlayer = getStoredUserData()
-        const playerSkin = skins.find((skin) => skin.id === storedPlayer.skin )
-        return playerSkin.skin
-    }
     const getStoredUserData = () => {
         try {
             const storedPlayer = sessionStorage.getItem("userData");
@@ -25,6 +21,14 @@ export default function RoleSlide() {
 
     useEffect(() => {
         setPlayer(getStoredUserData());
+
+        const getPlayerSkin = () => {
+            const storedPlayer = getStoredUserData()
+            const playerSkin = skins.find((skin) => skin.id === storedPlayer.skin )
+            setPlayerSkin(playerSkin);
+            return playerSkin.skin
+        }
+        getPlayerSkin()
     }, []);
 
     const toggleRoleVisibility = () => {
@@ -46,7 +50,7 @@ export default function RoleSlide() {
                     ) : (
                         <h1 className="text-4xl font-extrabold font-Amatic text-red-500">Saboteur</h1>
                     )}
-                    <img width="50px" src={getPlayerSkin(player.skin)}/>
+                    <img width="50px" src={playerSkin?.skin} alt={"Skin du joueur"}/>
                 </div>
 
                 <div

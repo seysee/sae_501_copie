@@ -32,6 +32,16 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
 
     useEffect(() => {
         if (question.assets) {
+            const loadAssets = async () => {
+                try {
+                    const assets = JSON.parse(question.assets || "[]");
+                    const loadedAssets = assets.map((asset) => `/puzzle/${asset}`);
+                    setAssetsLoaded(loadedAssets);
+                } catch (error) {
+                    console.error("Erreur lors du chargement des assets :", error);
+                }
+            };
+            loadAssets();
             const container = document.getElementById("game-container");
             if (container) {
                 container.dataset.assets = question.assets;
@@ -119,9 +129,6 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
         <div className="flex flex-col items-center justify-center text-white">
             <h1 className="text-4xl mb-4 font-Amatic font-bold">{question.question}</h1>
             <Timer initialTime={question.duration} onTimeUp={handleTimeUp} paused={paused || timeUp} />
-            {assetsLoaded.map((asset, index) => (
-                <img key={index} src={asset} alt={`asset-${index}`} className="mb-4" />
-            ))}
             {question.type === "text" || question.type === "number" ? (
                 <form className="flex flex-col items-center space-y-4" onSubmit={handleSubmit}>
                     <input
@@ -135,7 +142,7 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
                 </form>
             ) : (
                 question.extraData && (
-                    <Button label="Commencer l'interaction" onClick={handleExtraLogic} className="py-3 px-6 bg-blue-500 text-white rounded-lg mt-4" />
+                    <Button label="Lancer l'énigme" onClick={handleExtraLogic} className="py-3 px-6 bg-blue-500 text-white rounded-lg mt-4" />
                 )
             )}
             <div id="game-container" className="relative w-full h-80 bg-black rounded-lg"></div>
