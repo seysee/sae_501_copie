@@ -1,4 +1,4 @@
-export default async function traceShapeGame({ containerId, questionId, sessionId, onComplete }) {
+export default async function traceShapeGame({ containerId, questionId, sessionId, onComplete, socket }) {
     const container = document.getElementById(containerId);
 
     if (!container) {
@@ -192,8 +192,8 @@ export default async function traceShapeGame({ containerId, questionId, sessionI
 
         if (accuracy >= requiredAccuracy) {
             sessionStorage.removeItem("selectedShape");
-            if (window.socket) {
-                window.socket.emit("submitAnswer", { sessionId, questionId, answer: "trace_success" });
+            if (socket) {
+                socket.emit("submitAnswer", { sessionId, questionId, answer: "trace_success" });
             }
             onComplete({ correct: true, message: "Vous avez correctement tracé la forme !" });
         } else {
