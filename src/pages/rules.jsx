@@ -1,12 +1,12 @@
 import React from "react";
 import Link from 'next/link';
 import Button from '../components/_button';
-import { useRouter } from 'next/router'; // <-- Import du hook
+import { useRouter } from 'next/router';
 
 import '../styles/App.css';
 
 export default function Rules() {
-    const router = useRouter(); // <-- Initialisation du router
+    const router = useRouter();
 
     return (
         <div className="box-area relative min-h-screen flex justify-center text-white"
@@ -15,7 +15,6 @@ export default function Rules() {
             <div className="w-full max-w-lg flex flex-col items-center py-20 h-screen overflow-y-auto space-y-12"
                  style={{ scrollbarWidth: 'none' }}>
 
-                {/* Bouton Retour utilisant router.back() */}
                 <button
                     onClick={() => router.back()}
                     className="absolute top-4 left-0 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
@@ -39,7 +38,7 @@ export default function Rules() {
 
                 <h1 className="text-6xl font-Amatic text-yellow-400">Règles du Jeu</h1>
 
-                <div className="text-center text-lg font-Amatic space-y-6">
+                <div className="text-center text-xl font-Amatic space-y-6">
                     <p>
                         <strong className="text-red-500">Bienvenue dans "Parmi Nous"</strong>, un escape game en ligne.
                         Dans ce jeu, chaque membre de l'équipe recevra un rôle dès le début. En tant qu'enquêteurs, vous devrez résoudre des énigmes pour démasquer le tueur… ou semer la confusion si vous êtes du côté des saboteurs.
@@ -48,8 +47,8 @@ export default function Rules() {
                     </p>
                 </div>
 
-                <div className="text-center text-lg font-Amatic space-y-6">
-                    <h2 className="text-3xl text-yellow-400">Les Rôles</h2>
+                <div className="text-center text-xl font-Amatic space-y-6">
+                    <h2 className="text-4xl text-yellow-400">Les Rôles</h2>
                     <ul className="list-disc list-inside text-left space-y-2">
                         <li>
                             <strong className="text-red-500">Enquêteurs :</strong> Résolvez les énigmes et découvrez le tueur.
@@ -60,7 +59,7 @@ export default function Rules() {
                     </ul>
                 </div>
 
-                <div className="text-center text-lg font-Amatic space-y-6">
+                <div className="text-center text-xl font-Amatic space-y-6">
                     <h2 className="text-3xl text-yellow-400">Comment Jouer</h2>
                     <ol className="list-decimal list-inside text-left space-y-2">
                         <li>Les enquêteurs doivent résoudre des énigmes dans un temps imparti.</li>
@@ -77,7 +76,7 @@ export default function Rules() {
                     </ol>
                 </div>
 
-                <div className="text-center text-lg font-Amatic space-y-6">
+                <div className="text-center text-xl font-Amatic space-y-6">
                     <h2 className="text-3xl text-yellow-400">Victoire</h2>
                     <ul className="list-disc list-inside text-left space-y-2">
                         <li>
@@ -89,7 +88,7 @@ export default function Rules() {
                     </ul>
                 </div>
 
-                <div className="text-center text-lg font-Amatic space-y-6">
+                <div className="text-center text-xl font-Amatic space-y-6">
                     <p className="mt-6">
                         <strong className="text-yellow-300">Bonne chance&nbsp;!</strong> Et méfiez-vous des intentions des autres...
                     </p>
@@ -97,7 +96,7 @@ export default function Rules() {
 
                 <div className="mt-12">
                     <Link href="/" passHref>
-                        <Button label="Retour" className="bg-black text-yellow-400 border-yellow-400" />
+                        <Button label="Retour" className="bg-black text-yellow-400 border-yellow-400 hover:text-yellow-500 hover:border-yellow-500" />
                     </Link>
                 </div>
             </div>
