@@ -51,10 +51,6 @@ export default function EndGame() {
         fetchKiller();
     }, []);
 
-    /*const clearSession = () => {
-        sessionStorage.removeItem("userData");
-    };*/
-
     const handleReturnHome = () => {
         try {
             const userData = JSON.parse(sessionStorage.getItem("userData"));
