@@ -192,10 +192,47 @@ export default function Result() {
         }
     }, []);
 
-    const rememberQuestion = async (qid) => {
+    const rememberQuestion = async (qId) => {
         try {
-            await axios.post("/api/question/remember", { questionId: qid });
-        } catch (error) {}
+            const storedPlayerStr = sessionStorage.getItem('userData');
+            if (!storedPlayerStr) return;
+            const storedPlayer = JSON.parse(storedPlayerStr);
+            const sessionId = storedPlayer.sessionId;
+
+            // 1. Récupérer la session actuelle depuis la BDD
+            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
+            const sessionData = sessionResp.data;
+            if (!sessionData) return;
+
+            // 2. Parser le champ `questions` (JSON) en tableau
+            let currentQuestions = [];
+            if (sessionData.questions) {
+                try {
+                    currentQuestions = JSON.parse(sessionData.questions);
+                    if (!Array.isArray(currentQuestions)) {
+                        currentQuestions = [];
+                    }
+                } catch (e) {
+                    currentQuestions = [];
+                }
+            }
+
+            // 3. Ajouter l’ID de la question si pas déjà présent
+            if (!currentQuestions.includes(qId)) {
+                currentQuestions.push(qId);
+            }
+
+            // 4. Mettre à jour le champ `questions` dans la session
+            await axios.put("/api/session", {
+                id: sessionId,
+                questions: currentQuestions, // Le PUT se chargera de stringify en BDD
+            });
+
+            // Tu peux ajouter un log pour vérifier :
+            console.log(`Question ${qId} ajoutée à la session ${sessionId}`);
+        } catch (error) {
+            console.error("Erreur lors de l'ajout de la question à la session :", error);
+        }
     };
 
     // Fonction qui enregistre un nouveau hint si des hints sont disponibles
@@ -270,10 +307,6 @@ export default function Result() {
             return null;
         }
     };
-
-
-
-
 
     const verifyResponse = async (qId, ans) => {
         let result = { correct: false, message: "" };
