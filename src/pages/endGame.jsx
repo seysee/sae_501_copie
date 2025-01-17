@@ -60,9 +60,10 @@ export default function EndGame() {
             const userData = JSON.parse(sessionStorage.getItem("userData"));
 
             if (userData) {
-                const { name } = userData;
-                const newUserData = { name };
-                sessionStorage.setItem("userData", JSON.stringify(newUserData));
+                const { name, skin, id } = userData;
+                const filteredUserData = { name, skin, id };
+
+                sessionStorage.setItem("userData", JSON.stringify(filteredUserData));
             }
 
             sessionStorage.removeItem("votedSuspectId");
@@ -73,7 +74,6 @@ export default function EndGame() {
             router.push("/");
         }
     };
-
 
     const playerName = getStoredUserData()?.name || "Joueur";
 
