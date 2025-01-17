@@ -1,4 +1,4 @@
-export default async function puzzleGame({ containerId, questionId, sessionId, onComplete }) {
+export default async function puzzleGame({ containerId, questionId, sessionId, onComplete, socket }) {
     const container = document.getElementById(containerId);
 
     if (!container) {
@@ -120,8 +120,8 @@ export default async function puzzleGame({ containerId, questionId, sessionId, o
             sessionStorage.removeItem("selectedPuzzleImage");
             onComplete({ correct: true, message: "Bravo, puzzle complété !" });
 
-            if (window.socket) {
-                window.socket.emit("submitAnswer", { sessionId, questionId, answer: "puzzle_success" });
+            if (socket) {
+                socket.emit("submitAnswer", { sessionId, questionId, answer: "puzzle_success" });
             }
         }
     }
