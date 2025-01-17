@@ -123,7 +123,7 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
                 socket.emit("submitAnswer", {
                     sessionId,
                     questionId,
-                    answer: success ? "success" : "failure",
+                    answer: userAnswer,
                 });
             }
 
