@@ -73,6 +73,14 @@ export default function EndGame() {
 
     const playerName = getStoredUserData()?.name || "Joueur";
 
+    const suspectVideos = {
+        1: '/videos/mussolini.mp4',
+        2: '/videos/hitler.mp4',
+        3: '/videos/staline.mp4',
+        4: '/videos/petain.mp4',
+        5: '/videos/kimjongil.mp4',
+    };
+
     return (
         <div className="min-h-screen flex flex-col justify-center items-center p-4 text-white">
             {error ? (
@@ -86,8 +94,20 @@ export default function EndGame() {
                             </p>
 
                             <p className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
-                                Le tueur était <span className="text-red-500">{suspect.name}</span>.
+                                Le tueur était <span className="text-red-500">{suspect.name}</span>...
                             </p>
+
+                            {suspectVideos[suspect.id] && (
+                                <video
+                                    className={`w-96 h-56 mx-auto mt-4 transition-opacity duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}
+                                    src={suspectVideos[suspect.id]}
+                                    controls
+                                    autoPlay
+                                    loop
+                                    muted
+                                />
+                            )}
+
                         </div>
 
                         <div className="mt-12">
