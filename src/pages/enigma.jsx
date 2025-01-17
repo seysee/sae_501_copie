@@ -8,17 +8,27 @@ export default function Game() {
     const [question, setQuestion] = useState(null);
     const [socket, setSocket] = useState(null);
     const [activePlayer, setActivePlayer] = useState(null);
+    const [storedPlayer, setStoredPlayer] = useState(null); // Nouvel état pour l'utilisateur
     const router = useRouter();
 
     const getStoredUserData = () => {
+        if (typeof window === "undefined") {
+            // Ne rien faire côté serveur
+            return null;
+        }
         try {
-            const storedPlayer = sessionStorage.getItem('userData');
+            const storedPlayer = sessionStorage.getItem("userData");
             return storedPlayer ? JSON.parse(storedPlayer) : null;
         } catch (error) {
-            console.error('Erreur lors de la récupération des données utilisateur:', error);
+            console.error("Erreur lors de la récupération des données utilisateur:", error);
             return null;
         }
     };
+
+    useEffect(() => {
+        // Charger les données utilisateur une fois le composant monté côté client
+        setStoredPlayer(getStoredUserData());
+    }, []);
 
     useEffect(() => {
         const initializeGame = async () => {
@@ -114,7 +124,6 @@ export default function Game() {
     };
 
     // Affichage conditionnel : si c'est le joueur actif, on affiche le formulaire pour répondre
-    const storedPlayer = getStoredUserData();
     const amIActive = activePlayer && storedPlayer && Number(activePlayer.id) === Number(storedPlayer.id);
 
     return (
