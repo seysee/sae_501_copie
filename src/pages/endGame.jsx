@@ -35,7 +35,6 @@ export default function EndGame() {
         }
 
         const fetchKiller = async () => {
-            setIsLoading(true);
             try {
                 const { data: sessionData } = await axios.get(`/api/session?id=${sessionId}`);
                 const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
