@@ -222,8 +222,10 @@ export default function Salon() {
                         />
                     </svg>
                 </button>
-                {/* On garde le titre "Créer une partie" au-dessus */}
+
+                {/* Titre principal */}
                 <h1 className="text-5xl mt-4 font-Amatic mb-8">Créer une partie</h1>
+
                 <div className="w-full max-w-md">
                     <p className="text-2xl font-Amatic mb-6 flex items-center">
                         Code :{" "}
@@ -259,11 +261,12 @@ export default function Salon() {
                         </button>
                     </p>
 
-                    {/* Conteneur de la liste des joueurs à hauteur fixe afin que le titre reste en place */}
-                    <div className="bg-gray-800 p-4 rounded-lg players-container">
-                        <p className="text-xl font-Amatic mb-4">
-                            Joueurs ({players.length})
-                        </p>
+                    {/* Titre de la section joueurs affichant le nombre */}
+                    <p className="text-xl font-Amatic mb-4">
+                        Joueurs ({players.length})
+                    </p>
+
+                    <div className="bg-gray-800 p-4 rounded-lg">
                         {players.length > 0 ? (
                             <ul>
                                 {players.map((player, index) => (
@@ -325,11 +328,6 @@ export default function Salon() {
                     width: 100%;
                     height: 1px;
                     background: white;
-                }
-                .players-container {
-                    /* Hauteur fixe pour la zone d'affichage des joueurs pour éviter le déplacement du titre */
-                    height: 300px;
-                    overflow-y: auto;
                 }
             `}</style>
         </>
