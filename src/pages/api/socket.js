@@ -1,6 +1,8 @@
-import { Server } from 'socket.io';
-import { encryptParam } from '../../lib/cryptoUtils';
-import { PrismaClient } from '@prisma/client';
+import {Server} from 'socket.io';
+import {encryptParam} from '../../lib/cryptoUtils';
+import {PrismaClient} from '@prisma/client';
+import {router} from "next/client";
+import {type} from "node:os";
 
 const prisma = new PrismaClient();
 const sessions = {}; // Store en mémoire pour les sessions
@@ -63,56 +65,62 @@ export default function handler(req, res) {
                 try {
                     // On peut éventuellement récupérer la session mise à jour depuis la BDD
                     const sessionData = await prisma.sessions.findUnique({
-                        where: { id: parseInt(sessionId) },
+                        where: {id: parseInt(sessionId)},
                     });
                     // Diffuse l’événement aux autres clients de la session.
                     socket.to(sessionId).emit('refreshHints');
-                } catch (error) {
+                }
+                catch (error) {
                     console.error("Erreur lors de l'émission de refreshHints :", error);
                 }
             });
             // Lancer les questions
-            socket.on('launchQuestions', async (sessionId, toFilterQuestion) => {
-                console.log(`${sessionId} est en train de lancer les questions.`);
-
+            socket.on('launchQuestion', async (sessionId) => {
                 if (!sessions[sessionId]) {
                     console.error(`Session ${sessionId} introuvable.`);
                     return;
                 }
 
-                // Charger les questions depuis la base de données si nécessaire
-                if (sessions[sessionId].questions.length === 0) {
-                    try {
-                        const dbQuestions = await prisma.questions.findMany({
-                            where: { id: { notIn: toFilterQuestion }, active: true },
-                        });
-                        sessions[sessionId].questions = shuffle(dbQuestions);
-                    } catch (error) {
-                        console.error('Erreur lors de la récupération des questions depuis la base de données :', error);
+                const answeredQuestions = await prisma.sessions.findUnique({
+                    where: {id: parseInt(sessionId)},
+                    select: {questions: true},
+                });
+                console.log("(socket.js:83) answeredQuestions", JSON.parse(answeredQuestions.questions)?.map(Number));
+                let selectedQuestion = null;
+                if(answeredQuestions.questions.length < 10) {
+                    const questions = await prisma.questions.findMany(
+                        {
+                            where: {
+                                id: {
+                                    notIn: JSON.parse(answeredQuestions.questions)?.map(Number),
+                                },
+                                active: true,
+                            },
+                        },
+                    )
+                    console.log("(socket.js:94) questions", questions);
+                    if (questions.length === 0) {
+                        console.error('Aucune question disponible.');
+                        io.to(sessionId).emit('redirectToVote', {redirectUrl: '/vote'});
                         return;
                     }
-                }
-
-                const availableQuestions = sessions[sessionId].questions.filter(
-                    (q) => !toFilterQuestion.includes(q.id)
-                );
-
-                if (availableQuestions.length > 0) {
-                    const firstQuestion = availableQuestions[0];
-                    const activePlayerIndex = sessions[sessionId].activePlayerIndex || 0;
-                    const activePlayer = sessions[sessionId].players[activePlayerIndex];
-
-                    io.to(sessionId).emit('nextQuestion', {
-                        question: firstQuestion,
-                        activePlayer,
-                    });
+                    selectedQuestion = shuffle(questions)[0];
                 } else {
-                    console.log('Aucune question disponible pour cette session.');
+                    io.to(sessionId).emit('redirectToVote', {redirectUrl: '/vote'});
                 }
+
+                const activePlayerIndex = sessions[sessionId].activePlayerIndex || 0;
+                const activePlayer = sessions[sessionId].players[activePlayerIndex];
+
+                io.to(sessionId).emit('nextQuestion', {
+                    question: selectedQuestion,
+                    activePlayer,
+                });
+
             });
 
             // Soumission de la réponse
-            socket.on('submitAnswer', async ({ sessionId, questionId, answer, playerId }) => {
+            socket.on('submitAnswer', async ({sessionId, questionId, answer, playerId}) => {
                 console.log(`Réponse reçue pour la question ${questionId} :, answer`);
 
                 const sessionData = sessions[sessionId];
@@ -127,11 +135,12 @@ export default function handler(req, res) {
 
                 try {
                     await prisma.sessions.update({
-                        where: { id: parseInt(sessionId) },
-                        data: { activePlayerIndex: newIndex },
+                        where: {id: parseInt(sessionId)},
+                        data: {activePlayerIndex: newIndex},
                     });
                     sessionData.activePlayerIndex = newIndex;
-                } catch (error) {
+                }
+                catch (error) {
                     console.error('Erreur lors de la mise à jour de l’index du joueur actif :', error);
                 }
 
@@ -145,9 +154,7 @@ export default function handler(req, res) {
                 });
             });
 
-            socket.on('returnHome', (sessionId) => {
-                console.log(`Le joueur de la session ${sessionId} demande le retour à l'accueil.`);
-                // On émet un événement commun pour TOUS les joueurs de la session
+            socket.on('nextQuestion', (sessionId) => {
                 io.to(sessionId).emit('redirectToEnigma');
             });
             // Exemple : si tu veux passer au joueur suivant **après** la bonne réponse
@@ -218,15 +225,15 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('allVotes', sessionVote[sessionId]);
             });
 
-            socket.on('getVoteEndTime', (sessionId, timer ) => {
+            socket.on('getVoteEndTime', (sessionId, timer) => {
                 socket.join(sessionId);
 
                 if (!sessionTimerVote[sessionId]) {
                     sessionTimerVote[sessionId] = timer; // Initialiser le timer pour la session
                 }
-                if (timerAlreadyEnd[sessionId] === true){
+                if (timerAlreadyEnd[sessionId] === true) {
                     const message = "vote fini"
-                    io.to(sessionId).emit('endVote', { message });
+                    io.to(sessionId).emit('endVote', {message});
                     return
                 }
                 let returnTimer = sessionTimerVote[sessionId];
@@ -236,11 +243,11 @@ export default function handler(req, res) {
                         if (returnTimer > 0) {
                             returnTimer -= 1;
                             sessionTimerVote[sessionId] = returnTimer; // Mettre à jour le timer
-                            io.to(sessionId).emit('VoteTime', { returnTimer }); // Émettre le temps restant
+                            io.to(sessionId).emit('VoteTime', {returnTimer}); // Émettre le temps restant
                         } else {
                             clearInterval(intervalId); // Stopper l'intervalle
                             timerAlreadyEnd[sessionId] = true;
-                            io.to(sessionId).emit('endVote', { returnTimer: 0 }); // Notifier la fin du vote
+                            io.to(sessionId).emit('endVote', {returnTimer: 0}); // Notifier la fin du vote
                             if (sessions[sessionId]) {
                                 delete sessions[sessionId].intervalId; // Supprimer la référence de l'intervalle
                             }
@@ -262,7 +269,7 @@ export default function handler(req, res) {
                     sessions[sessionId] = {};
                 }
                 sessions[sessionId].endTime = endTime; // Stocker la fin du vote
-                io.to(sessionId).emit('voteStart', { endTime }); // Émettre l'événement de début de vote
+                io.to(sessionId).emit('voteStart', {endTime}); // Émettre l'événement de début de vote
             });
 
 

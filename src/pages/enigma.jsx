@@ -19,7 +19,8 @@ export default function Game() {
         try {
             const storedPlayer = sessionStorage.getItem("userData");
             return storedPlayer ? JSON.parse(storedPlayer) : null;
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Erreur lors de la récupération des données utilisateur:", error);
             return null;
         }
@@ -31,96 +32,54 @@ export default function Game() {
     }, []);
 
     useEffect(() => {
-        const initializeGame = async () => {
-            const storedPlayer = getStoredUserData();
-            if (!storedPlayer || !storedPlayer.sessionId) {
-                console.error("Aucune session utilisateur trouvée.");
-                return;
-            }
+        const storedPlayer = getStoredUserData();
+        if (!storedPlayer || !storedPlayer.sessionId) {
+            console.error("Aucune session utilisateur trouvée.");
+            return;
+        }
 
-            const socketInstance = io({ path: '/api/socket' });
-            setSocket(socketInstance);
+        const socketInstance = io({path: '/api/socket'});
+        setSocket(socketInstance);
 
-            try {
-                socketInstance.emit('joinSession', storedPlayer.sessionId, {
-                    name: storedPlayer.name,
-                    id: storedPlayer.id,
-                });
+        try {
+            socketInstance.emit('joinSession', storedPlayer.sessionId, {
+                name: storedPlayer.name,
+                id: storedPlayer.id,
+            });
 
-                socketInstance.emit('launchQuestions', storedPlayer.sessionId, []);
+            socketInstance.emit('launchQuestion', storedPlayer.sessionId);
 
-                socketInstance.on('nextQuestion', (data) => {
-                    setQuestion(data.question);
-                    setActivePlayer(data.activePlayer);
-                });
+            socketInstance.on('nextQuestion', (data) => {
+                setQuestion(data.question);
+                setActivePlayer(data.activePlayer);
+            });
 
-                socketInstance.on('answerSubmitted', ({ redirectUrl }) => {
-                    if (redirectUrl) {
-                        router.push(redirectUrl);
-                    }
-                });
-            } catch (error) {
-                console.error("Erreur lors de l'initialisation du jeu :", error);
-            }
+            socketInstance.on('answerSubmitted', ({redirectUrl}) => {
+                if (redirectUrl) {
+                    router.push(redirectUrl);
+                }
+            });
 
-            return () => {
-                socketInstance.off('nextQuestion');
-                socketInstance.off('answerSubmitted');
-                socketInstance.disconnect();
-            };
+            socketInstance.on('redirectToVote', ({redirectUrl}) => {
+                if (redirectUrl) {
+                    router.push(redirectUrl).then(r => console.log("Redirection vers le vote"));
+                }
+            });
+        }
+        catch (error) {
+            console.error("Erreur lors de l'initialisation du jeu :", error);
+        }
+
+        return () => {
+            socketInstance.off('nextQuestion');
+            socketInstance.off('answerSubmitted');
+            socketInstance.off('redirectToVote');
+            socketInstance.disconnect();
         };
-
-        initializeGame();
     }, [router]);
 
     const handleSuccess = () => {
         console.log("Question réussie !");
-    };
-
-    // Lors de la soumission de la réponse
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        const storedPlayer = getStoredUserData();
-        if (!answer) {
-            console.log('Aucune réponse donnée');
-            return;
-        }
-        if (!question?.id) {
-            console.log("ID de la question non défini");
-            return;
-        }
-        console.log('Réponse envoyée:', answer, "pour la question ID", question.id);
-
-        // (Optionnel) marquer le joueur dans le sessionStorage
-        sessionStorage.setItem('I_AM_LAST_ANSWERER', 'true');
-
-        // Vérifier que le socket est bien initialisé
-        if (!socket) {
-            console.error("Socket non initialisé");
-            return;
-        }
-
-        // Émission de l'événement submitAnswer
-        socket.emit('submitAnswer', {
-            sessionId: storedPlayer.sessionId,
-            questionId: question.id,
-            answer,
-            playerId: storedPlayer.id,
-        });
-        console.log("ICI MAYBEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",storedPlayer.id)
-        console.log("Événement submitAnswer émis");
-    };
-
-    const handleActionSuccess = () => {
-        const storedPlayer = getStoredUserData();
-        console.log("ICI NONONONONONONONONONON", storedPlayer.id)
-        socket.emit('submitAnswer', {
-            sessionId: storedPlayer.sessionId,
-            questionId: question?.id,
-            answer: question.answer,
-            playerId: storedPlayer.id,
-        });
-        console.log("Événement submitAnswer (action) émis");
     };
 
     // Affichage conditionnel : si c'est le joueur actif, on affiche le formulaire pour répondre
