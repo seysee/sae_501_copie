@@ -37,12 +37,10 @@ export default function Result() {
                 }
             }
         }
-        const redirectHandler = () => {
-            window.location.href = '/enigma';
-        };
-        socket.on('redirectToEnigma', redirectHandler);
+
+        socket.on('redirectToEnigma', () => router.push('/enigma').then(r => null));
         return () => {
-            socket.off('redirectToEnigma', redirectHandler);
+            socket.off('redirectToEnigma', null);
         };
     }, []);
 
@@ -183,13 +181,9 @@ export default function Result() {
         } catch (err) {}
     };
 
-    const handleReturnHome = useCallback(() => {
-        const storedPlayerStr = sessionStorage.getItem('userData');
-        if (!storedPlayerStr) return;
-        const storedPlayer = JSON.parse(storedPlayerStr);
-        if (storedPlayer.sessionId) {
-            socket.emit('returnHome', storedPlayer.sessionId);
-        }
+    const handleNextQuestion = useCallback(() => {
+        const storedPlayer = JSON.parse(sessionStorage.getItem('userData'));
+        socket.emit('nextQuestion', storedPlayer.sessionId);
     }, []);
 
     const rememberQuestion = async (qId) => {
@@ -367,7 +361,7 @@ export default function Result() {
             {/* Bouton pour passer à la prochaine question */}
             {showButton && !isLoading && (
                 <button
-                    onClick={handleReturnHome}
+                    onClick={handleNextQuestion}
                     className="mt-8 py-4 px-16 text-3xl font-extrabold border-4 border-white text-white rounded-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-110 shadow-2xl font-Amatic"
                 >
                     Passer à la prochaine question
