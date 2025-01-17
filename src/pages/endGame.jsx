@@ -56,9 +56,24 @@ export default function EndGame() {
     };*/
 
     const handleReturnHome = () => {
-        /*clearSession();*/
-        router.push("/");
+        try {
+            const userData = JSON.parse(sessionStorage.getItem("userData"));
+
+            if (userData) {
+                const { name } = userData;
+                const newUserData = { name };
+                sessionStorage.setItem("userData", JSON.stringify(newUserData));
+            }
+
+            sessionStorage.removeItem("votedSuspectId");
+
+            router.push("/");
+        } catch (error) {
+            console.error("Erreur lors du nettoyage des données utilisateur :", error);
+            router.push("/");
+        }
     };
+
 
     const playerName = getStoredUserData()?.name || "Joueur";
 
