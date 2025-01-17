@@ -101,7 +101,6 @@ export default function EndGame() {
                                 <video
                                     className={`w-96 h-56 mx-auto mt-4 transition-opacity duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}
                                     src={suspectVideos[suspect.id]}
-                                    controls
                                     autoPlay
                                     loop
                                     muted
