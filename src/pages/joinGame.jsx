@@ -5,7 +5,7 @@ import Link from "next/link";
 import TextInput from "../components/_textInput";
 import axios from "axios";
 
-export default function JoinGame({ setSessionData, sessionData }) {
+export default function JoinGame() {
     const [sessionCodeInput, setSessionCodeInput] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [cannotJoin, setCannotJoin] = useState('');
@@ -23,7 +23,6 @@ export default function JoinGame({ setSessionData, sessionData }) {
         return null;
     };
 
-    // Vérification du pseudo au chargement de la page
     useEffect(() => {
         const storedPlayer = sessionStorage.getItem('userData');
         if (!storedPlayer) {
@@ -37,8 +36,8 @@ export default function JoinGame({ setSessionData, sessionData }) {
             return;
         }
         try {
-            const sessionData = await fetchSessions(sessionCodeInput);
-            console.log("Fetched session: ", sessionData);
+            const codeInput = sessionCodeInput.toLowerCase();
+            const sessionData = await fetchSessions(codeInput);
             isJoinable(sessionData);
         } catch (error) {
             console.error('Erreur lors de la récupération de la session :', error);
@@ -46,79 +45,67 @@ export default function JoinGame({ setSessionData, sessionData }) {
     };
 
     const isJoinable = (session) => {
-        console.log("status : " , session.status)
         if (session.status === 0) {
-            console.log("you can join")
-            joinGame(session)
+            joinGame(session);
         } else {
             if (session.playersNumber >= 6) {
-                setCannotJoin("Plus de place dans la partie")
+                setCannotJoin("Plus de place dans la partie");
             } else {
-                setCannotJoin("La partie à déjà commencée")
+                setCannotJoin("La partie a déjà commencée");
             }
-            console.log("Non non non")
         }
-    }
+    };
 
     const joinGame = async (session) => {
-        const storedPlayer = getStoredUserData()
-        console.log(storedPlayer)
-        //update player sessionId----------------------------//
+        const storedPlayer = getStoredUserData();
         const playerResponse = await axios.put('/api/player', {
             id: storedPlayer.id,
             sessionId: session.id,
         });
-
-        //update session playersNumber----------------------------//
         const sessionResponse = await axios.put('/api/session', {
             id: session.id,
             playersNumber: session.playersNumber + 1,
             status: session.playersNumber === 5 ? 1 : undefined,
         });
-
         const updatedUserData = { ...playerResponse.data, sessionId: session.id };
         sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
         router.push('/salon');
-    }
+    };
 
     const fetchSessions = async (code) => {
         try {
             const response = await axios.get('/api/session', {
                 params: { code },
             });
-            const sessionData = response.data;
-            console.log(sessionData)
-            return sessionData; // Retourne les données récupérées
+            return response.data;
         } catch (error) {
             console.error('Erreur lors de la récupération de la session :', error);
-            throw error; // Permet de gérer l'erreur dans handleJoinGame
+            throw error;
         }
     };
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
-            {(
-                <button
-                    onClick={() => router.back()}
-                    className="absolute top-4 left-10 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
-                    title="Retour"
+            <button
+                onClick={() => router.back()}
+                className="absolute top-4 left-10 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
+                title="Retour"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-6 h-6"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="w-6 h-6"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15.75 19.5L8.25 12l7.5-7.5"
-                        />
-                    </svg>
-                </button>
-            )}
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 19.5L8.25 12l7.5-7.5"
+                    />
+                </svg>
+            </button>
             <h1 className="text-5xl font-Amatic mb-16">Rejoindre une partie</h1>
             <div className="w-full max-w-md">
                 <div className="mb-6">
