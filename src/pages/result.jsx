@@ -165,6 +165,7 @@ export default function Result() {
                 const newestHint = matched.length > 0 ? matched[matched.length - 1] : null;
                 setLatestUnlockedHint(newestHint);
                 setAccumulatedHints(matched);
+                console.log("LATEST HINT",latestUnlockedHint)
 
                 // Sauvegarder les indices dans sessionStorage
                 const answeredData = sessionStorage.getItem(`answered_${questionId}`);
@@ -353,6 +354,7 @@ export default function Result() {
                 // Affiche ton loader personnalisé
                 <FancyLoader />
             ) : (
+
                 <>
                     {/* Une fois que c’est chargé : Bonne/Mauvaise Réponse */}
                     {correct ? (
@@ -381,9 +383,9 @@ export default function Result() {
                         </button>
                     )}
                 </>
+
             )}
 
-            {/* Barre Fixe pour Ouvrir la Modal */}
             <div
                 onClick={() => setShowModal(true)}
                 className="cursor-pointer fixed bottom-0 left-0 w-full bg-gray-700 text-gray-400 py-3 text-center font-Amatic hover:bg-gray-600 transition-colors duration-300 border-t border-gray-800"
@@ -391,7 +393,7 @@ export default function Result() {
                 Voir mes indices découverts
             </div>
 
-            {/* Modal des indices */}
+
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50 font-Amatic">
                     {/* Overlay pour fermer */}
@@ -400,7 +402,6 @@ export default function Result() {
                         onClick={() => setShowModal(false)}
                     ></div>
 
-                    {/* Contenu de la modal */}
                     <div
                         className="bg-gradient-to-t from-gray-900 to-gray-800 w-full max-w-md rounded-t-lg p-6 transform transition-transform duration-500 translate-y-0 animate-slide-up font-Amatic"
                     >
@@ -430,7 +431,7 @@ export default function Result() {
                 </div>
             )}
 
-            {/* Animation slide-up pour la Modal */}
+
             <style jsx>{`
                 @keyframes slide-up {
                     from {
