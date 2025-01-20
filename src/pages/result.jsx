@@ -133,6 +133,7 @@ export default function Result() {
                 const newestHint = matched.length > 0 ? matched[matched.length - 1] : null;
                 setLatestUnlockedHint(newestHint);
                 setAccumulatedHints(matched);
+                console.log("LATEST HINT",latestUnlockedHint)
 
                 // Sauvegarder les indices dans sessionStorage
                 const answeredData = sessionStorage.getItem(`answered_${questionId}`);
@@ -260,7 +261,6 @@ export default function Result() {
             const killerId = sessionData.killerId;
             if (!killerId) return null;
 
-            // Récupérer les indices disponibles (ceux qui n'ont pas encore été utilisés)
             const hintsResp = await axios.get("/api/suspect_hints", { params: { suspectId: killerId } });
             const suspectHints = hintsResp.data;
             const availableHints = suspectHints.filter(h => !usedHints.includes(h.id));
@@ -270,7 +270,6 @@ export default function Result() {
                 return null;
             }
 
-            // Choisir un indice aléatoirement parmi les indices disponibles
             const randomIndex = Math.floor(Math.random() * availableHints.length);
             const chosenHint = availableHints[randomIndex];
 
@@ -337,7 +336,6 @@ export default function Result() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-start text-white bg-black font-Amatic relative">
-            {/* Titre de la réponse */}
             {isLoading ? (
                 <h1 className="text-5xl mt-10 mb-6 text-yellow-400 animate-pulse font-Amatic">Chargement...</h1>
             ) : correct ? (
@@ -346,19 +344,14 @@ export default function Result() {
                 <h1 className="text-5xl mt-10 mb-4 text-red-500 font-Amatic">Mauvaise Réponse !</h1>
             )}
 
-            {/* Feedback plus haut */}
             {!isLoading && <p className="text-2xl mb-8 text-center font-Amatic">{feedback}</p>}
 
-            {/* Indice sans background */}
-            {/* Indice sans background */}
             {!isLoading && correct && latestUnlockedHint && (
                 <div className="text-3xl text-white font-bold font-Amatic mb-8">
                     <Hint hint={latestUnlockedHint} />
                 </div>
             )}
 
-
-            {/* Bouton pour passer à la prochaine question */}
             {showButton && !isLoading && (
                 <button
                     onClick={handleNextQuestion}
@@ -368,7 +361,6 @@ export default function Result() {
                 </button>
             )}
 
-            {/* Barre Fixe pour Ouvrir la Modal */}
             <div
                 onClick={() => setShowModal(true)}
                 className="cursor-pointer fixed bottom-0 left-0 w-full bg-gray-700 text-gray-400 py-3 text-center font-Amatic hover:bg-gray-600 transition-colors duration-300 border-t border-gray-800"
@@ -376,7 +368,6 @@ export default function Result() {
                 Voir mes indices découverts
             </div>
 
-            {/* Modal avec Animation */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50 font-Amatic">
                     {/* Overlay pour Fermer la Modal */}
@@ -385,7 +376,6 @@ export default function Result() {
                         onClick={() => setShowModal(false)}
                     ></div>
 
-                    {/* Contenu de la Modal */}
                     <div
                         className="bg-gradient-to-t from-gray-900 to-gray-800 w-full max-w-md rounded-t-lg p-6 transform transition-transform duration-500 translate-y-0 animate-slide-up font-Amatic"
                     >
@@ -403,7 +393,6 @@ export default function Result() {
                             )}
                         </ul>
 
-                        {/* Bouton pour Fermer la Modal */}
                         <button
                             onClick={() => setShowModal(false)}
                             className="mt-4 w-full py-2 px-4 bg-white text-gray-800 rounded-lg hover:bg-gray-200 transition-colors duration-300 font-Amatic"
@@ -414,7 +403,6 @@ export default function Result() {
                 </div>
             )}
 
-            {/* Styles Additionnels pour l'Animation de la Modal */}
             <style jsx>{`
                 @keyframes slide-up {
                     from {
