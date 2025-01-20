@@ -6,6 +6,7 @@ export default function Role() {
     const [isVisible, setIsVisible] = useState(false);
     const [role, setRole] = useState(null);
     const router = useRouter();
+    const [suspect, setSuspect] = useState(null);
 
     const getStoredUserData = () => {
         try {
@@ -44,6 +45,32 @@ export default function Role() {
 
         fetchPlayerRole(); // Appel de la fonction
     }, []);
+    useEffect(() => {
+        async function fetchSuspectForSaboteur() {
+            const storedPlayer = getStoredUserData();
+            if (!storedPlayer) return;
+
+            try {
+                console.log('Session ID:', storedPlayer.sessionId);
+                const sessionResponse = await axios.get('/api/session', {
+                    params: { id: storedPlayer.sessionId },
+                });
+
+                console.log('Session Response:', sessionResponse.data);
+                const suspectResponse = await axios.get('/api/suspect', {
+                    params: { id: sessionResponse.data.killerId },
+                });
+
+                console.log('Suspect Response:', suspectResponse.data);
+                setSuspect(suspectResponse.data.name); // Mettre à jour le suspect
+            } catch (error) {
+                console.error('Erreur lors de la récupération du suspect :', error);
+            }
+        }
+
+        fetchSuspectForSaboteur(); // Appel de la fonction
+    }, []); // Assurez-vous que ce useEffect ne se réexécute pas inutilement
+
 
     useEffect(() => {
         const timer = setTimeout(() => setIsVisible(true), 100); // Ajoute un délai avant l'apparition.
@@ -87,13 +114,24 @@ export default function Role() {
                     >
                         SABOTEUR
                     </h1>
-                    <p
-                        className={`font-Amatic text-2xl text-red-500 mt-2 transition-opacity duration-[5000ms] ${
-                            isVisible ? 'opacity-100' : 'opacity-0'
-                        }`}
-                    >
-                        Détournez l'attention pour induire l'équipe en erreur.
-                    </p>
+                    {suspect ? (
+                        <p
+                            className={`font-Amatic text-center text-2xl text-red-500 mt-2 transition-opacity duration-[5000ms] ${
+                                isVisible ? 'opacity-100' : 'opacity-0'
+                            }`}
+                        >
+                            Le tueur est <span className="font-bold">{suspect}</span> détournez l'attention pour induire l'équipe en erreur.
+                        </p>
+                    ) : (
+                        <p
+                            className={`font-Amatic text-2xl text-red-500 mt-2 transition-opacity duration-[5000ms] ${
+                                isVisible ? 'opacity-100' : 'opacity-0'
+                            }`}
+                        >
+                            Chargement...
+                        </p>
+                    )}
+
                 </>
             ) : (
                 <h1
