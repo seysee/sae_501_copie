@@ -249,9 +249,9 @@ export default function Salon() {
                         <_switchBtn arg1="Dictateur" arg2="Vilain de film" onSelect={handleTypeOfGame}/>
                     </div>
                     <div className="w-full max-w-md">
-                        <p className="text-2xl font-Amatic mb-5 flex items-center">
+                        <p className="text-2xl mb-5 font-Roboto flex items-center">
                             Code :{" "}
-                            <span className="font-bold text-red-500 ml-2">
+                            <span className="font-bold  text-red-500 ml-2">
     {session.code || "Chargement..."}
   </span>
                             <button
