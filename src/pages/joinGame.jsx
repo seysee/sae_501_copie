@@ -19,6 +19,7 @@ export default function JoinGame() {
             }
         } catch (error) {
             console.error('Erreur lors de la récupération des données utilisateur:', error);
+            setErrorMessage('Impossible de récupérer les données utilisateur.');
         }
         return null;
     };
@@ -31,6 +32,10 @@ export default function JoinGame() {
     }, [router]);
 
     const handleJoinGame = async () => {
+        // Réinitialise les messages d’erreur
+        setErrorMessage('');
+        setCannotJoin('');
+
         if (!sessionCodeInput) {
             setErrorMessage('Veuillez entrer un code de session valide.');
             return;
@@ -41,6 +46,7 @@ export default function JoinGame() {
             isJoinable(sessionData);
         } catch (error) {
             console.error('Erreur lors de la récupération de la session :', error);
+            setErrorMessage('Impossible de trouver une session avec ce code.');
         }
     };
 
@@ -50,26 +56,45 @@ export default function JoinGame() {
         } else {
             if (session.playersNumber >= 6) {
                 setCannotJoin("Plus de place dans la partie");
+                setErrorMessage("La partie est déjà complète (6 joueurs).");
+                setCannotJoin("Plus de place dans la partie");
             } else {
+                setCannotJoin("La partie à déjà commencée");
+                setErrorMessage("Impossible de rejoindre : la partie a déjà démarré.");
                 setCannotJoin("La partie a déjà commencée");
             }
         }
     };
 
     const joinGame = async (session) => {
-        const storedPlayer = getStoredUserData();
-        const playerResponse = await axios.put('/api/player', {
-            id: storedPlayer.id,
-            sessionId: session.id,
-        });
-        const sessionResponse = await axios.put('/api/session', {
-            id: session.id,
-            playersNumber: session.playersNumber + 1,
-            status: session.playersNumber === 5 ? 1 : undefined,
-        });
-        const updatedUserData = { ...playerResponse.data, sessionId: session.id };
-        sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
-        router.push('/salon');
+        try {
+            const storedPlayer = getStoredUserData();
+            console.log(storedPlayer);
+            if (!storedPlayer) {
+                setErrorMessage('Aucune donnée joueur trouvée, impossible de rejoindre.');
+                return;
+            }
+
+            //update player sessionId
+            const playerResponse = await axios.put('/api/player', {
+                id: storedPlayer.id,
+                sessionId: session.id,
+            });
+
+            //update session playersNumber
+            const sessionResponse = await axios.put('/api/session', {
+                id: session.id,
+                playersNumber: session.playersNumber + 1,
+                status: session.playersNumber === 5 ? 1 : undefined,
+            });
+
+            const updatedUserData = { ...playerResponse.data, sessionId: session.id };
+            sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
+            router.push('/salon');
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour du joueur ou de la session :', error);
+            setErrorMessage('Impossible de rejoindre la partie (erreur serveur).');
+        }
     };
 
     const fetchSessions = async (code) => {
@@ -77,10 +102,13 @@ export default function JoinGame() {
             const response = await axios.get('/api/session', {
                 params: { code },
             });
-            return response.data;
+            const sessionData = response.data;
+            console.log(sessionData);
+            return sessionData; // Retourne les données récupérées
         } catch (error) {
             console.error('Erreur lors de la récupération de la session :', error);
-            throw error;
+            setErrorMessage('Aucune session trouvée avec ce code.');
+            throw error; // Permet de gérer l'erreur dans handleJoinGame
         }
     };
 
