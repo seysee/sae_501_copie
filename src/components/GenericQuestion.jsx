@@ -98,6 +98,7 @@ export default function GenericQuestion({ question, onSuccess, socket }) {
                 containerId,
                 questionId: question.id,
                 sessionId: storedUserData.sessionId,
+                socket,
                 onComplete: (result) => {
                     socket.emit("submitAnswer", {
                         sessionId: storedUserData.sessionId,
