@@ -94,25 +94,15 @@ export default function AllHints({ onClose }) {
                     />
                 </svg>
             </div>
-
-            {hint ? (
-                hint > 0 ? (
+            {Array.isArray(hint) && hint.length > 0 ? (
                 hint.map((hintItem, index) => (
-                    <p
-                        key={index}
-                        className="font-Amatic text-center m-6 text-[20px]"
-                    >
+                    <p key={index} className="font-Amatic text-center m-6 text-[20px]">
                         {hintItem.hintText}
                     </p>
                 ))
-                ) : (
-                    <p className="font-Amatic text-center m-6 text-[20px]">
-                        Vous n'avez pas d'indice, tentez votre chance
-                    </p>
-                )
             ) : (
-                <p className="font-Amatic text-center m-6">
-                    Chargement de l'indice...
+                <p className="font-Amatic text-center m-6 text-[20px]">
+                    Vous n'avez pas d'indice, tentez votre chance
                 </p>
             )}
         </div>

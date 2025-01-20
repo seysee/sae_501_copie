@@ -47,8 +47,7 @@ export default async function handler(req, res) {
             });
             res.status(201).json(session);
         } else if (req.method === 'PUT') {
-            // Mise à jour d'une session par ID
-            let { id, code, playersNumber, status, hostId, questions, killerId, hints } = req.body;
+            let { id, code, playersNumber, status, hostId, questions, killerId, hints, killerType } = req.body;
             console.log("Requête PUT reçue avec :", req.body);
 
             const existingSession = await prisma.sessions.findUnique({
@@ -76,6 +75,7 @@ export default async function handler(req, res) {
                         questions,
                         killerId,
                         hints,
+                        killerType,
                     }),
                 });
 

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import Button from '../components/_button';
 import axios from 'axios';
 import io from 'socket.io-client';
-import { useRouter } from 'next/router';
+import {useRouter} from 'next/router';
 import skinsData from "/src/data/skins";
+import _switchBtn from "../components/_switchBtn";
 
 export default function Salon() {
     const [session, setSession] = useState(null);
@@ -12,6 +13,7 @@ export default function Salon() {
     const [isHost, setIsHost] = useState(false);
     const [socket, setSocket] = useState(null);
     const [copySuccess, setCopySuccess] = useState('');
+    const [killerType, setKillerType] = useState(0);
     const router = useRouter();
     const skins = skinsData.skins;
 
@@ -32,11 +34,10 @@ export default function Salon() {
         return null;
     };
 
-    // Récupérer la session via l'ID dans les données utilisateur
     const fetchSessionBySessionId = async (sessionId) => {
         try {
             const response = await axios.get('/api/session', {
-                params: { id: sessionId },
+                params: {id: sessionId},
             });
             setSession(response.data);
         } catch (error) {
@@ -45,11 +46,10 @@ export default function Salon() {
         }
     };
 
-    // Récupérer la liste des joueurs de la session
     const fetchPlayersBySessionId = async (sessionId) => {
         try {
             const response = await axios.get('/api/player', {
-                params: { sessionId: sessionId },
+                params: {sessionId: sessionId},
             });
             setPlayers(response.data);
         } catch (error) {
@@ -62,7 +62,6 @@ export default function Salon() {
         }
     };
 
-    // Initialisation de Socket.IO et des données de session
     useEffect(() => {
         const storedPlayer = getStoredUserData();
         if (storedPlayer) {
@@ -123,18 +122,36 @@ export default function Salon() {
     };
 
     const startGame = async () => {
-        const storedPlayer = getStoredUserData();
-        if (!storedPlayer) {
-            console.error('Aucune donnée utilisateur trouvée.');
-            return;
-        }
-
         try {
-            await axios.put('/api/session', {
-                id: session.id,
-                status: 1,
-                killerId: 1,
+            const storedPlayer = getStoredUserData();
+            if (!storedPlayer) {
+                console.error('Aucune donnée utilisateur trouvée.');
+                return;
+            }
+
+            const session = fetchSessionBySessionId(storedPlayer.sessionId)
+            if (!session) {
+                console.error('Session introuvable.');
+                return;
+            }
+            console.log("avant suspect")
+
+            const suspectsResponse = await axios.get("/api/suspect", {
+                params: { killerType: killerType },
             });
+            const suspects = suspectsResponse.data
+            const randomIndex = Math.floor(Math.random() * suspects.length);
+            console.log("ID aléatoire sélectionné :", suspects[randomIndex].id);
+            const killerRandom = suspects[randomIndex].id;
+
+            const responseSession = await axios.put('/api/session', {
+                id: storedPlayer.sessionId,
+                status: 1,
+                killerId: killerRandom,
+                killerType: killerType,
+            });
+
+            console.log(responseSession)
 
             setGameCreated(true);
 
@@ -147,6 +164,7 @@ export default function Salon() {
                     selectedIndices.push(randomIndex);
                 }
             }
+
             for (let i = 0; i < playerNumber; i++) {
                 const role = selectedIndices.includes(i) ? 1 : 0;
                 await axios.put('/api/player', {
@@ -154,7 +172,7 @@ export default function Salon() {
                     role: role,
                 });
             }
-            socket.emit('startGame', storedPlayer.sessionId);
+            await socket.emit('startGame', storedPlayer.sessionId);
         } catch (error) {
             console.error('Erreur lors de la mise à jour de la session ou de la récupération des questions :', error);
         }
@@ -177,10 +195,10 @@ export default function Salon() {
                     status: session.playersNumber === 6 ? 0 : undefined,
                 });
             } else {
-                await axios.delete('/api/session', { params: { id: session.id } });
+                await axios.delete('/api/session', {params: {id: session.id}});
             }
-            await axios.put('/api/player', { id: storedPlayer.id, sessionId: null });
-            sessionStorage.setItem('userData', JSON.stringify({ ...storedPlayer, sessionId: null }));
+            await axios.put('/api/player', {id: storedPlayer.id, sessionId: null});
+            sessionStorage.setItem('userData', JSON.stringify({...storedPlayer, sessionId: null}));
             await router.push('/');
         } else {
             await axios.put('/api/session', {
@@ -188,15 +206,20 @@ export default function Salon() {
                 playersNumber: session.playersNumber - 1,
                 status: session.playersNumber === 6 ? 0 : undefined,
             });
-            await axios.put('/api/player', { id: storedPlayer.id, sessionId: null });
-            sessionStorage.setItem('userData', JSON.stringify({ ...storedPlayer, sessionId: null }));
+            await axios.put('/api/player', {id: storedPlayer.id, sessionId: null});
+            sessionStorage.setItem('userData', JSON.stringify({...storedPlayer, sessionId: null}));
             await router.push('/');
         }
     };
 
+    const handleTypeOfGame = (selectedValue) => {
+        console.log(selectedValue)
+        setKillerType(selectedValue === "dictateur" ? 0 : 1);
+    };
+
     return (
-        <>
-            <div className="min-h-screen flex flex-col items-center text-white relative">
+        <div className="min-h-screen flex flex-col items-center justify-center text-white">
+            {(
                 <button
                     onClick={() => router.back()}
                     className="absolute top-4 left-0 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
@@ -217,114 +240,102 @@ export default function Salon() {
                         />
                     </svg>
                 </button>
-
-                {/* Titre principal */}
-                <h1 className="text-5xl mt-4 font-Amatic mb-8">Créer une partie</h1>
-
-                <div className="w-full max-w-md">
-                    <p className="text-2xl font-Amatic mb-6 flex items-center">
-                        Code :{" "}
-                        <span className="font-bold text-red-500 ml-2">
-              {session?.code || "Chargement..."}
-            </span>
-                        <button
-                            onClick={handleCopyCode}
-                            title="Copier le code"
-                            className="relative ml-4 focus:outline-none"
-                        >
-                            <svg
-                                className="w-6 h-6 text-white hover:text-gray-300"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
+            )}
+            {session ? (
+                <>
+                    <h1 className="text-5xl font-Amatic mb-12">Créer une partie</h1>
+                    <div className="mb-5">
+                        <h1 className="text-3xl text-center font-Amatic mb-3">Choisi un thème :</h1>
+                        <_switchBtn arg1="Dictateur" arg2="Vilain de film" onSelect={handleTypeOfGame}/>
+                    </div>
+                    <div className="w-full max-w-md">
+                        <p className="text-2xl font-Amatic mb-5 flex items-center">
+                            Code :{" "}
+                            <span className="font-bold text-red-500 ml-2">
+    {session.code || "Chargement..."}
+  </span>
+                            <button
+                                onClick={handleCopyCode}
+                                title="Copier le code"
+                                className="relative ml-4 focus:outline-none"
                             >
-                                <rect x="3" y="3" width="10" height="10" rx="1" ry="1" />
-                                <rect
-                                    x="7"
-                                    y="7"
-                                    width="10"
-                                    height="10"
-                                    rx="1"
-                                    ry="1"
-                                    fillOpacity="0.6"
-                                />
-                            </svg>
-                            {copySuccess && (
-                                <span className="absolute top-0 right-10 bg-green-500 text-white text-xs px-3 py-1 rounded transform translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
-                  {copySuccess}
-                </span>
-                            )}
-                        </button>
-                    </p>
-
-                    {/* Titre de la section joueurs affichant le nombre */}
-                    <p className="text-xl font-Amatic mb-4">
-                        Joueurs ({players.length})
-                    </p>
-
-                    <div className="bg-gray-800 p-4 rounded-lg">
-                        {players.length > 0 ? (
-                            <ul>
-                                {players.map((player, index) => (
-                                    <React.Fragment key={index}>
-                                        <li className="flex items-center text-yellow-400 font-bold">
-                                            {/* Point blanc devant chaque joueur */}
-                                            <span className="w-2 h-2 bg-white rounded-full mr-2 inline-block"></span>
-                                            {/* Affichage du skin puis du pseudo */}
-                                            <img
-                                                src={getPlayerSkin(player.skin)}
-                                                width="30"
-                                                alt="skin"
-                                                className="mr-2"
-                                            />
-                                            <span>{player.name}</span>
-                                        </li>
-                                        {index < players.length - 1 && (
-                                            <li>
-                                                <div className="white-line my-2" />
-                                            </li>
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-gray-400">Aucun joueur pour le moment...</p>
-                        )}
-                    </div>
-
-                    {session && session.status === 0 ? (
-                        isHost ? (
-                            <Button
-                                label="Lancer la partie"
-                                onClick={startGame}
-                                className="py-3 bg-black text-green-500 border-green-500 mt-6"
-                            />
-                        ) : (
-                            <p className="text-center text-lg font-Amatic text-green-500 mt-6">
-                                Attendez que l'hôte lance la partie.
-                            </p>
-                        )
-                    ) : (
-                        <p className="text-center text-lg font-Amatic text-green-500 mt-6">
-                            La session a été créée. Aucun autre utilisateur ne peut la rejoindre.
+                                {/* Icône composée de 2 carrés superposés */}
+                                <svg
+                                    className="w-6 h-6 text-white hover:text-gray-300"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                >
+                                    <rect x="3" y="3" width="10" height="10" rx="1" ry="1"/>
+                                    <rect
+                                        x="7"
+                                        y="7"
+                                        width="10"
+                                        height="10"
+                                        rx="1"
+                                        ry="1"
+                                        fillOpacity="0.6"
+                                    />
+                                </svg>
+                                {/* Message de confirmation positionné en absolute en haut à droite */}
+                                {copySuccess && (
+                                    <span
+                                        className="absolute top-0 right-10 bg-green-500 text-white text-xs px-3 py-1 rounded transform translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
+        {copySuccess}
+      </span>
+                                )}
+                            </button>
                         </p>
-                    )}
 
-                    <div className="mt-4">
-                        <Button
-                            label="Annuler"
-                            onClick={quitGame}
-                            className="py-3 bg-black text-red-500 border-red-500"
-                        />
+
+                        {players.length > 0 ? (
+                            <div>
+                                <p className="text-xl font-Amatic mb-4">Utilisateurs :</p>
+                                <div className="bg-gray-800 p-4 rounded-lg">
+                                    <ul className="list-disc list-inside space-y-2">
+                                        {players.map((player, index) => (
+                                            <li key={index} className="text-yellow-400 font-bold flex flex-row items-center">
+                                                {player.name} <img width="30px" src={getPlayerSkin(player.skin)}/>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-gray-400">Aucun utilisateur pour le moment...</p>
+                        )}
+
+                        {session.status === 0 ? (
+                            isHost && players.length >= 0 ? (
+                                <Button
+                                    label="Lancer la partie"
+                                    onClick={startGame}
+                                    className="py-3 bg-black text-green-500 border-green-500 mt-5"
+                                />
+                            ) : (
+                                <p className="text-center text-lg font-Amatic text-green-500 mt-12">
+                                    {isHost
+                                        ? "Vous n'êtes pas assez pour débuter une partie."
+                                        : "Attendez que l'hôte lance la partie."}
+                                </p>
+                            )
+                        ) : (
+                            <p className="text-center text-lg font-Amatic text-green-500 mt-12">
+                                La session a été créée. Aucun autre utilisateur ne peut la rejoindre.
+                            </p>
+                        )}
+
+                        <div className="mt-2">
+                            <Button
+                                label="Annuler"
+                                onClick={quitGame}
+                                className="py-3 bg-black text-red-500 border-red-500"
+                            />
+                        </div>
                     </div>
-                </div>
-            </div>
-            <style jsx>{`
-                .white-line {
-                    width: 100%;
-                    height: 1px;
-                    background: white;
-                }
-            `}</style>
-        </>
+                </>
+            ) : (
+                <p>Chargement de la session...</p>
+            )}
+        </div>
     );
 }
