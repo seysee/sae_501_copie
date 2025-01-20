@@ -1,0 +1,95 @@
+:root {
+    --dark-bg: #1A1A1A;
+    --dark: #1A1A1A;
+
+    /* Couleurs pour le bouton */
+    --off-red-dark-shadow: inset 0 0 17px 0 rgb(0, 0, 0, 1),
+    15px -20px 38px 0 rgb(146, 59, 59, 0.14),
+    inset 15px -20px 35px 0 rgba(189, 41, 41, 0.9),
+    -15px 15px 28px 0 rgb(0, 0, 0, 0.25);
+    --off-red-dark: radial-gradient(circle at 60% 30%, #d31616, #772626);
+
+    --on-green-dark-shadow: inset 0 0 19px 0 rgb(0, 0, 0, 1),
+    15px -20px 38px 0 rgb(102, 210, 51, 0.24),
+    inset 15px -20px 35px 0 rgb(0, 0, 0, 0.25),
+    -15px 15px 28px 0 rgb(0, 0, 0, 0.72);
+    --on-green-dark: radial-gradient(circle at 60% 30%, #66D233, #35651E);
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--dark-bg);
+}
+
+.dark-side {
+    background-color: var(--dark-bg);
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.toggle {
+    width: 100px; /* Largeur ajustée */
+    height: 50px; /* Hauteur adaptée pour un bon aspect */
+    border-radius: 100px; /* Garder l'aspect arrondi */
+    background-color: var(--dark);
+    box-shadow: inset 0 -5px 5px 0 rgb(0, 0, 0, 0.5),
+    inset 0 5px 5px 0 rgb(255, 255, 255, 0.13),
+    inset 23px -33px 28px 0 rgb(255, 255, 255, 0.03),
+    inset -25px 28px 23px 0 rgb(0, 0, 0, 0.4),
+    0 -15px 30px 0 rgb(255, 255, 255, 0.08),
+    0 25px 41px 0 rgb(0, 0, 0, 0.4);
+    position: relative;
+    cursor: pointer;
+}
+
+.switch {
+    width: 40px; /* Taille ajustée du switch */
+    height: 40px; /* Adaptée pour correspondre à la hauteur du conteneur */
+    border-radius: 100%;
+    position: absolute;
+    right: 10px; /* Espacement ajusté */
+    top: 5px;
+    transition: all ease 0.3s;
+}
+
+@media only screen and (min-width: 390px) {
+    .switch.off-red-dark {
+        transform: translateX(-6vw); /* Distance ajustée pour la largeur réduite */
+        background: var(--off-red-dark);
+        box-shadow: var(--off-red-dark-shadow);
+    }
+}
+
+@media only screen and (min-width: 390px) {
+    .switch.off-red-dark {
+        transform: translateX(-8vw);
+    }
+}
+@media only screen and (min-width: 415px) {
+    .switch.off-red-dark {
+        transform: translateX(-10vw);
+    }
+}
+@media only screen and (min-width: 430px) {
+    .switch.off-red-dark {
+        transform: translateX(-8vw);
+    }
+}
+@media only screen and (min-width: 620px) {
+    .switch.off-red-dark {
+        transform: translateX(-6vw);
+    }
+}
+
+.switch.on-green-dark {
+    transform: translateX(0);
+    background: var(--on-green-dark);
+    box-shadow: var(--on-green-dark-shadow);
+}
