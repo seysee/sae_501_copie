@@ -8,9 +8,37 @@ import Hint from "../components/hint";
 
 let socket;
 
+// Petit composant qui affiche tes 3 formes animées
+function FancyLoader() {
+    return (
+        <div className="flex flex-col items-center justify-center mt-12">
+            <h1 className="text-3xl text-yellow-400 font-Amatic mb-4">Chargement...</h1>
+            <div className="flex flex-row items-center justify-center space-x-6">
+                {/* Cercle */}
+                <div className="loader">
+                    <svg viewBox="0 0 80 80">
+                        <circle r="32" cy="40" cx="40"></circle>
+                    </svg>
+                </div>
+                {/* Triangle */}
+                <div className="loader triangle">
+                    <svg viewBox="0 0 86 80">
+                        <polygon points="43 8 79 72 7 72"></polygon>
+                    </svg>
+                </div>
+                {/* Carré */}
+                <div className="loader">
+                    <svg viewBox="0 0 80 80">
+                        <rect height="64" width="64" y="8" x="8"></rect>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Result() {
     const router = useRouter();
-
     const [isLoading, setIsLoading] = useState(true);
     const [feedback, setFeedback] = useState('');
     const [correct, setCorrect] = useState(false);
@@ -38,11 +66,11 @@ export default function Result() {
             }
         }
 
-        socket.on('redirectToEnigma', () => router.push('/enigma').then(r => null));
+        socket.on('redirectToEnigma', () => router.push('/enigma').then(() => null));
         return () => {
             socket.off('redirectToEnigma', null);
         };
-    }, []);
+    }, [router]);
 
     useEffect(() => {
         if (socket) {
@@ -56,49 +84,54 @@ export default function Result() {
         }
     }, []);
 
+    // On déplace toute la logique de "fin du chargement" ici,
+    // avec un délai de 2s AVANT d’enlever le loader.
     useEffect(() => {
         const processQuestion = async () => {
-            if (questionId && answer) {
-                const answeredData = sessionStorage.getItem(`answered_${questionId}`);
-                if (!answeredData) {
-                    try {
-                        const decryptedQuestionId = decryptParam(questionId);
-                        const decryptedAnswer = decryptParam(answer);
-                        const result = await verifyResponse(decryptedQuestionId, decryptedAnswer);
-                        await rememberQuestion(decryptedQuestionId);
-                        // Sauvegarde dans sessionStorage pour éviter de retraiter la même question
-                        sessionStorage.setItem(
-                            `answered_${questionId}`,
-                            JSON.stringify({
-                                correct: result.correct,
-                                feedback: result.message
-                            })
-                        );
-                    } catch (error) {
-                        console.error("Erreur de décryptage ou de vérification :", error);
-                        setIsLoading(false);
+            try {
+                if (questionId && answer) {
+                    const answeredData = sessionStorage.getItem(`answered_${questionId}`);
+                    if (!answeredData) {
+                        // 1er traitement de la question
+                        try {
+                            const decryptedQuestionId = decryptParam(questionId);
+                            const decryptedAnswer = decryptParam(answer);
+                            await verifyResponse(decryptedQuestionId, decryptedAnswer);
+                            await rememberQuestion(decryptedQuestionId);
+                        } catch (error) {
+                            console.error("Erreur de décryptage/vérification :", error);
+                        }
+                    } else {
+                        // Déjà traité
+                        const parsedData = JSON.parse(answeredData);
+                        setCorrect(parsedData.correct);
+                        setFeedback(parsedData.feedback);
+
+                        // Récupère les indices depuis la BDD pour être à jour
+                        await loadAccumulatedHintsSoFar();
                     }
                 } else {
-                    const parsedData = JSON.parse(answeredData);
-                    setCorrect(parsedData.correct);
-                    setFeedback(parsedData.feedback);
-                    // Récupère les indices depuis la BDD pour être à jour
-                    loadAccumulatedHintsSoFar();
-                    setIsLoading(false);
+                    // Pas de question ni de réponse => pas de verification
                 }
-            } else {
-                setIsLoading(false);
+            } catch (err) {
+                console.error("processQuestion error:", err);
             }
+
+            // FORÇONS 2 secondes de loader avant de l’enlever
+            await new Promise((r) => setTimeout(r, 2000));
+            setIsLoading(false);
+            // Ensuite on vérifie qui a le droit de cliquer sur "Prochaine question"
+            defineButtonVisibility();
         };
 
         processQuestion();
     }, [questionId, answer]);
 
+    // Vérifier qui doit voir le bouton
     useEffect(() => {
         defineButtonVisibility();
     }, []);
 
-    // Fonction pour charger tous les hints accumulés
     // Fonction pour charger tous les hints accumulés
     const loadAccumulatedHintsSoFar = async () => {
         try {
@@ -124,12 +157,11 @@ export default function Result() {
                 });
                 const suspectHints = allHintsResp.data;
 
-                // Construire le tableau des indices dans l'ordre d'ajout contenu dans usedHints
+                // Construire le tableau des indices dans l'ordre d'ajout
                 const matched = usedHints
                     .map(id => suspectHints.find(h => h.id === id))
                     .filter(h => h !== undefined);
 
-                // Le nouvel indice débloqué est le dernier élément de l'array
                 const newestHint = matched.length > 0 ? matched[matched.length - 1] : null;
                 setLatestUnlockedHint(newestHint);
                 setAccumulatedHints(matched);
@@ -148,8 +180,6 @@ export default function Result() {
         }
     };
 
-
-
     const defineButtonVisibility = async () => {
         try {
             const storedPlayerStr = sessionStorage.getItem('userData');
@@ -167,6 +197,7 @@ export default function Result() {
             const playersResp = await axios.get("/api/player", { params: { sessionId: sessionId } });
             const players = playersResp.data;
 
+            // Session solo ?
             if (players.length === 1) {
                 setShowButton(true);
                 return;
@@ -179,7 +210,9 @@ export default function Result() {
                     setShowButton(false);
                 }
             }
-        } catch (err) {}
+        } catch (err) {
+            console.error("Erreur defineButtonVisibility:", err);
+        }
     };
 
     const handleNextQuestion = useCallback(() => {
@@ -194,12 +227,10 @@ export default function Result() {
             const storedPlayer = JSON.parse(storedPlayerStr);
             const sessionId = storedPlayer.sessionId;
 
-            // 1. Récupérer la session actuelle depuis la BDD
             const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
             const sessionData = sessionResp.data;
             if (!sessionData) return;
 
-            // 2. Parser le champ `questions` (JSON) en tableau
             let currentQuestions = [];
             if (sessionData.questions) {
                 try {
@@ -212,25 +243,22 @@ export default function Result() {
                 }
             }
 
-            // 3. Ajouter l’ID de la question si pas déjà présent
             if (!currentQuestions.includes(qId)) {
                 currentQuestions.push(qId);
             }
 
-            // 4. Mettre à jour le champ `questions` dans la session
             await axios.put("/api/session", {
                 id: sessionId,
-                questions: currentQuestions, // Le PUT se chargera de stringify en BDD
+                questions: currentQuestions,
             });
 
-            // Tu peux ajouter un log pour vérifier :
             console.log(`Question ${qId} ajoutée à la session ${sessionId}`);
         } catch (error) {
-            console.error("Erreur lors de l'ajout de la question à la session :", error);
+            console.error("Erreur ajout question session:", error);
         }
     };
 
-    // Fonction qui enregistre un nouveau hint si des hints sont disponibles
+    // Ajoute un nouvel indice (si la réponse est correcte, etc.)
     const addNewHint = async () => {
         try {
             const storedPlayerStr = sessionStorage.getItem('userData');
@@ -238,18 +266,15 @@ export default function Result() {
             const storedPlayer = JSON.parse(storedPlayerStr);
             const sessionId = storedPlayer.sessionId;
 
-            // Récupérer la session
             const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
             const sessionData = sessionResp.data;
             if (!sessionData) return null;
 
-            // Vérifier si un indice a déjà été débloqué pour la question en cours
             if (sessionData.answeredCount && sessionData.answeredCount > 0) {
                 console.log("Un indice a déjà été débloqué pour cette question.");
                 return null;
             }
 
-            // Récupérer la liste des indices déjà utilisés
             let usedHints = [];
             try {
                 usedHints = JSON.parse(sessionData.hints);
@@ -266,41 +291,34 @@ export default function Result() {
             const availableHints = suspectHints.filter(h => !usedHints.includes(h.id));
 
             if (availableHints.length === 0) {
-                console.log("Tous les indices ont déjà été découverts.");
+                console.log("Tous les indices sont déjà découverts.");
                 return null;
             }
 
             const randomIndex = Math.floor(Math.random() * availableHints.length);
             const chosenHint = availableHints[randomIndex];
-
-            // Mettre à jour la liste des indices utilisés en ajoutant le nouvel indice
             usedHints.push(chosenHint.id);
 
-            // Mettre à jour la BDD :
-            // - en enregistrant la nouvelle liste dans la colonne "hints"
-            // - en passant answeredCount à 1 pour verrouiller l'ajout supplémentaire
             await axios.put("/api/session", {
                 id: sessionData.id,
                 hints: JSON.stringify(usedHints),
                 answeredCount: 1
             });
 
-            // Notifier via Socket.IO pour synchroniser l'affichage entre les joueurs
             if (socket) {
                 socket.emit('newHintAdded', sessionId);
             }
 
-            // Mettre à jour l'état local pour afficher l'indice débloqué
             setLatestUnlockedHint(chosenHint);
             console.log("Nouvel indice débloqué:", chosenHint.id);
-
-            return chosenHint; // Retourner l'indice débloqué
+            return chosenHint;
         } catch (error) {
-            console.error("Erreur lors de l'ajout d'un nouvel indice:", error);
+            console.error("Erreur ajout nouvel indice:", error);
             return null;
         }
     };
 
+    // Vérifie la réponse (ne retire plus le loader ici)
     const verifyResponse = async (qId, ans) => {
         let result = { correct: false, message: "" };
         try {
@@ -310,55 +328,62 @@ export default function Result() {
             });
             setFeedback(response.data.message);
             setCorrect(response.data.correct);
+
             result.correct = response.data.correct;
             result.message = response.data.message;
 
+            // Si c'est correct, on débloque un indice
             if (response.data.correct) {
-                // Débloquer un indice (celui‑ci déclenchera une synchro via socket)
                 await addNewHint();
             }
         } catch (error) {
             setFeedback("Erreur lors de la vérification. Veuillez réessayer.");
-            result.message = "Erreur lors de la vérification.";
+            result.message = "Erreur de vérification.";
         } finally {
-            setIsLoading(false);
-            setTimeout(() => {
-                defineButtonVisibility();
-            }, 500);
-            // Recharge la liste des indices depuis la BDD
-            loadAccumulatedHintsSoFar();
+            // Recharge la liste des indices
+            await loadAccumulatedHintsSoFar();
         }
         return result;
     };
 
-    // Détermine le dernier indice ajouté (premier élément du tableau trié décroissant)
-    const latestHint = accumulatedHints.length > 0 ? accumulatedHints[0] : null;
+    const latestHint = accumulatedHints.length > 0 ? accumulatedHints[accumulatedHints.length - 1] : null;
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-start text-white bg-black font-Amatic relative">
             {isLoading ? (
-                <h1 className="text-5xl mt-10 mb-6 text-yellow-400 animate-pulse font-Amatic">Chargement...</h1>
-            ) : correct ? (
-                <h1 className="text-5xl mt-10 mb-4 text-green-500 font-Amatic">Bonne Réponse !</h1>
+                // Affiche ton loader personnalisé
+                <FancyLoader />
             ) : (
-                <h1 className="text-5xl mt-10 mb-4 text-red-500 font-Amatic">Mauvaise Réponse !</h1>
-            )}
 
-            {!isLoading && <p className="text-2xl mb-8 text-center font-Amatic">{feedback}</p>}
+                <>
+                    {/* Une fois que c’est chargé : Bonne/Mauvaise Réponse */}
+                    {correct ? (
+                        <h1 className="text-5xl mt-10 mb-4 text-green-500 font-Amatic">Bonne Réponse !</h1>
+                    ) : (
+                        <h1 className="text-5xl mt-10 mb-4 text-red-500 font-Amatic">Mauvaise Réponse !</h1>
+                    )}
 
-            {!isLoading && correct && latestUnlockedHint && (
-                <div className="text-3xl text-white font-bold font-Amatic mb-8">
-                    <Hint hint={latestUnlockedHint} />
-                </div>
-            )}
+                    {/* Feedback */}
+                    <p className="text-2xl mb-8 text-center font-Amatic">{feedback}</p>
 
-            {showButton && !isLoading && (
-                <button
-                    onClick={handleNextQuestion}
-                    className="mt-8 py-4 px-16 text-3xl font-extrabold border-4 border-white text-white rounded-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-110 shadow-2xl font-Amatic"
-                >
-                    Passer à la prochaine question
-                </button>
+                    {/* Indice débloqué (si correct) */}
+                    {correct && latestHint && (
+                        <div className="text-3xl text-white font-bold font-Amatic mb-8">
+                            <Hint hint={latestHint} />
+                        </div>
+                    )}
+
+                    {/* Bouton pour passer à la prochaine question */}
+                    {showButton && (
+                        <button
+                            onClick={handleNextQuestion}
+                            className="mt-8 py-4 px-16 text-3xl font-extrabold border-4 border-white text-white rounded-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-110 shadow-2xl font-Amatic"
+                        >
+                            Passer à la prochaine question
+                        </button>
+                    )}
+                </>
+
             )}
 
             <div
@@ -368,9 +393,10 @@ export default function Result() {
                 Voir mes indices découverts
             </div>
 
+
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50 font-Amatic">
-                    {/* Overlay pour Fermer la Modal */}
+                    {/* Overlay pour fermer */}
                     <div
                         className="absolute inset-0"
                         onClick={() => setShowModal(false)}
@@ -379,29 +405,32 @@ export default function Result() {
                     <div
                         className="bg-gradient-to-t from-gray-900 to-gray-800 w-full max-w-md rounded-t-lg p-6 transform transition-transform duration-500 translate-y-0 animate-slide-up font-Amatic"
                     >
-                        <h2 className="text-3xl font-bold mb-4 text-white font-Amatic">Indices accumulés</h2>
-                        <ul className="space-y-2 max-h-60 overflow-auto p-2 border border-gray-600 rounded font-Amatic">
+                        <h2 className="text-3xl font-bold mb-4 text-white">Indices accumulés</h2>
+                        <ul className="space-y-2 max-h-60 overflow-auto p-2 border border-gray-600 rounded">
                             {accumulatedHints.length > 0 ? (
                                 accumulatedHints.map((h) => (
-                                    <li key={h.id}
-                                        className="p-2 border-b border-gray-500 last:border-b-0 text-gray-300 font-Amatic">
+                                    <li
+                                        key={h.id}
+                                        className="p-2 border-b border-gray-500 last:border-b-0 text-gray-300"
+                                    >
                                         {h.hintText}
                                     </li>
                                 ))
                             ) : (
-                                <li className="text-gray-400 font-Amatic">Aucun indice trouvé jusqu'à présent.</li>
+                                <li className="text-gray-400">Aucun indice trouvé pour l'instant.</li>
                             )}
                         </ul>
 
                         <button
                             onClick={() => setShowModal(false)}
-                            className="mt-4 w-full py-2 px-4 bg-white text-gray-800 rounded-lg hover:bg-gray-200 transition-colors duration-300 font-Amatic"
+                            className="mt-4 w-full py-2 px-4 bg-white text-gray-800 rounded-lg hover:bg-gray-200 transition-colors duration-300"
                         >
                             Fermer
                         </button>
                     </div>
                 </div>
             )}
+
 
             <style jsx>{`
                 @keyframes slide-up {
@@ -417,8 +446,147 @@ export default function Result() {
                     animation: slide-up 0.5s ease-out forwards;
                 }
             `}</style>
+
+            {/* CSS globale pour le loader (variables, keyframes, etc.) */}
+            <style jsx global>{`
+                .loader { 
+                  --path: yellow;
+                  --dot: green;
+                  --duration: 3s;
+                  width: 44px;
+                  height: 44px;
+                  position: relative;
+                  display: inline-block;
+                  margin: 0 8px;
+                }
+
+                .loader:before {
+                  content: "";
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 50%;
+                  position: absolute;
+                  display: block;
+                  background: var(--dot);
+                  top: 37px;
+                  left: 19px;
+                  transform: translate(-18px, -18px);
+                  animation: dotRect var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                }
+
+                .loader svg {
+                  display: block;
+                  width: 100%;
+                  height: 100%;
+                }
+
+                .loader svg rect,
+                .loader svg polygon,
+                .loader svg circle {
+                  fill: none;
+                  stroke: var(--path);
+                  stroke-width: 10px;
+                  stroke-linejoin: round;
+                  stroke-linecap: round;
+                }
+
+                .loader svg polygon {
+                  stroke-dasharray: 145 76 145 76;
+                  stroke-dashoffset: 0;
+                  animation: pathTriangle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                }
+
+                .loader svg rect {
+                  stroke-dasharray: 192 64 192 64;
+                  stroke-dashoffset: 0;
+                  animation: pathRect var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                }
+
+                .loader svg circle {
+                  stroke-dasharray: 150 50 150 50;
+                  stroke-dashoffset: 75;
+                  animation: pathCircle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                }
+
+                .loader.triangle {
+                  width: 48px;
+                }
+
+                .loader.triangle:before {
+                  left: 21px;
+                  transform: translate(-10px, -18px);
+                  animation: dotTriangle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                }
+
+                @keyframes pathTriangle {
+                  33% {
+                    stroke-dashoffset: 74;
+                  }
+                  66% {
+                    stroke-dashoffset: 147;
+                  }
+                  100% {
+                    stroke-dashoffset: 221;
+                  }
+                }
+
+                @keyframes dotTriangle {
+                  33% {
+                    transform: translate(0, 0);
+                  }
+                  66% {
+                    transform: translate(10px, -18px);
+                  }
+                  100% {
+                    transform: translate(-10px, -18px);
+                  }
+                }
+
+                @keyframes pathRect {
+                  25% {
+                    stroke-dashoffset: 64;
+                  }
+                  50% {
+                    stroke-dashoffset: 128;
+                  }
+                  75% {
+                    stroke-dashoffset: 192;
+                  }
+                  100% {
+                    stroke-dashoffset: 256;
+                  }
+                }
+
+                @keyframes dotRect {
+                  25% {
+                    transform: translate(0, 0);
+                  }
+                  50% {
+                    transform: translate(18px, -18px);
+                  }
+                  75% {
+                    transform: translate(0, -36px);
+                  }
+                  100% {
+                    transform: translate(-18px, -18px);
+                  }
+                }
+
+                @keyframes pathCircle {
+                  25% {
+                    stroke-dashoffset: 125;
+                  }
+                  50% {
+                    stroke-dashoffset: 175;
+                  }
+                  75% {
+                    stroke-dashoffset: 225;
+                  }
+                  100% {
+                    stroke-dashoffset: 275;
+                  }
+                }
+            `}</style>
         </div>
     );
-
-
 }
