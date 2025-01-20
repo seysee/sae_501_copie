@@ -6,10 +6,11 @@ import Modal from '../components/_modal';
 import AllHints from '../components/_allHints';
 import _button from "../components/_button";
 import skinsData from "/src/data/skins";
-import { useRouter } from 'next/router';
+import {useRouter} from 'next/router';
 import Button from "../components/_button";
+import Image from "next/image";
 
-export default function Profile() {
+export default function Vote() {
     const [suspects, setSuspects] = useState(null);
     const [players, setPlayers] = useState(null);
     const [error, setError] = useState(null);
@@ -28,7 +29,7 @@ export default function Profile() {
     const skins = skinsData.skins;
 
     const getPlayerSkin = (playerSkinId) => {
-        const playerSkin = skins.find((skin) => skin.id === playerSkinId )
+        const playerSkin = skins.find((skin) => skin.id === playerSkinId)
         return playerSkin.skin
     }
 
@@ -78,7 +79,6 @@ export default function Profile() {
             }
         };
 
-        // Gestionnaire pour l'événement "voteSuccess"
         socketConnection.on('voteSuccess', (votes) => {
             handleVotesUpdate(votes);
         });
@@ -98,7 +98,7 @@ export default function Profile() {
         });
         console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        socketConnection.on('voteStart', ({ endTime }) => {
+        socketConnection.on('voteStart', ({endTime}) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
             setDisableVote(false);
@@ -125,8 +125,10 @@ export default function Profile() {
         });
 
         return () => {
-            if (socketConnection) { socketConnection.disconnect()
-            ;}
+            if (socketConnection) {
+                socketConnection.disconnect()
+                ;
+            }
         };
     }, []);
 
@@ -175,7 +177,7 @@ export default function Profile() {
             const session = await fetchSessionBySessionId(storedUserData.sessionId)
             const killerType = session.killerType;
             const suspectsResponse = await axios.get("/api/suspect", {
-                params: { killerType: killerType },
+                params: {killerType: killerType},
             });
             const suspects = suspectsResponse.data
             setSuspects(suspects)
@@ -320,10 +322,9 @@ export default function Profile() {
                                         </p>
                                         {votesForSuspect > 0 && (
                                             <div className="absolute right-3 top-3 flex flex-wrap gap-0.5">
-                                                {/* Générer un cercle rouge pour chaque vote */}
                                                 {Array.from({length: votesForSuspect}).map((_, i) => (
-
-                                                    <img className="w-6 h-6" src="/amonUsPastille.png"/>
+                                                    <Image key={votesForSuspect} className="w-6 h-6"
+                                                           src="/amonUsPastille.png" width="24" height="24" alt=""/>
                                                 ))}
                                             </div>
                                         )}
@@ -346,7 +347,7 @@ export default function Profile() {
                                 key={index}
                                 className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center"
                             >
-                                <img width="30px" src={getPlayerSkin(player.skin)} />
+                                <img width="30px" src={getPlayerSkin(player.skin)}/>
                                 <p className="font-Amatic text-xl font-medium truncate">{player.name}</p>
                             </div>
                         ))}
@@ -372,11 +373,13 @@ export default function Profile() {
                 </div>
             )}
 
-            <div
-                className={`absolute ${showHints ? "block" : "hidden"}`}
-            >
-                <AllHints onClose={() => setShowHints(false)}/>
-            </div>
+                <div
+                    className={`absolute top-0 bottom-0 left-0 right-0 flex justify-center items-center  ${showHints ? "block" : "hidden"}`}
+                    onClick={() => setShowHints(false)}
+                >
+                    <AllHints onClose={() => setShowHints(false)}/>
+                </div>
+
 
             <Modal
                 isOpen={showModal}
