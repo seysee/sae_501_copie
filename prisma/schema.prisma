@@ -31,6 +31,7 @@ model Sessions {
   killerId          Int?
   answeredCount     Int?
   activePlayerIndex Int?
+  killerType        Int?
   Players           Players[]
   Killer            Suspects? @relation("SessionKiller", fields: [killerId], references: [id], onDelete: Restrict, map: "fk_killerId")
 
@@ -41,6 +42,7 @@ model Suspects {
   id          Int        @id @default(autoincrement())
   name        String?    @db.VarChar(25)
   description String?    @db.Text
+  killerType  Int?
   KilledIn    Sessions[] @relation("SessionKiller")
 }
 

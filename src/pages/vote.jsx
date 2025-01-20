@@ -171,14 +171,30 @@ export default function Profile() {
 
     const fetchSuspects = async () => {
         try {
-            const response = await axios.get("/api/suspect");
-            setSuspects(response.data);
+            const storedUserData = getStoredUserData();
+            const session = await fetchSessionBySessionId(storedUserData.sessionId)
+            const killerType = session.killerType;
+            const suspectsResponse = await axios.get("/api/suspect", {
+                params: { killerType: killerType },
+            });
+            const suspects = suspectsResponse.data
+            setSuspects(suspects)
         } catch (err) {
             console.error('Failed to fetch suspects:', err);
             setError('Failed to fetch suspects');
         }
     };
-
+    const fetchSessionBySessionId = async (sessionId) => {
+        try {
+            const response = await axios.get('/api/session', {
+                params: {id: sessionId},
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Erreur lors de la récupération de la session :', error);
+            alert('Une erreur est survenue lors de la récupération de la session.');
+        }
+    };
     const fetchPlayersBySessionId = async (sessionId) => {
         try {
             const response = await axios.get("/api/player", {
@@ -195,9 +211,6 @@ export default function Profile() {
         const storedUserData = getStoredUserData();
 
         if (selectedSuspect && socket && storedUserData) {
-            console.log('StoredUserData', storedUserData.id);
-            console.log('StoredUserData', storedUserData.sessionId);
-            console.log('SUSPECT ID VOTÉ', selectedSuspect.id);
 
             sessionStorage.setItem('votedSuspectId', selectedSuspect.id);
 
