@@ -1,7 +1,7 @@
 export default function FancyLoader() {
     return (
         <div className="flex flex-col items-center justify-center mt-12">
-            <h1 className="text-3xl text-yellow-400 font-Amatic mb-4">Chargement...</h1>
+            {/*<h1 className="text-3xl text-yellow-400 font-Amatic mb-4">Chargement...</h1>*/}
             <div className="flex flex-row items-center justify-center space-x-6">
                 {/* Cercle */}
                 <div className="loader">

@@ -5,6 +5,7 @@ import io from 'socket.io-client';
 import {useRouter} from 'next/router';
 import skinsData from "/src/data/skins";
 import _switchBtn from "../components/_switchBtn";
+import FancyLoader from "../components/_loader";
 
 export default function Salon() {
     const [session, setSession] = useState(null);
@@ -20,6 +21,7 @@ export default function Salon() {
 
     const router = useRouter();
     const skins = skinsData.skins;
+    const [isLoading, setIsLoading] = useState(true);
 
     const getPlayerSkin = (playerSkinId) => {
         const playerSkin = skins.find((skin) => skin.id === playerSkinId);
@@ -69,6 +71,14 @@ export default function Salon() {
             }
         }
     };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         const storedPlayer = getStoredUserData();
@@ -138,68 +148,74 @@ export default function Salon() {
 
     const startGame = async () => {
         try {
-            const storedPlayer = getStoredUserData();
-            if (!storedPlayer) {
-                console.error('Aucune donnée utilisateur trouvée.');
-                setErrorMessage('Impossible de lancer la partie : aucune donnée utilisateur trouvée.');
-                return;
-            }
+            setIsLoading(true);
 
-            const sessionTemp = await fetchSessionBySessionId(storedPlayer.sessionId);
-            // 'sessionTemp' sera undefined car fetchSessionBySessionId fait un setSession
-            // On peut vérifier si 'session' local est null
-            if (!session) {
-                console.error('Session introuvable (ou non chargée).');
-                setErrorMessage('Impossible de lancer la partie : session introuvable.');
-                return;
-            }
-            console.log("avant suspect");
-
-            const suspectsResponse = await axios.get("/api/suspect", {
-                params: { killerType: killerType },
-            });
-            const suspects = suspectsResponse.data;
-            if (!suspects || suspects.length === 0) {
-                setErrorMessage('Impossible de récupérer des suspects pour ce type de killer.');
-                return;
-            }
-
-            const randomIndex = Math.floor(Math.random() * suspects.length);
-            console.log("ID aléatoire sélectionné :", suspects[randomIndex].id);
-            const killerRandom = suspects[randomIndex].id;
-
-            const responseSession = await axios.put('/api/session', {
-                id: storedPlayer.sessionId,
-                status: 1,
-                killerId: killerRandom,
-                killerType: killerType,
-            });
-
-            console.log(responseSession)
-
-            setGameCreated(true);
-
-            const playerNumber = players.length;
-            let roleCount = playerNumber <= 4 ? 1 : 2;
-            const selectedIndices = [];
-            while (selectedIndices.length < roleCount) {
-                const randomIndex = Math.floor(Math.random() * playerNumber);
-                if (!selectedIndices.includes(randomIndex)) {
-                    selectedIndices.push(randomIndex);
+            setTimeout(async () => {
+                const storedPlayer = getStoredUserData();
+                if (!storedPlayer) {
+                    console.error('Aucune donnée utilisateur trouvée.');
+                    setErrorMessage('Impossible de lancer la partie : aucune donnée utilisateur trouvée.');
+                    return;
                 }
-            }
 
-            for (let i = 0; i < playerNumber; i++) {
-                const role = selectedIndices.includes(i) ? 1 : 0;
-                await axios.put('/api/player', {
-                    id: players[i].id,
-                    role: role,
+                const sessionTemp = await fetchSessionBySessionId(storedPlayer.sessionId);
+                // 'sessionTemp' sera undefined car fetchSessionBySessionId fait un setSession
+                // On peut vérifier si 'session' local est null
+                if (!session) {
+                    console.error('Session introuvable (ou non chargée).');
+                    setErrorMessage('Impossible de lancer la partie : session introuvable.');
+                    return;
+                }
+                console.log("avant suspect");
+
+                const suspectsResponse = await axios.get("/api/suspect", {
+                    params: { killerType: killerType },
                 });
-            }
-            await socket.emit('startGame', storedPlayer.sessionId);
+                const suspects = suspectsResponse.data;
+                if (!suspects || suspects.length === 0) {
+                    setErrorMessage('Impossible de récupérer des suspects pour ce type de killer.');
+                    return;
+                }
+
+                const randomIndex = Math.floor(Math.random() * suspects.length);
+                console.log("ID aléatoire sélectionné :", suspects[randomIndex].id);
+                const killerRandom = suspects[randomIndex].id;
+
+                const responseSession = await axios.put('/api/session', {
+                    id: storedPlayer.sessionId,
+                    status: 1,
+                    killerId: killerRandom,
+                    killerType: killerType,
+                });
+
+                console.log(responseSession)
+
+                setGameCreated(true);
+
+                const playerNumber = players.length;
+                let roleCount = playerNumber <= 4 ? 1 : 2;
+                const selectedIndices = [];
+                while (selectedIndices.length < roleCount) {
+                    const randomIndex = Math.floor(Math.random() * playerNumber);
+                    if (!selectedIndices.includes(randomIndex)) {
+                        selectedIndices.push(randomIndex);
+                    }
+                }
+
+                for (let i = 0; i < playerNumber; i++) {
+                    const role = selectedIndices.includes(i) ? 1 : 0;
+                    await axios.put('/api/player', {
+                        id: players[i].id,
+                        role: role,
+                    });
+                }
+                await socket.emit('startGame', storedPlayer.sessionId);
+                setIsLoading(false);
+            }, 2000);
         } catch (error) {
             console.error('Erreur lors de la mise à jour de la session ou de la récupération des questions :', error);
             setErrorMessage('Erreur lors de la configuration de la partie.');
+            setIsLoading(false);
         }
     };
 
@@ -287,14 +303,11 @@ export default function Salon() {
                     <div className="w-full max-w-md">
                         <p className="text-2xl mb-5 font-Roboto flex items-center">
                             Code :{" "}
-                            <span className="font-bold text-red-500 ml-2">
-    {session.code || "Chargement..."}
-  </span>
+                            <span className="font-bold text-red-500 ml-2"> {session.code || <FancyLoader/>} </span>
                             <button
                                 onClick={handleCopyCode}
                                 title="Copier le code"
-                                className="relative ml-4 focus:outline-none"
-                            >
+                                className="relative ml-4 focus:outline-none" >
                                 {/* Icône composée de 2 carrés superposés */}
                                 <svg
                                     className="w-6 h-6 text-white hover:text-gray-300"
@@ -329,7 +342,8 @@ export default function Salon() {
                                 <div className="bg-gray-800 p-4 rounded-lg">
                                     <ul className="list-disc list-inside space-y-2">
                                         {players.map((player, index) => (
-                                            <li key={index} className="text-yellow-400 font-bold flex flex-row items-center">
+                                            <li key={index}
+                                                className="text-yellow-400 font-bold flex flex-row items-center">
                                                 {player.name} <img width="30px" src={getPlayerSkin(player.skin)}/>
                                             </li>
                                         ))}
@@ -377,7 +391,7 @@ export default function Salon() {
                     </div>
                 </>
             ) : (
-                <p>Chargement de la session...</p>
+                <FancyLoader/>
             )}
         </div>
     );
