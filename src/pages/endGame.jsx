@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import Button from "../components/_button";
+import FancyLoader from "../components/_loader";
 
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
@@ -11,6 +12,7 @@ export default function EndGame() {
     const [showFooter, setShowFooter] = useState(false);
     const router = useRouter();
     const [isExiting, setIsExiting] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     const getStoredUserData = () => {
         try {
@@ -33,6 +35,7 @@ export default function EndGame() {
         }
 
         const fetchKiller = async () => {
+            setIsLoading(true);
             try {
                 const { data: sessionData } = await axios.get(`/api/session?id=${sessionId}`);
                 const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
@@ -47,6 +50,7 @@ export default function EndGame() {
             } catch (err) {
                 console.error(err);
                 setError("Erreur lors de la récupération des informations.");
+                setIsLoading(false);
             }
         };
         fetchKiller();
@@ -139,7 +143,7 @@ export default function EndGame() {
                 )
             )}
 
-            {!suspect && !error && <p className="text-2xl font-Amatic text-gray-400 animate-pulse">Chargement...</p>}
+            {!suspect && !error && <FancyLoader/>}
         </div>
     );
 
