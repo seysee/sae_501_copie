@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 import axios from 'axios';
 import {useRouter} from 'next/router';
 import Button from "../components/_button";
 import {decryptParam} from '../lib/cryptoUtils';
-import FancyLoader from "../components/_loader";
 
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
@@ -16,8 +15,6 @@ export default function EndGame() {
     const [playerStorage, setPlayerStorage] = useState(null);
     const router = useRouter();
     const {votes} = router.query;
-    const [isExiting, setIsExiting] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
 
     const getStoredUserData = () => {
         try {
@@ -51,7 +48,6 @@ export default function EndGame() {
             } catch (err) {
                 console.error(err);
                 setError("Erreur lors de la récupération des informations.");
-                setIsLoading(false);
             }
         };
 
@@ -78,7 +74,7 @@ export default function EndGame() {
             }
         } catch (err) {
             console.error("Erreur lors du décryptage des votes :", err);
-
+        }
     }, [votes, suspect]);
 
     const getMajority = (votesArray) => {
@@ -102,11 +98,6 @@ export default function EndGame() {
         3: '/videos/staline.mp4',
         4: '/videos/petain.mp4',
         5: '/videos/kimjongil.mp4',
-        6: '/videos/michael.mp4',
-        7: '/videos/freddy.mp4',
-        8: '/videos/darkvador.mp4',
-        9: '/videos/joker.mp4',
-        10: '/videos/thanos.mp4',
     };
 
 
