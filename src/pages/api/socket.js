@@ -275,14 +275,12 @@ export default function handler(req, res) {
 
             socket.on('endGame', (sessionId, votes) => {
                 const encryptVotes = encryptParam(votes)
-                console.log("____________________________________",votes)
                 io.to(sessionId).emit('gameEnded', `/endGame?votes=${encryptVotes}`);
             });
 
 
             socket.on('endGameButton', (sessionId, votes) => {
                 const encryptVotes = encryptParam(votes)
-                console.log("____________________________________",votes)
                 io.to(sessionId).emit('gameEndedButton', `/endGame?votes=${encryptVotes}`);
             });
 
