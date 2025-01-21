@@ -10,6 +10,7 @@ export default function JoinGame() {
     const [errorMessage, setErrorMessage] = useState('');
     const [cannotJoin, setCannotJoin] = useState('');
     const router = useRouter();
+    const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
     const getStoredUserData = () => {
         try {
@@ -32,12 +33,14 @@ export default function JoinGame() {
     }, [router]);
 
     const handleJoinGame = async () => {
-        // Réinitialise les messages d’erreur
+        if (isButtonDisabled) return;
+        setIsButtonDisabled(true);
         setErrorMessage('');
         setCannotJoin('');
 
         if (!sessionCodeInput) {
             setErrorMessage('Veuillez entrer un code de session valide.');
+            setIsButtonDisabled(false);
             return;
         }
         try {
@@ -47,6 +50,7 @@ export default function JoinGame() {
         } catch (error) {
             console.error('Erreur lors de la récupération de la session :', error);
             setErrorMessage('Impossible de trouver une session avec ce code.');
+            setIsButtonDisabled(false);
         }
     };
 
@@ -58,10 +62,12 @@ export default function JoinGame() {
                 setCannotJoin("Plus de place dans la partie");
                 setErrorMessage("La partie est déjà complète (6 joueurs).");
                 setCannotJoin("Plus de place dans la partie");
+                setIsButtonDisabled(false);
             } else {
                 setCannotJoin("La partie à déjà commencée");
                 setErrorMessage("Impossible de rejoindre : la partie a déjà démarré.");
                 setCannotJoin("La partie a déjà commencée");
+                setIsButtonDisabled(false);
             }
         }
     };
@@ -72,6 +78,7 @@ export default function JoinGame() {
             console.log(storedPlayer);
             if (!storedPlayer) {
                 setErrorMessage('Aucune donnée joueur trouvée, impossible de rejoindre.');
+                setIsButtonDisabled(false);
                 return;
             }
 
@@ -94,6 +101,7 @@ export default function JoinGame() {
         } catch (error) {
             console.error('Erreur lors de la mise à jour du joueur ou de la session :', error);
             setErrorMessage('Impossible de rejoindre la partie (erreur serveur).');
+            setIsButtonDisabled(false);
         }
     };
 
@@ -104,11 +112,12 @@ export default function JoinGame() {
             });
             const sessionData = response.data;
             console.log(sessionData);
-            return sessionData; // Retourne les données récupérées
+            return sessionData;
         } catch (error) {
             console.error('Erreur lors de la récupération de la session :', error);
             setErrorMessage('Aucune session trouvée avec ce code.');
-            throw error; // Permet de gérer l'erreur dans handleJoinGame
+            setIsButtonDisabled(false);
+            throw error;
         }
     };
 
@@ -154,8 +163,14 @@ export default function JoinGame() {
                 <Button
                     label="Rejoindre la partie"
                     onClick={handleJoinGame}
-                    className="py-3 bg-black text-green-500 border-green-500"
+                    disabled={isButtonDisabled}
+                    className={`py-3 bg-black ${
+                        isButtonDisabled
+                            ? "text-gray-500 border-gray-500 cursor-not-allowed"
+                            : "text-green-500 border-green-500"
+                    }`}
                 />
+
                 <Link href="/">
                     <Button
                         label="Annuler"
