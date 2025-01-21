@@ -1,16 +1,17 @@
-// src/pages/index.js
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
+import {useRouter} from 'next/router';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '../styles/App.css';
 import '../styles/index.css';
 import Button from '../components/_button';
 import axios from "axios";
+import FancyLoader from "../components/_loader";
 
 export default function Index() {
     const [isMobileDevice, setIsMobileDevice] = useState(false);
     const [userPseudo, setUserPseudo] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
 
     const checkDevice = () => {
@@ -68,6 +69,8 @@ export default function Index() {
             return;
         }
 
+        setIsLoading(true);
+
         try {
             // CRÉATION DE SESSION
             const sessionResponse = await axios.post('/api/session', {
@@ -91,70 +94,90 @@ export default function Index() {
             console.log('Données mises à jour :', updatedPlayer.data);
 
             // Mise à jour du sessionStorage
-            const updatedUserData = { ...updatedPlayer.data, sessionId: sessionResponse.data.id };
+            const updatedUserData = {...updatedPlayer.data, sessionId: sessionResponse.data.id};
             sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
             router.push('/salon');
 
         } catch (error) {
             console.error('Erreur lors de la création de la session ou de la mise à jour du joueur :', error);
             alert('Une erreur est survenue lors de la création de la partie. Veuillez réessayer.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
+    const navigateWithLoader = (path) => {
+        setIsLoading(true);
+        setTimeout(() => {
+            router.push(path);
+        }, 1000);
+    };
+
+
     return (
         <div>
-            {!isMobileDevice && (
-                <div className="non-mobile-message">
-                    Ce site est accessible uniquement sur mobile. 𐐘
-                </div>
-            )}
-
-            {isMobileDevice && (
-                <div className="box-area flex flex-col items-center justify-center">
-                    <h1 className="text-6xl font-Amatic text-white mb-24">Parmi Nous</h1>
-
-                    {userPseudo ? (
-                        <p className="text-2xl text-yellow-400 font-Amatic mb-8">
-                            Bienvenue, <span className="font-bold">{userPseudo}</span> !
-                        </p>
-                    ) : (
-                        <p className="text-center text-red-500 font-Amatic text-2xl mb-8">
-                            Veuillez créer un profil pour accéder à ces fonctionnalités.
-                        </p>
+            {isLoading ? (
+                <FancyLoader/>
+            ) : (
+                <>
+                    {!isMobileDevice && (
+                        <div className="non-mobile-message">
+                            Ce site est accessible uniquement sur mobile.
+                        </div>
                     )}
 
-                    <div className="w-4/5 max-w-md">
-                        <Link href="/profile" passHref>
-                            <Button
-                                label={userPseudo ? "Profil" : "Créer profil"}
-                                className="mb-4 bg-black text-white border-white"
-                            />
-                        </Link>
+                    {isMobileDevice && (
+                        <div className="box-area flex flex-col items-center justify-center">
+                            <h1 className="text-6xl font-Amatic text-white mb-24">Parmi Nous</h1>
 
-                        {userPseudo && (
-                            <>
-                                <Button
-                                    label="Créer partie"
-                                    className="mb-4 bg-black text-white border-white"
-                                    onClick={createGame}
-                                />
-                                <Link href="/joinGame" passHref>
+                            {/* Contenu principal */}
+                            {userPseudo ? (
+                                <p className="text-2xl text-yellow-400 font-Amatic mb-8">
+                                    Bienvenue, <span className="font-bold">{userPseudo}</span> !
+                                </p>
+                            ) : (
+                                <p className="text-center text-red-500 font-Amatic text-2xl mb-8">
+                                    Veuillez créer un profil pour accéder à ces fonctionnalités.
+                                </p>
+                            )}
+
+                            <div className="w-4/5 max-w-md">
+                                <Link href="/profile" passHref>
                                     <Button
-                                        label="Rejoindre partie"
+                                        label={userPseudo ? "Profil" : "Créer profil"}
                                         className="mb-4 bg-black text-white border-white"
+                                        onClick={() => navigateWithLoader('/profile')}
                                     />
                                 </Link>
-                            </>
-                        )}
 
-                        <Link href="/rules" passHref>
-                            <Button
-                                label="Règles"
-                                className="bg-black text-red-500 border-red-500"
-                            />
-                        </Link>
-                    </div>
-                </div>
+                                {userPseudo && (
+                                    <>
+                                        <Button
+                                            label="Créer partie"
+                                            className="mb-4 bg-black text-white border-white"
+                                            onClick={createGame}
+                                        />
+                                        <Link href="/joinGame" passHref>
+                                            <Button
+                                                label="Rejoindre partie"
+                                                className="mb-4 bg-black text-white border-white"
+                                                onClick={() => navigateWithLoader('/joinGame')}
+                                            />
+                                        </Link>
+                                    </>
+                                )}
+
+                                <Link href="/rules" passHref>
+                                    <Button
+                                        label="Règles"
+                                        className="bg-black font-bold text-red-500 border-red-600"
+                                        onClick={() => navigateWithLoader('/rules')}
+                                    />
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
