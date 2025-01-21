@@ -53,7 +53,6 @@ export default function Role() {
                 const sessionResponse = await axios.get('/api/session', {
                     params: { id: storedPlayer.sessionId },
                 });
-
                 const suspectResponse = await axios.get('/api/suspect', {
                     params: { id: sessionResponse.data.killerId },
                 });
@@ -70,8 +69,8 @@ export default function Role() {
     }, []);
 
     useEffect(() => {
-        const fadeTimer = setTimeout(() => setFadeOut(true), 2500); // Déclencher le fondu après 2.5 secondes
-        const phoneMessageTimer = setTimeout(() => setShowPhoneMessage(false), 3000); // Cacher après 3 secondes
+        const fadeTimer = setTimeout(() => setFadeOut(true), 2500);
+        const phoneMessageTimer = setTimeout(() => setShowPhoneMessage(false), 3000);
         return () => {
             clearTimeout(fadeTimer);
             clearTimeout(phoneMessageTimer);
