@@ -44,7 +44,7 @@ export default function EndGame() {
                 setSuspect(suspectData);
 
                 setTimeout(() => setIsVisible(true), 300);
-                setTimeout(() => setShowFooter(true), 3500);
+                setTimeout(() => setShowFooter(true), 2000);
             } catch (err) {
                 console.error(err);
                 setError("Erreur lors de la récupération des informations.");
