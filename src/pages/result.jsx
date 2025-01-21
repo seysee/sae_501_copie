@@ -1,14 +1,37 @@
-import {useEffect, useState, useCallback} from 'react';
-import {useRouter} from 'next/router';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import io from 'socket.io-client';
 import axios from 'axios';
-import {decryptParam} from '../lib/cryptoUtils';
+import { decryptParam } from '../lib/cryptoUtils';
 import Hint from "../components/hint";
-import FancyLoader from "../components/_loader";
-import {applyNextWorkerFixture} from "next/dist/experimental/testmode/playwright/next-worker-fixture";
 
 let socket;
 let alreadyVerifiedThisQuestion = false;
+
+function FancyLoader() {
+    return (
+        <div className="flex flex-col items-center justify-center mt-12">
+            <h1 className="text-3xl text-yellow-400 font-Amatic mb-4">Chargement...</h1>
+            <div className="flex flex-row items-center justify-center space-x-6">
+                <div className="loader">
+                    <svg viewBox="0 0 80 80">
+                        <circle r="32" cy="40" cx="40" />
+                    </svg>
+                </div>
+                <div className="loader triangle">
+                    <svg viewBox="0 0 86 80">
+                        <polygon points="43 8 79 72 7 72" />
+                    </svg>
+                </div>
+                <div className="loader">
+                    <svg viewBox="0 0 80 80">
+                        <rect height="64" width="64" y="8" x="8" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function Result() {
     const router = useRouter();
@@ -19,12 +42,10 @@ export default function Result() {
     const [checkedActivePlayer, setCheckedActivePlayer] = useState(false);
     const [showButton, setShowButton] = useState(false);
     const [latestUnlockedHint, setLatestUnlockedHint] = useState(null);
-
     const [showModal, setShowModal] = useState(false);
     const [accumulatedHints, setAccumulatedHints] = useState([]);
 
-    const {questionId, answer} = router.query;
-    const [solution, setSolution] = useState("")
+    const { questionId, answer } = router.query;
 
     const checkAlreadyAnsweredInMemory = () => {
         if (alreadyVerifiedThisQuestion) return true;
@@ -34,7 +55,7 @@ export default function Result() {
 
     useEffect(() => {
         if (!socket) {
-            socket = io({path: '/api/socket'});
+            socket = io({ path: '/api/socket' });
             const storedPlayerStr = sessionStorage.getItem('userData');
             if (storedPlayerStr) {
                 const storedPlayer = JSON.parse(storedPlayerStr);
@@ -71,7 +92,6 @@ export default function Result() {
             socket.on('refreshHints', () => {
                 loadAccumulatedHintsSoFar();
             });
-
             return () => {
                 socket.off('answerResult');
                 socket.off('refreshHints');
@@ -188,8 +208,6 @@ export default function Result() {
             if (sessionData.killerId) {
                 const hintsResp = await axios.get("/api/suspect_hints", {
                     params: { suspectId: sessionData.killerId },
-                const allHintsResp = await axios.get("/api/suspect_hints", {
-                    params: {suspectId: sessionData.killerId},
                 });
                 const suspectHints = hintsResp.data;
                 const matched = usedHints
@@ -201,13 +219,6 @@ export default function Result() {
                 const ad = sessionStorage.getItem(`answered_${questionId}`);
                 if (ad) {
                     const parsedData = JSON.parse(ad);
-                setAccumulatedHints(matched);
-                console.log("LATEST HINT", latestUnlockedHint)
-
-                // Sauvegarder les indices dans sessionStorage
-                const answeredData = sessionStorage.getItem(`answered_${questionId}`);
-                if (answeredData) {
-                    const parsedData = JSON.parse(answeredData);
                     parsedData.accumulatedHints = matched;
                     sessionStorage.setItem(`answered_${questionId}`, JSON.stringify(parsedData));
                 }
@@ -228,8 +239,6 @@ export default function Result() {
             const serverSession = sessionResp.data;
             const playersResp = await axios.get("/api/player", { params: { sessionId: sessionId } });
             const players = playersResp.data;
-
-            // Session solo ?
             if (players.length === 1) {
                 setShowButton(true);
                 return;
@@ -332,7 +341,7 @@ export default function Result() {
     };
 
     const verifyResponse = async (qId, ans) => {
-        let result = {correct: false, message: ""};
+        let result = { correct: false, message: "" };
         try {
             const response = await axios.post("/api/question/answer", {
                 id: qId,
@@ -359,7 +368,7 @@ export default function Result() {
     return (
         <div className="min-h-screen flex flex-col items-center justify-start text-white bg-black font-Amatic relative">
             {isLoading ? (
-                <FancyLoader/>
+                <FancyLoader />
             ) : (
                 <>
                     {correct === null ? (
@@ -378,7 +387,7 @@ export default function Result() {
                     {showButton && (
                         <button
                             onClick={handleNextQuestion}
-                            className="mt-8 py-4 px-16 text-2xl font-extrabold border-4 border-white text-white rounded-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-110 shadow-2xl font-Amatic"
+                            className="mt-8 py-4 px-16 text-3xl font-extrabold border-4 border-white text-white rounded-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-110 shadow-2xl font-Amatic"
                         >
                             Passer à la prochaine question
                         </button>
@@ -407,7 +416,6 @@ export default function Result() {
                                 <li className="text-gray-400">Aucun indice trouvé pour l'instant.</li>
                             )}
                         </ul>
-
                         <button
                             onClick={() => setShowModal(false)}
                             className="mt-4 w-full py-2 px-4 bg-white text-gray-800 rounded-lg hover:bg-gray-200 transition-colors duration-300"
