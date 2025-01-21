@@ -15,12 +15,11 @@ export default function Salon() {
     const [socket, setSocket] = useState(null);
     const [copySuccess, setCopySuccess] = useState('');
     const [killerType, setKillerType] = useState(0);
-
     const [errorMessage, setErrorMessage] = useState('');
-
     const router = useRouter();
     const skins = skinsData.skins;
     const [isLoading, setIsLoading] = useState(true);
+    const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
     const getPlayerSkin = (playerSkinId) => {
         const playerSkin = skins.find((skin) => skin.id === playerSkinId);
@@ -85,6 +84,7 @@ export default function Salon() {
             setErrorMessage('Aucune donnée utilisateur trouvée en sessionStorage.');
             return;
         }
+
         fetchSessionBySessionId(storedPlayer.sessionId);
         fetchPlayersBySessionId(storedPlayer.sessionId);
 
@@ -148,6 +148,7 @@ export default function Salon() {
     const startGame = async () => {
         try {
             setIsLoading(true);
+            setIsButtonDisabled(true);
 
             setTimeout(async () => {
                 const storedPlayer = getStoredUserData();
@@ -155,6 +156,7 @@ export default function Salon() {
                     console.error('Aucune donnée utilisateur trouvée.');
                     setErrorMessage('Impossible de lancer la partie : aucune donnée utilisateur trouvée.');
                     setIsLoading(false);
+                    setIsButtonDisabled(false);
                     return;
                 }
 
@@ -164,6 +166,7 @@ export default function Salon() {
                 if (!session) {
                     console.error('Session introuvable (ou non chargée).');
                     setErrorMessage('Impossible de lancer la partie : session introuvable.');
+                    setIsButtonDisabled(false);
                     return;
                 }
                 console.log("avant suspect");
@@ -174,6 +177,7 @@ export default function Salon() {
                 const suspects = suspectsResponse.data;
                 if (!suspects || suspects.length === 0) {
                     setErrorMessage('Impossible de récupérer des suspects pour ce type de killer.');
+                    setIsButtonDisabled(false);
                     return;
                 }
 
@@ -211,11 +215,13 @@ export default function Salon() {
                 }
                 await socket.emit('startGame', storedPlayer.sessionId);
                 setIsLoading(false);
+                setIsButtonDisabled(false);
             }, 2000);
         } catch (error) {
             console.error('Erreur lors de la mise à jour de la session ou de la récupération des questions :', error);
             setErrorMessage('Erreur lors de la configuration de la partie.');
             setIsLoading(false);
+            setIsButtonDisabled(false);
         }
     };
 
@@ -271,9 +277,7 @@ export default function Salon() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
-            {isLoading && (
-                <FancyLoader />
-            )}
+            {isLoading && ( <FancyLoader /> )}
             <button
                 onClick={() => router.back()}
                 className="absolute top-4 left-0 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
@@ -358,10 +362,15 @@ export default function Salon() {
 
                         {session.status === 0 ? (
                             isHost && players.length >= 0 ? (
-                                <Button
-                                    label="Lancer la partie"
-                                    onClick={startGame}
-                                    className="py-3 bg-black text-green-500 border-green-500 mt-5"
+                                    <Button
+                                        label="Lancer la partie"
+                                        onClick={startGame}
+                                        disabled={isButtonDisabled}
+                                        className={`py-3 mt-5 border ${
+                                            isButtonDisabled
+                                                ? "bg-black text-gray-400 border-gray-500"
+                                                : "bg-black text-green-500 border-green-500"
+                                        }`}
                                 />
                             ) : (
                                 <p className="text-center text-lg font-Amatic text-green-500 mt-12">
