@@ -231,6 +231,8 @@ export default function Vote() {
         setDisableVote(true);
         console.log('Le temps est écoulé. Les votes sont désormais fermés.');
 
+        sessionStorage.removeItem("timerEndTime:votePhase");
+
         const storedUserData = getStoredUserData();
         if (storedUserData?.sessionId) {
             socket.emit('endGameResults', {
@@ -264,6 +266,8 @@ export default function Vote() {
             return;
         }
 
+        sessionStorage.removeItem("timerEndTime:votePhase");
+
         socket.emit('endGameButton', sessionId);
     };
 
@@ -290,7 +294,7 @@ export default function Vote() {
                 {disableVote ? (
                     <p className="text-red-500 font-Amatic text-2xl">Le vote est terminé</p>
                 ) : (
-                    <Timer initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
+                    <Timer questionId="votePhase"  initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
                 )}
             </div>
 
