@@ -23,11 +23,13 @@ export default function Result() {
 
     const { questionId, answer } = router.query;
 
+
     const checkAlreadyAnsweredInMemory = () => {
         if (alreadyVerifiedThisQuestion) return true;
         alreadyVerifiedThisQuestion = true;
         return false;
     };
+
 
     useEffect(() => {
         if (!socket) {
@@ -49,26 +51,34 @@ export default function Result() {
         };
     }, [router]);
 
+
     useEffect(() => {
         if (socket) {
-            socket.on('refreshHints', () => {
-                loadAccumulatedHintsSoFar();
-            });
+            // Quand la bonne ou mauvaise réponse est donnée par le joueur actif,
+            // on récupère ces infos pour TOUS les joueurs (y compris non-actifs).
             socket.on('answerResult', async (data) => {
                 setCorrect(data.correct);
                 setFeedback(data.feedback);
-                if (questionId) {
+                // On stocke pour tout le monde, et on associe à l'ID de la question
+                // transmis dans "data.questionId"
+                if (data.questionId) {
                     const store = { correct: data.correct, feedback: data.feedback };
-                    sessionStorage.setItem(`answered_${questionId}`, JSON.stringify(store));
+                    sessionStorage.setItem(`answered_${data.questionId}`, JSON.stringify(store));
                 }
                 await loadAccumulatedHintsSoFar();
             });
+
+
+            socket.on('refreshHints', () => {
+                loadAccumulatedHintsSoFar();
+            });
             return () => {
-                socket.off('refreshHints');
                 socket.off('answerResult');
+                socket.off('refreshHints');
             };
         }
-    }, [questionId]);
+    }, []);
+
 
     useEffect(() => {
         defineActivePlayer().then(() => {
@@ -76,15 +86,18 @@ export default function Result() {
         });
     }, [questionId, answer]);
 
+
     useEffect(() => {
         if (checkedActivePlayer) {
             processQuestion();
         }
     }, [checkedActivePlayer, questionId, answer]);
 
+
     useEffect(() => {
         defineButtonVisibility();
     }, [checkedActivePlayer]);
+
 
     const defineActivePlayer = async () => {
         try {
@@ -112,9 +125,9 @@ export default function Result() {
         }
     };
 
+
     const processQuestion = async () => {
         try {
-            // On ne vérifie plus " || !answer " pour ne pas bloquer les autres joueurs
             if (!questionId) {
                 setIsLoading(false);
                 return;
@@ -122,6 +135,7 @@ export default function Result() {
             setIsLoading(true);
             const answeredData = sessionStorage.getItem(`answered_${questionId}`);
             if (!answeredData) {
+                // Seulement le joueur actif fait la vérification
                 if (amIActivePlayer && !checkAlreadyAnsweredInMemory()) {
                     const decryptedQ = decryptParam(questionId);
                     const decryptedA = answer ? decryptParam(answer) : null;
@@ -132,16 +146,21 @@ export default function Result() {
                     const spStr = sessionStorage.getItem('userData');
                     if (spStr && socket) {
                         const sp = JSON.parse(spStr);
+                        // On transmet "questionId" pour que TOUS les joueurs puissent
+                        // lier la réponse bonne/mauvaise à la même question.
                         socket.emit('answerResult', {
                             sessionId: sp.sessionId,
                             correct: result.correct,
                             feedback: result.message,
+                            questionId: decryptedQ,
                         });
                     }
                 } else {
+                    // Les autres joueurs patientent, mais on recharge quand même la liste d'indices
                     await loadAccumulatedHintsSoFar();
                 }
             } else {
+                // Si on a déjà quelque chose en local
                 const parsed = JSON.parse(answeredData);
                 setCorrect(parsed.correct);
                 setFeedback(parsed.feedback);
@@ -154,6 +173,7 @@ export default function Result() {
         setIsLoading(false);
         defineButtonVisibility();
     };
+
 
     const loadAccumulatedHintsSoFar = async () => {
         try {
@@ -194,6 +214,7 @@ export default function Result() {
         }
     };
 
+
     const defineButtonVisibility = async () => {
         try {
             const storedPlayerStr = sessionStorage.getItem('userData');
@@ -222,12 +243,14 @@ export default function Result() {
         }
     };
 
+
     const handleNextQuestion = useCallback(() => {
         const spStr = sessionStorage.getItem('userData');
         if (!spStr) return;
         const sp = JSON.parse(spStr);
         socket.emit('nextQuestion', sp.sessionId);
     }, []);
+
 
     const rememberQuestion = async (qId) => {
         try {
@@ -260,6 +283,7 @@ export default function Result() {
             console.error("Erreur rememberQuestion:", error);
         }
     };
+
 
     const addNewHint = async () => {
         try {
@@ -306,6 +330,7 @@ export default function Result() {
         }
     };
 
+
     const verifyResponse = async (qId, ans) => {
         let result = { correct: false, message: "" };
         try {
@@ -329,7 +354,9 @@ export default function Result() {
         return result;
     };
 
+
     const latestHint = accumulatedHints.length > 0 ? accumulatedHints[accumulatedHints.length - 1] : null;
+
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-start text-white bg-black font-Amatic relative">
@@ -394,3 +421,4 @@ export default function Result() {
         </div>
     );
 }
+
