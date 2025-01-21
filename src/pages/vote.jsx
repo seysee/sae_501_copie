@@ -243,9 +243,10 @@ export default function Vote() {
         }
 
         socket.emit('endGame', getStoredUserData().sessionId, suspects);
+
         setTimeout(() => {
             router.push('/endGame');
-        }, 3000);
+        }, 5000);
     };
 
     const synchronizeTimer = (endTime) => {

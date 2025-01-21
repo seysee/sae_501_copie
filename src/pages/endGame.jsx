@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import Button from "../components/_button";
+import FancyLoader from "../components/_loader";
 
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
@@ -10,6 +11,8 @@ export default function EndGame() {
     const [isVisible, setIsVisible] = useState(false);
     const [showFooter, setShowFooter] = useState(false);
     const router = useRouter();
+    const [isExiting, setIsExiting] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     const getStoredUserData = () => {
         try {
@@ -39,13 +42,14 @@ export default function EndGame() {
 
                 const votedSuspectId = sessionStorage.getItem('votedSuspectId');
                 const isCorrect = votedSuspectId === sessionData.killerId.toString();
-                setVoteMessage(isCorrect ? "Bravo ! Vous avez trouvé le tueur !" : "Perdu ! Ce n'était pas le bon suspect.");
+                setVoteMessage(isCorrect ? "Bravo ! Vous avez trouvé le suspect !" : "Perdu ! Ce n'était pas le bon suspect.");
 
                 setTimeout(() => setIsVisible(true), 300);
                 setTimeout(() => setShowFooter(true), 3500);
             } catch (err) {
                 console.error(err);
                 setError("Erreur lors de la récupération des informations.");
+                setIsLoading(false);
             }
         };
         fetchKiller();
@@ -64,7 +68,11 @@ export default function EndGame() {
 
             sessionStorage.removeItem("votedSuspectId");
 
-            router.push("/");
+            setIsExiting(true);
+
+            setTimeout(() => {
+                router.push("/");
+            }, 1000);
         } catch (error) {
             console.error("Erreur lors du nettoyage des données utilisateur :", error);
             router.push("/");
@@ -79,16 +87,25 @@ export default function EndGame() {
         3: '/videos/staline.mp4',
         4: '/videos/petain.mp4',
         5: '/videos/kimjongil.mp4',
+        6: '/videos/michael.mp4',
+        7: '/videos/freddy.mp4',
+        8: '/videos/darkvador.mp4',
+        9: '/videos/joker.mp4',
+        10: '/videos/thanos.mp4',
     };
 
     return (
-        <div className="min-h-screen flex flex-col justify-center items-center p-4 text-white">
+        <div
+            className={`min-h-screen flex flex-col justify-center items-center p-4 text-white transition-opacity duration-1000 ${
+                isExiting ? "opacity-0" : "opacity-100"
+            }`}
+        >
             {error ? (
-                <p className="text-2xl font-Amatic text-red-500">{error}</p>
-            ) : (
-                suspect && (
-                    <>
-                        <div className="text-center">
+            <p className="text-2xl font-Amatic text-red-500">{error}</p>
+        ) : (
+            suspect && (
+                <>
+                <div className="text-center">
                             <p className={`text-4xl font-Amatic font-bold transition-opacity mb-6 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
                                 {voteMessage}
                             </p>
@@ -125,7 +142,7 @@ export default function EndGame() {
                 )
             )}
 
-            {!suspect && !error && <p className="text-2xl font-Amatic text-gray-400 animate-pulse">Chargement...</p>}
+            {!suspect && !error && <FancyLoader/>}
         </div>
     );
 

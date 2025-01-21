@@ -91,6 +91,7 @@ export default function Profile() {
             setError('Une erreur est survenue. Veuillez réessayer.');
         }
     };
+
     const handleSkinSelect = (id) => {
         console.log("Skin sélectionné :", id);
         setSkin(id)
