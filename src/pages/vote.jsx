@@ -241,12 +241,9 @@ export default function Vote() {
                 votes,
             });
         }
+        const suspectTab = votes.map((vote) => vote.suspectId);
 
-        socket.emit('endGame', getStoredUserData().sessionId, suspects);
-
-        setTimeout(() => {
-            router.push('/endGame');
-        }, 5000);
+        socket.emit('endGame', getStoredUserData().sessionId, suspects, suspectTab);
     };
 
     const synchronizeTimer = (endTime) => {
@@ -268,8 +265,11 @@ export default function Vote() {
         }
 
         sessionStorage.removeItem("timerEndTime:votePhase");
+        const suspectTab = votes.map((vote) => vote.suspectId);
 
-        socket.emit('endGameButton', sessionId);
+        console.log(suspectTab)
+
+        socket.emit('endGameButton', sessionId, suspectTab);
     };
 
     useEffect(() => {

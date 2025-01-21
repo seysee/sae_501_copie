@@ -1,33 +1,39 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useRouter } from 'next/router';
+import {useRouter} from 'next/router';
 import Button from "../components/_button";
+import {decryptParam} from '../lib/cryptoUtils';
 import FancyLoader from "../components/_loader";
 
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
     const [error, setError] = useState(null);
-    const [voteMessage, setVoteMessage] = useState(null);
+    const [voteMessage, setVoteMessage] = useState("");
     const [isVisible, setIsVisible] = useState(false);
     const [showFooter, setShowFooter] = useState(false);
+    const [majority, setMajority] = useState(null);
+    const [suspectFound, setSuspectFound] = useState(false);
+    const [playerStorage, setPlayerStorage] = useState(null);
     const router = useRouter();
+    const {votes} = router.query;
     const [isExiting, setIsExiting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     const getStoredUserData = () => {
         try {
             const storedPlayer = sessionStorage.getItem('userData');
-            if (storedPlayer) {
-                return JSON.parse(storedPlayer);
-            }
-        } catch (error) {
-            console.error('Erreur lors de la récupération des données utilisateur:', error);
+            return storedPlayer ? JSON.parse(storedPlayer) : null;
+        } catch (err) {
+            console.error("Erreur lors de la récupération des données utilisateur :", err);
+            return null;
         }
-        return null;
     };
 
     useEffect(() => {
-        const sessionId = getStoredUserData()?.sessionId;
+        const userData = getStoredUserData();
+        console.log(userData)
+        setPlayerStorage(userData);
+        const sessionId = userData?.sessionId;
 
         if (!sessionId) {
             setError("Session ID manquant ou invalide.");
@@ -36,13 +42,9 @@ export default function EndGame() {
 
         const fetchKiller = async () => {
             try {
-                const { data: sessionData } = await axios.get(`/api/session?id=${sessionId}`);
-                const { data: suspectData } = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
+                const {data: sessionData} = await axios.get(`/api/session?id=${sessionId}`);
+                const {data: suspectData} = await axios.get(`/api/suspect?id=${sessionData.killerId}`);
                 setSuspect(suspectData);
-
-                const votedSuspectId = sessionStorage.getItem('votedSuspectId');
-                const isCorrect = votedSuspectId === sessionData.killerId.toString();
-                setVoteMessage(isCorrect ? "Bravo ! Vous avez trouvé le suspect !" : "Perdu ! Ce n'était pas le bon suspect.");
 
                 setTimeout(() => setIsVisible(true), 300);
                 setTimeout(() => setShowFooter(true), 3500);
@@ -52,34 +54,47 @@ export default function EndGame() {
                 setIsLoading(false);
             }
         };
+
         fetchKiller();
     }, []);
 
-    const handleReturnHome = () => {
+    useEffect(() => {
+        if (!votes) return;
+        console.log(playerStorage)
+
         try {
-            const userData = JSON.parse(sessionStorage.getItem("userData"));
+            const allVotesString = decryptParam(votes);
+            console.log("Votes décryptés :", allVotesString);
 
-            if (userData) {
-                const { name, skin, id } = userData;
-                const filteredUserData = { name, skin, id };
+            const allVotesArray = allVotesString.split(',').map(Number);
+            const majorityVote = getMajority(allVotesArray);
 
-                sessionStorage.setItem("userData", JSON.stringify(filteredUserData));
+            setMajority(majorityVote);
+
+            if (suspect && suspect.id === majorityVote) {
+                setSuspectFound(true);
+            } else {
+                setSuspectFound(false);
             }
+        } catch (err) {
+            console.error("Erreur lors du décryptage des votes :", err);
 
-            sessionStorage.removeItem("votedSuspectId");
+    }, [votes, suspect]);
 
-            setIsExiting(true);
-
-            setTimeout(() => {
-                router.push("/");
-            }, 1000);
-        } catch (error) {
-            console.error("Erreur lors du nettoyage des données utilisateur :", error);
-            router.push("/");
-        }
+    const getMajority = (votesArray) => {
+        const voteCount = {};
+        votesArray.forEach(vote => {
+            voteCount[vote] = (voteCount[vote] || 0) + 1;
+        });
+        const majority = Object.keys(voteCount).reduce((a, b) =>
+            voteCount[a] > voteCount[b] ? a : b
+        );
+        return parseInt(majority, 10);
     };
 
-    const playerName = getStoredUserData()?.name || "Joueur";
+    const handleReturnHome = () => {
+        router.push("/");
+    };
 
     const suspectVideos = {
         1: '/videos/mussolini.mp4',
@@ -94,45 +109,45 @@ export default function EndGame() {
         10: '/videos/thanos.mp4',
     };
 
+
     return (
-        <div
-            className={`min-h-screen flex flex-col justify-center items-center p-4 text-white transition-opacity duration-1000 ${
-                isExiting ? "opacity-0" : "opacity-100"
-            }`}
-        >
+        <div className="min-h-screen flex flex-col justify-center items-center p-4 text-white">
             {error ? (
-            <p className="text-2xl font-Amatic text-red-500">{error}</p>
-        ) : (
-            suspect && (
-                <>
-                <div className="text-center">
-                            <p className={`text-4xl font-Amatic font-bold transition-opacity mb-6 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
-                                {voteMessage}
+                <p className="text-2xl font-Amatic text-red-500">{error}</p>
+            ) : (
+                suspect && (
+                    <>
+                        <div className="text-center">
+                            <p className={`text-4xl font-Amatic font-bold transition-opacity mb-6 duration-5000 ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                                {suspectFound
+                                    ? playerStorage?.role === 0
+                                        ? "Bravo ! Vous avez trouvé le tueur, les enquêteurs ont gagné !"
+                                        : "Perdu ! Les enquêteurs ont gagné !"
+                                    : playerStorage?.role === 0
+                                        ? "Perdu ! Les enquêteurs ont perdu !"
+                                        : "Bravo ! Les enquêteurs ont perdu !"}
                             </p>
 
-                            <p className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                            <p className={`text-3xl font-Amatic font-bold transition-opacity mb-10 duration-5000 ${isVisible ? "opacity-100" : "opacity-0"}`}>
                                 Le tueur était <span className="text-red-500">{suspect.name}</span>...
                             </p>
-
                             {suspectVideos[suspect.id] && (
                                 <video
-                                    className={`w-96 h-56 mx-auto mt-4 transition-opacity duration-[5000ms] ${isVisible ? "opacity-100" : "opacity-0"}`}
+                                    className={`w-96 h-56 mx-auto mt-4 transition-opacity duration-5000 ${isVisible ? "opacity-100" : "opacity-0"}`}
                                     src={suspectVideos[suspect.id]}
                                     autoPlay
                                     loop
                                     muted
                                 />
                             )}
-
                         </div>
-
                         <div className="mt-12">
-                            <p className={`text-xl font-Amatic text-gray-300 transition-opacity duration-[5000ms] delay-500 ${showFooter ? "opacity-100" : "opacity-0"}`}>
-                                Merci d'avoir joué, <span className="font-bold">{playerName}</span> ! Nous espérons te revoir bientôt.
+                            <p className={`text-xl font-Amatic text-gray-300 transition-opacity duration-5000 delay-500 ${showFooter ? "opacity-100" : "opacity-0"}`}>
+                                Merci d'avoir joué, <span className="font-bold">{playerStorage.name}</span> !
                             </p>
                             <Button
                                 onClick={handleReturnHome}
-                                className={`mt-4 w-40 px-4 py-2 text-xl text-gray-300 border border-gray-300 rounded-lg shadow-md hover:border-gray-400 hover:text-gray-400 transition duration-[5000ms] delay-500 ${
+                                className={`mt-4 w-40 px-4 py-2 text-xl text-gray-300 border border-gray-300 rounded-lg shadow-md hover:border-gray-400 hover:text-gray-400 transition duration-5000 delay-500 ${
                                     showFooter ? "opacity-100" : "opacity-0"
                                 }`}
                                 label={"Terminer la partie"}
@@ -141,9 +156,9 @@ export default function EndGame() {
                     </>
                 )
             )}
-
-            {!suspect && !error && <FancyLoader/>}
+            {!suspect && !error && (
+                <p className="text-2xl font-Amatic text-gray-400 animate-pulse">Chargement...</p>
+            )}
         </div>
     );
-
 }
