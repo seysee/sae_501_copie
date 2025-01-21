@@ -1,10 +1,11 @@
 // src/pages/result.jsx
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/router';
+import {useEffect, useState, useCallback} from 'react';
+import {useRouter} from 'next/router';
 import io from 'socket.io-client';
 import axios from 'axios';
-import { decryptParam } from '../lib/cryptoUtils';
+import {decryptParam} from '../lib/cryptoUtils';
 import Hint from "../components/hint";
+import {applyNextWorkerFixture} from "next/dist/experimental/testmode/playwright/next-worker-fixture";
 
 let socket;
 
@@ -44,16 +45,15 @@ export default function Result() {
     const [correct, setCorrect] = useState(false);
     const [showButton, setShowButton] = useState(false);
     const [latestUnlockedHint, setLatestUnlockedHint] = useState(null);
-
-    // États pour gérer la modal des indices
     const [showModal, setShowModal] = useState(false);
     const [accumulatedHints, setAccumulatedHints] = useState([]);
 
-    const { questionId, answer } = router.query;
+    const {questionId, answer} = router.query;
+    const [solution, setSolution] = useState("")
 
     useEffect(() => {
         if (!socket) {
-            socket = io({ path: '/api/socket' });
+            socket = io({path: '/api/socket'});
             const storedPlayerStr = sessionStorage.getItem('userData');
             if (storedPlayerStr) {
                 const storedPlayer = JSON.parse(storedPlayerStr);
@@ -84,8 +84,6 @@ export default function Result() {
         }
     }, []);
 
-    // On déplace toute la logique de "fin du chargement" ici,
-    // avec un délai de 2s AVANT d’enlever le loader.
     useEffect(() => {
         const processQuestion = async () => {
             try {
@@ -127,12 +125,36 @@ export default function Result() {
         processQuestion();
     }, [questionId, answer]);
 
-    // Vérifier qui doit voir le bouton
     useEffect(() => {
         defineButtonVisibility();
     }, []);
 
-    // Fonction pour charger tous les hints accumulés
+    useEffect(() => {
+        const fetchQuestionDetails = async () => {
+            const decryptedQuestionId = decryptParam(questionId);
+
+            console.log("QUESTION ID", decryptedQuestionId)
+            if (decryptedQuestionId) {
+
+                try {
+                    const responseQuestion = await axios.get("/api/question/question", {
+                        params: {id: decryptedQuestionId},
+                    });
+                    console.log("RESPONSE DE QUESTION", responseQuestion.data);
+                    if (responseQuestion.data.type !== "action") {
+                        setSolution(responseQuestion.data.solution);
+                    }
+
+                } catch (error) {
+                    console.error("Erreur lors de la récupération de la question :", error);
+                }
+            }
+        };
+
+        fetchQuestionDetails();
+    }, [questionId]); // Déclenché uniquement lorsque questionId change
+
+
     const loadAccumulatedHintsSoFar = async () => {
         try {
             const storedPlayerStr = sessionStorage.getItem('userData');
@@ -140,7 +162,7 @@ export default function Result() {
             const storedPlayer = JSON.parse(storedPlayerStr);
             const sessionId = storedPlayer.sessionId;
 
-            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
+            const sessionResp = await axios.get("/api/session", {params: {id: sessionId}});
             const sessionData = sessionResp.data;
 
             let usedHints = [];
@@ -153,7 +175,7 @@ export default function Result() {
 
             if (sessionData.killerId) {
                 const allHintsResp = await axios.get("/api/suspect_hints", {
-                    params: { suspectId: sessionData.killerId },
+                    params: {suspectId: sessionData.killerId},
                 });
                 const suspectHints = allHintsResp.data;
 
@@ -165,7 +187,7 @@ export default function Result() {
                 const newestHint = matched.length > 0 ? matched[matched.length - 1] : null;
                 setLatestUnlockedHint(newestHint);
                 setAccumulatedHints(matched);
-                console.log("LATEST HINT",latestUnlockedHint)
+                console.log("LATEST HINT", latestUnlockedHint)
 
                 // Sauvegarder les indices dans sessionStorage
                 const answeredData = sessionStorage.getItem(`answered_${questionId}`);
@@ -190,11 +212,11 @@ export default function Result() {
             const sessionId = storedPlayer.sessionId;
             const myId = storedPlayer.id;
 
-            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
+            const sessionResp = await axios.get("/api/session", {params: {id: sessionId}});
             const serverSession = sessionResp.data;
             const aIndex = serverSession.activePlayerIndex;
 
-            const playersResp = await axios.get("/api/player", { params: { sessionId: sessionId } });
+            const playersResp = await axios.get("/api/player", {params: {sessionId: sessionId}});
             const players = playersResp.data;
 
             // Session solo ?
@@ -227,7 +249,7 @@ export default function Result() {
             const storedPlayer = JSON.parse(storedPlayerStr);
             const sessionId = storedPlayer.sessionId;
 
-            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
+            const sessionResp = await axios.get("/api/session", {params: {id: sessionId}});
             const sessionData = sessionResp.data;
             if (!sessionData) return;
 
@@ -266,7 +288,7 @@ export default function Result() {
             const storedPlayer = JSON.parse(storedPlayerStr);
             const sessionId = storedPlayer.sessionId;
 
-            const sessionResp = await axios.get("/api/session", { params: { id: sessionId } });
+            const sessionResp = await axios.get("/api/session", {params: {id: sessionId}});
             const sessionData = sessionResp.data;
             if (!sessionData) return null;
 
@@ -286,7 +308,7 @@ export default function Result() {
             const killerId = sessionData.killerId;
             if (!killerId) return null;
 
-            const hintsResp = await axios.get("/api/suspect_hints", { params: { suspectId: killerId } });
+            const hintsResp = await axios.get("/api/suspect_hints", {params: {suspectId: killerId}});
             const suspectHints = hintsResp.data;
             const availableHints = suspectHints.filter(h => !usedHints.includes(h.id));
 
@@ -318,9 +340,8 @@ export default function Result() {
         }
     };
 
-    // Vérifie la réponse (ne retire plus le loader ici)
     const verifyResponse = async (qId, ans) => {
-        let result = { correct: false, message: "" };
+        let result = {correct: false, message: ""};
         try {
             const response = await axios.post("/api/question/answer", {
                 id: qId,
@@ -351,33 +372,34 @@ export default function Result() {
     return (
         <div className="min-h-screen flex flex-col items-center justify-start text-white bg-black font-Amatic relative">
             {isLoading ? (
-                // Affiche ton loader personnalisé
-                <FancyLoader />
+                <FancyLoader/>
             ) : (
 
                 <>
-                    {/* Une fois que c’est chargé : Bonne/Mauvaise Réponse */}
                     {correct ? (
                         <h1 className="text-5xl mt-10 mb-4 text-green-500 font-Amatic">Bonne Réponse !</h1>
                     ) : (
                         <h1 className="text-5xl mt-10 mb-4 text-red-500 font-Amatic">Mauvaise Réponse !</h1>
                     )}
 
-                    {/* Feedback */}
                     <p className="text-2xl mb-8 text-center font-Amatic">{feedback}</p>
 
-                    {/* Indice débloqué (si correct) */}
                     {correct && latestHint && (
                         <div className="text-3xl text-white font-bold font-Amatic mb-8">
-                            <Hint hint={latestHint} />
+                            <Hint hint={latestHint}/>
                         </div>
                     )}
 
-                    {/* Bouton pour passer à la prochaine question */}
+                    {!correct && solution && (
+                        <p className="text-xl text-white font-Amatic mb-8">
+                            La réponse était <span className="font-bold font-Amatic">"{solution}"</span>
+                        </p>
+                    )}
+
                     {showButton && (
                         <button
                             onClick={handleNextQuestion}
-                            className="mt-8 py-4 px-16 text-3xl font-extrabold border-4 border-white text-white rounded-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-110 shadow-2xl font-Amatic"
+                            className="mt-8 py-4 px-16 text-2xl font-extrabold border-4 border-white text-white rounded-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-110 shadow-2xl font-Amatic"
                         >
                             Passer à la prochaine question
                         </button>
@@ -447,144 +469,143 @@ export default function Result() {
                 }
             `}</style>
 
-            {/* CSS globale pour le loader (variables, keyframes, etc.) */}
             <style jsx global>{`
-                .loader { 
-                  --path: yellow;
-                  --dot: green;
-                  --duration: 3s;
-                  width: 44px;
-                  height: 44px;
-                  position: relative;
-                  display: inline-block;
-                  margin: 0 8px;
+                .loader {
+                    --path: yellow;
+                    --dot: green;
+                    --duration: 3s;
+                    width: 44px;
+                    height: 44px;
+                    position: relative;
+                    display: inline-block;
+                    margin: 0 8px;
                 }
 
                 .loader:before {
-                  content: "";
-                  width: 6px;
-                  height: 6px;
-                  border-radius: 50%;
-                  position: absolute;
-                  display: block;
-                  background: var(--dot);
-                  top: 37px;
-                  left: 19px;
-                  transform: translate(-18px, -18px);
-                  animation: dotRect var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                    content: "";
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    position: absolute;
+                    display: block;
+                    background: var(--dot);
+                    top: 37px;
+                    left: 19px;
+                    transform: translate(-18px, -18px);
+                    animation: dotRect var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
                 }
 
                 .loader svg {
-                  display: block;
-                  width: 100%;
-                  height: 100%;
+                    display: block;
+                    width: 100%;
+                    height: 100%;
                 }
 
                 .loader svg rect,
                 .loader svg polygon,
                 .loader svg circle {
-                  fill: none;
-                  stroke: var(--path);
-                  stroke-width: 10px;
-                  stroke-linejoin: round;
-                  stroke-linecap: round;
+                    fill: none;
+                    stroke: var(--path);
+                    stroke-width: 10px;
+                    stroke-linejoin: round;
+                    stroke-linecap: round;
                 }
 
                 .loader svg polygon {
-                  stroke-dasharray: 145 76 145 76;
-                  stroke-dashoffset: 0;
-                  animation: pathTriangle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                    stroke-dasharray: 145 76 145 76;
+                    stroke-dashoffset: 0;
+                    animation: pathTriangle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
                 }
 
                 .loader svg rect {
-                  stroke-dasharray: 192 64 192 64;
-                  stroke-dashoffset: 0;
-                  animation: pathRect var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                    stroke-dasharray: 192 64 192 64;
+                    stroke-dashoffset: 0;
+                    animation: pathRect var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
                 }
 
                 .loader svg circle {
-                  stroke-dasharray: 150 50 150 50;
-                  stroke-dashoffset: 75;
-                  animation: pathCircle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                    stroke-dasharray: 150 50 150 50;
+                    stroke-dashoffset: 75;
+                    animation: pathCircle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
                 }
 
                 .loader.triangle {
-                  width: 48px;
+                    width: 48px;
                 }
 
                 .loader.triangle:before {
-                  left: 21px;
-                  transform: translate(-10px, -18px);
-                  animation: dotTriangle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
+                    left: 21px;
+                    transform: translate(-10px, -18px);
+                    animation: dotTriangle var(--duration) cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite;
                 }
 
                 @keyframes pathTriangle {
-                  33% {
-                    stroke-dashoffset: 74;
-                  }
-                  66% {
-                    stroke-dashoffset: 147;
-                  }
-                  100% {
-                    stroke-dashoffset: 221;
-                  }
+                    33% {
+                        stroke-dashoffset: 74;
+                    }
+                    66% {
+                        stroke-dashoffset: 147;
+                    }
+                    100% {
+                        stroke-dashoffset: 221;
+                    }
                 }
 
                 @keyframes dotTriangle {
-                  33% {
-                    transform: translate(0, 0);
-                  }
-                  66% {
-                    transform: translate(10px, -18px);
-                  }
-                  100% {
-                    transform: translate(-10px, -18px);
-                  }
+                    33% {
+                        transform: translate(0, 0);
+                    }
+                    66% {
+                        transform: translate(10px, -18px);
+                    }
+                    100% {
+                        transform: translate(-10px, -18px);
+                    }
                 }
 
                 @keyframes pathRect {
-                  25% {
-                    stroke-dashoffset: 64;
-                  }
-                  50% {
-                    stroke-dashoffset: 128;
-                  }
-                  75% {
-                    stroke-dashoffset: 192;
-                  }
-                  100% {
-                    stroke-dashoffset: 256;
-                  }
+                    25% {
+                        stroke-dashoffset: 64;
+                    }
+                    50% {
+                        stroke-dashoffset: 128;
+                    }
+                    75% {
+                        stroke-dashoffset: 192;
+                    }
+                    100% {
+                        stroke-dashoffset: 256;
+                    }
                 }
 
                 @keyframes dotRect {
-                  25% {
-                    transform: translate(0, 0);
-                  }
-                  50% {
-                    transform: translate(18px, -18px);
-                  }
-                  75% {
-                    transform: translate(0, -36px);
-                  }
-                  100% {
-                    transform: translate(-18px, -18px);
-                  }
+                    25% {
+                        transform: translate(0, 0);
+                    }
+                    50% {
+                        transform: translate(18px, -18px);
+                    }
+                    75% {
+                        transform: translate(0, -36px);
+                    }
+                    100% {
+                        transform: translate(-18px, -18px);
+                    }
                 }
 
                 @keyframes pathCircle {
-                  25% {
-                    stroke-dashoffset: 125;
-                  }
-                  50% {
-                    stroke-dashoffset: 175;
-                  }
-                  75% {
-                    stroke-dashoffset: 225;
-                  }
-                  100% {
-                    stroke-dashoffset: 275;
-                  }
+                    25% {
+                        stroke-dashoffset: 125;
+                    }
+                    50% {
+                        stroke-dashoffset: 175;
+                    }
+                    75% {
+                        stroke-dashoffset: 225;
+                    }
+                    100% {
+                        stroke-dashoffset: 275;
+                    }
                 }
             `}</style>
         </div>
