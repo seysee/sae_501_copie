@@ -287,7 +287,7 @@ export default function Salon() {
                     <div className="w-full max-w-md">
                         <p className="text-2xl mb-5 font-Roboto flex items-center">
                             Code :{" "}
-                            <span className="font-bold  text-red-500 ml-2">
+                            <span className="font-bold text-red-500 ml-2">
     {session.code || "Chargement..."}
   </span>
                             <span className="font-bold text-red-500 ml-2">
