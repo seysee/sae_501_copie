@@ -84,19 +84,23 @@ export default function Game() {
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
             <RoleSlide />
             <div className="w-full max-w-lg flex flex-col items-center py-20 space-y-8">
-                <h1 className="text-6xl font-Amatic text-yellow-400">Énigme</h1>
+                {/* Affiche le loader tant que isLoading est vrai */}
                 {isLoading ? (
                     <FancyLoader />
                 ) : (
-                    <div className="w-full max-w-md text-center">
-                        <GenericQuestion
-                            question={question}
-                            onSuccess={handleSuccess}
-                            socket={socket}
-                            isActive={amIActive}
-                            activePlayerName={activePlayer?.name}
-                        />
-                    </div>
+                    <>
+                        {/* Une fois chargé, on affiche le titre "Énigme" et la question */}
+                        <h1 className="text-6xl font-Amatic text-yellow-400">Énigme</h1>
+                        <div className="w-full max-w-md text-center">
+                            <GenericQuestion
+                                question={question}
+                                onSuccess={handleSuccess}
+                                socket={socket}
+                                isActive={amIActive}
+                                activePlayerName={activePlayer?.name}
+                            />
+                        </div>
+                    </>
                 )}
             </div>
         </div>
