@@ -93,10 +93,13 @@ export default function Index() {
 
             console.log('Données mises à jour :', updatedPlayer.data);
 
-            // Mise à jour du sessionStorage
             const updatedUserData = {...updatedPlayer.data, sessionId: sessionResponse.data.id};
             sessionStorage.setItem('userData', JSON.stringify(updatedUserData));
-            router.push('/salon');
+
+            setTimeout(() => {
+                    router.push('/salon');
+                    setIsLoading(false);
+                }, 500);
 
         } catch (error) {
             console.error('Erreur lors de la création de la session ou de la mise à jour du joueur :', error);
@@ -106,13 +109,13 @@ export default function Index() {
         }
     };
 
-    const navigateWithLoader = (path) => {
-        setIsLoading(true);
+    const handleRedirect = (path) => {
+        setIsLoading(true); // Active le loader avant la redirection
         setTimeout(() => {
             router.push(path);
-        }, 1000);
+            setIsLoading(false); // Désactive le loader après la redirection
+        }, 500);
     };
-
 
     return (
         <div>
@@ -146,7 +149,7 @@ export default function Index() {
                                     <Button
                                         label={userPseudo ? "Profil" : "Créer profil"}
                                         className="mb-4 bg-black text-white border-white"
-                                        onClick={() => navigateWithLoader('/profile')}
+                                        onClick={() => handleRedirect('/profile')}
                                     />
                                 </Link>
 
@@ -161,7 +164,7 @@ export default function Index() {
                                             <Button
                                                 label="Rejoindre partie"
                                                 className="mb-4 bg-black text-white border-white"
-                                                onClick={() => navigateWithLoader('/joinGame')}
+                                                onClick={() => handleRedirect('/joinGame')}
                                             />
                                         </Link>
                                     </>
@@ -171,7 +174,7 @@ export default function Index() {
                                     <Button
                                         label="Règles"
                                         className="bg-black font-bold text-red-500 border-red-600"
-                                        onClick={() => navigateWithLoader('/rules')}
+                                        onClick={() => handleRedirect('/rules')}
                                     />
                                 </Link>
                             </div>

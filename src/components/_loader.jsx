@@ -1,6 +1,6 @@
 export default function FancyLoader() {
     return (
-        <div className="fixed inset-0 flex items-center justify-center z-50 fade-in fade-out">
+        <div className="fixed inset-0 flex items-center justify-center z-50 fade-in">
             <div className="flex flex-row items-center justify-center space-x-6">
                 {/* Cercle */}
                 <div className="loader">
@@ -24,11 +24,7 @@ export default function FancyLoader() {
 
             <style jsx global>{`
                 .fade-in {
-                    animation: fadeIn 1s ease-out;
-                }
-
-                .fade-out {
-                    animation: fadeOut 1s ease-out forwards;
+                    animation: fadeIn 1.5s ease-in-out; /* Plus fluide avec ease-in-out */
                 }
 
                 .loader {
@@ -175,15 +171,6 @@ export default function FancyLoader() {
                     }
                     100% {
                         opacity: 1;
-                    }
-                }
-
-                @keyframes fadeOut {
-                    0% {
-                        opacity: 1;
-                    }
-                    100% {
-                        opacity: 0;
                     }
                 }
             `}</style>

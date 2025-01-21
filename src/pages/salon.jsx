@@ -85,6 +85,7 @@ export default function Salon() {
             setErrorMessage('Aucune donnée utilisateur trouvée en sessionStorage.');
             return;
         }
+
         fetchSessionBySessionId(storedPlayer.sessionId);
         fetchPlayersBySessionId(storedPlayer.sessionId);
 
