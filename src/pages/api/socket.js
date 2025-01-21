@@ -55,6 +55,15 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('updatePlayers', sessions[sessionId].players);
             });
 
+            socket.on('answerResult', (data) => {
+                // data = { sessionId, correct, feedback }
+                // On propage cet événement à tous les clients de la session
+                io.to(data.sessionId).emit('answerResult', {
+                    correct: data.correct,
+                    feedback: data.feedback,
+                });
+            });
+
             // Démarrer une partie
             socket.on('startGame', (sessionId) => {
                 console.log(`La partie dans la session ${sessionId} commence.`);
