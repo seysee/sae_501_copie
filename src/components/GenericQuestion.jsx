@@ -23,11 +23,18 @@ export default function GenericQuestion({ question, onSuccess, socket, isActive,
         if (socket) {
             socket.on("answerSubmitted", ({ redirectUrl }) => {
                 if (redirectUrl) {
+                    sessionStorage.removeItem(`timerEndTime:${question.id}`);
+
                     window.location.href = redirectUrl;
                 }
             });
         }
-    }, [socket]);
+        return () => {
+            if (socket) {
+                socket.off("answerSubmitted");
+            }
+        };
+    }, [socket, question.id]);
 
     useEffect(() => {
         if (question.assets) {
@@ -120,7 +127,7 @@ export default function GenericQuestion({ question, onSuccess, socket, isActive,
     return (
         <div className="flex flex-col items-center justify-center text-white">
             <h1 className="text-4xl mb-4 font-Amatic font-bold">{question.question}</h1>
-            <Timer initialTime={question.duration} onTimeUp={handleTimeUp} paused={paused || timeUp} />
+            <Timer questionId={question.id} initialTime={question.duration} onTimeUp={handleTimeUp} paused={paused || timeUp} />
 
             {isActive ? (
                 <>
