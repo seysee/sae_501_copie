@@ -75,29 +75,24 @@ export default function Result() {
 
     useEffect(() => {
         if (socket) {
-            // Quand la bonne ou mauvaise réponse est donnée par le joueur actif,
-            // on récupère ces infos pour TOUS les joueurs (y compris non-actifs).
-            socket.on('answerResult', async (data) => {
-                setCorrect(data.correct);
-                setFeedback(data.feedback);
-                // On stocke pour tout le monde, et on associe à l'ID de la question
-                // transmis dans "data.questionId"
-                if (data.questionId) {
-                    const store = { correct: data.correct, feedback: data.feedback };
-                    sessionStorage.setItem(`answered_${data.questionId}`, JSON.stringify(store));
-                }
-                await loadAccumulatedHintsSoFar();
-            });
-
             socket.on('refreshHints', () => {
                 loadAccumulatedHintsSoFar();
             });
+            socket.on('answerResult', async (data) => {
+                setCorrect(data.correct);
+                setFeedback(data.feedback);
+                if (questionId) {
+                    const store = { correct: data.correct, feedback: data.feedback };
+                    sessionStorage.setItem(`answered_${questionId}`, JSON.stringify(store));
+                }
+                await loadAccumulatedHintsSoFar();
+            });
             return () => {
-                socket.off('answerResult');
                 socket.off('refreshHints');
+                socket.off('answerResult');
             };
         }
-    }, []);
+    }, [questionId]);
 
     useEffect(() => {
         defineActivePlayer().then(() => {
@@ -143,6 +138,7 @@ export default function Result() {
 
     const processQuestion = async () => {
         try {
+            // On ne vérifie plus " || !answer " pour ne pas bloquer les autres joueurs
             if (!questionId) {
                 setIsLoading(false);
                 return;
@@ -150,7 +146,6 @@ export default function Result() {
             setIsLoading(true);
             const answeredData = sessionStorage.getItem(`answered_${questionId}`);
             if (!answeredData) {
-                // Seulement le joueur actif fait la vérification
                 if (amIActivePlayer && !checkAlreadyAnsweredInMemory()) {
                     const decryptedQ = decryptParam(questionId);
                     const decryptedA = answer ? decryptParam(answer) : null;
@@ -161,21 +156,16 @@ export default function Result() {
                     const spStr = sessionStorage.getItem('userData');
                     if (spStr && socket) {
                         const sp = JSON.parse(spStr);
-                        // On transmet "questionId" pour que TOUS les joueurs puissent
-                        // lier la réponse bonne/mauvaise à la même question.
                         socket.emit('answerResult', {
                             sessionId: sp.sessionId,
                             correct: result.correct,
                             feedback: result.message,
-                            questionId: decryptedQ,
                         });
                     }
                 } else {
-                    // Les autres joueurs patientent, mais on recharge quand même la liste d'indices
                     await loadAccumulatedHintsSoFar();
                 }
             } else {
-                // Si on a déjà quelque chose en local
                 const parsed = JSON.parse(answeredData);
                 setCorrect(parsed.correct);
                 setFeedback(parsed.feedback);
