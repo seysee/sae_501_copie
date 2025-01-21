@@ -154,6 +154,7 @@ export default function Salon() {
                 if (!storedPlayer) {
                     console.error('Aucune donnée utilisateur trouvée.');
                     setErrorMessage('Impossible de lancer la partie : aucune donnée utilisateur trouvée.');
+                    setIsLoading(false);
                     return;
                 }
 
@@ -168,7 +169,7 @@ export default function Salon() {
                 console.log("avant suspect");
 
                 const suspectsResponse = await axios.get("/api/suspect", {
-                    params: { killerType: killerType },
+                    params: {killerType: killerType},
                 });
                 const suspects = suspectsResponse.data;
                 if (!suspects || suspects.length === 0) {
@@ -270,28 +271,30 @@ export default function Salon() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white">
-            {(
-                <button
-                    onClick={() => router.back()}
-                    className="absolute top-4 left-0 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
-                    title="Retour"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="w-6 h-6"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15.75 19.5L8.25 12l7.5-7.5"
-                        />
-                    </svg>
-                </button>
+            {isLoading && (
+                <FancyLoader />
             )}
+            <button
+                onClick={() => router.back()}
+                className="absolute top-4 left-0 flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full text-white hover:bg-gray-700"
+                title="Retour"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-6 h-6"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 19.5L8.25 12l7.5-7.5"
+                    />
+                </svg>
+            </button>
+
             {session ? (
                 <>
                     <h1 className="text-5xl font-Amatic mb-12">Créer une partie</h1>
@@ -306,7 +309,7 @@ export default function Salon() {
                             <button
                                 onClick={handleCopyCode}
                                 title="Copier le code"
-                                className="relative ml-4 focus:outline-none" >
+                                className="relative ml-4 focus:outline-none">
                                 {/* Icône composée de 2 carrés superposés */}
                                 <svg
                                     className="w-6 h-6 text-white hover:text-gray-300"
