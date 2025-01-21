@@ -234,15 +234,15 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('allVotes', sessionVote[sessionId]);
             });
 
-            socket.on('getVoteEndTime', (sessionId, timer) => {
+            socket.on('getVoteEndTime', (sessionId, timer ) => {
                 socket.join(sessionId);
 
                 if (!sessionTimerVote[sessionId]) {
                     sessionTimerVote[sessionId] = timer; // Initialiser le timer pour la session
                 }
-                if (timerAlreadyEnd[sessionId] === true) {
+                if (timerAlreadyEnd[sessionId] === true){
                     const message = "vote fini"
-                    io.to(sessionId).emit('endVote', {message});
+                    io.to(sessionId).emit('endVote', { message });
                     return
                 }
                 let returnTimer = sessionTimerVote[sessionId];
@@ -252,18 +252,17 @@ export default function handler(req, res) {
                         if (returnTimer > 0) {
                             returnTimer -= 1;
                             sessionTimerVote[sessionId] = returnTimer; // Mettre à jour le timer
-                            io.to(sessionId).emit('VoteTime', {returnTimer}); // Émettre le temps restant
+                            io.to(sessionId).emit('VoteTime', { returnTimer }); // Émettre le temps restant
                         } else {
-                            clearInterval(intervalId); // Stopper l'intervalle
+                            clearInterval(intervalId);
                             timerAlreadyEnd[sessionId] = true;
-                            io.to(sessionId).emit('endVote', {returnTimer: 0}); // Notifier la fin du vote
+                            io.to(sessionId).emit('endVote', { returnTimer: 0 });
                             if (sessions[sessionId]) {
-                                delete sessions[sessionId].intervalId; // Supprimer la référence de l'intervalle
+                                delete sessions[sessionId].intervalId;
                             }
                         }
                     }, 1000);
 
-                    // Stocker l'intervalle pour éviter des doublons
                     if (!sessions[sessionId]) {
                         sessions[sessionId] = {};
                     }
@@ -277,8 +276,8 @@ export default function handler(req, res) {
                 if (!sessions[sessionId]) {
                     sessions[sessionId] = {};
                 }
-                sessions[sessionId].endTime = endTime; // Stocker la fin du vote
-                io.to(sessionId).emit('voteStart', {endTime}); // Émettre l'événement de début de vote
+                sessions[sessionId].endTime = endTime;
+                io.to(sessionId).emit('voteStart', { endTime });
             });
 
 

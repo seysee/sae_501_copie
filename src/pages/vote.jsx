@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import Timer from '../components/_timer';
@@ -6,7 +6,7 @@ import Modal from '../components/_modal';
 import AllHints from '../components/_allHints';
 import _button from "../components/_button";
 import skinsData from "/src/data/skins";
-import {useRouter} from 'next/router';
+import { useRouter } from 'next/router';
 import Button from "../components/_button";
 import Image from "next/image";
 
@@ -16,12 +16,10 @@ export default function Vote() {
     const [error, setError] = useState(null);
     const [socket, setSocket] = useState(null);
     const [votes, setVotes] = useState([]);
-
     const [voters, setVoters] = useState([]);
-    const [disableVote, setDisableVote] = useState(false);
-    const [initialTime, setInitialTime] = useState(60);
+    const [disableVote, setDisableVote] = useState(false); // initially set to true to avoid premature voting
+    const [initialTime, setInitialTime] = useState(null);
     const [votedSuspectId, setVotedSuspectId] = useState(null);
-
     const [showModal, setShowModal] = useState(false);
     const [selectedSuspect, setSelectedSuspect] = useState(null);
     const router = useRouter();
@@ -29,9 +27,9 @@ export default function Vote() {
     const skins = skinsData.skins;
 
     const getPlayerSkin = (playerSkinId) => {
-        const playerSkin = skins.find((skin) => skin.id === playerSkinId)
-        return playerSkin.skin
-    }
+        const playerSkin = skins.find((skin) => skin.id === playerSkinId);
+        return playerSkin.skin;
+    };
 
     useEffect(() => {
         const storedUserData = getStoredUserData();
@@ -40,17 +38,8 @@ export default function Vote() {
             fetchSuspects();
             fetchPlayersBySessionId(storedUserData.sessionId);
 
-            /*if (socket && storedUserData?.sessionId) {
-                socket.emit('getVoteEndTime', storedUserData.sessionId, (response) => {
-                    if (response?.endTime) {
-                        const timeLeft = synchronizeTimer(response.endTime);
-                        setInitialTime(timeLeft);
-                        if (timeLeft === 0) setDisableVote(true);
-                    }
-                });
-            }*/
             if (socket && storedUserData?.sessionId) {
-                socket.emit('getVoteEndTime', storedUserData.sessionId, initialTime);
+                socket.emit('getVoteEndTime', storedUserData.sessionId, 60);
             }
         }
     }, [socket]);
@@ -65,13 +54,14 @@ export default function Vote() {
             console.error('Erreur de vote reçue :', errorMessage);
             alert(errorMessage);
         });
-        startVote(initialTime)
+        startVote(initialTime);
+
         const handleVotesUpdate = (votes) => {
             console.log('Mise à jour des votes reçue :', votes);
             setVotes(votes);
 
             const storedUserData = getStoredUserData();
-            const userVote = votes.find(vote => vote.userId === storedUserData?.id);
+            const userVote = votes.find((vote) => vote.userId === storedUserData?.id);
 
             if (userVote) {
                 setVotedSuspectId(userVote.suspectId);
@@ -84,11 +74,11 @@ export default function Vote() {
         });
 
         socketConnection.on('allVotes', (votes) => {
-            console.log(votes)
+            console.log(votes);
             if (votes) {
-                setVotes(votes)
+                setVotes(votes);
                 const storedUserData = getStoredUserData();
-                const userVote = votes.find(vote => vote.userId === storedUserData?.id) || null;
+                const userVote = votes.find((vote) => vote.userId === storedUserData?.id) || null;
 
                 if (userVote) {
                     setVotedSuspectId(userVote.suspectId);
@@ -96,15 +86,16 @@ export default function Vote() {
                 }
             }
         });
-        console.log("sessionId de getStoreUserData dans le useEffect", getStoredUserData().sessionId)
 
-        socketConnection.on('voteStart', ({endTime}) => {
+        socketConnection.on('voteStart', ({ endTime }) => {
             const timeLeft = synchronizeTimer(endTime);
             setInitialTime(timeLeft);
-            setDisableVote(false);
+            console.log("TIME LEFT",timeLeft)
+            setDisableVote(false); // Allow voting when the vote starts
         });
 
-        socketConnection.on('VoteTime', ({returnTimer}) => {
+        socketConnection.on('VoteTime', ({ returnTimer }) => {
+            console.log(returnTimer)
             setInitialTime(returnTimer);
         });
 
@@ -126,8 +117,7 @@ export default function Vote() {
 
         return () => {
             if (socketConnection) {
-                socketConnection.disconnect()
-                ;
+                socketConnection.disconnect();
             }
         };
     }, []);
@@ -174,22 +164,23 @@ export default function Vote() {
     const fetchSuspects = async () => {
         try {
             const storedUserData = getStoredUserData();
-            const session = await fetchSessionBySessionId(storedUserData.sessionId)
+            const session = await fetchSessionBySessionId(storedUserData.sessionId);
             const killerType = session.killerType;
             const suspectsResponse = await axios.get("/api/suspect", {
-                params: {killerType: killerType},
+                params: { killerType: killerType },
             });
-            const suspects = suspectsResponse.data
-            setSuspects(suspects)
+            const suspects = suspectsResponse.data;
+            setSuspects(suspects);
         } catch (err) {
             console.error('Failed to fetch suspects:', err);
             setError('Failed to fetch suspects');
         }
     };
+
     const fetchSessionBySessionId = async (sessionId) => {
         try {
             const response = await axios.get('/api/session', {
-                params: {id: sessionId},
+                params: { id: sessionId },
             });
             return response.data;
         } catch (error) {
@@ -197,10 +188,11 @@ export default function Vote() {
             alert('Une erreur est survenue lors de la récupération de la session.');
         }
     };
+
     const fetchPlayersBySessionId = async (sessionId) => {
         try {
             const response = await axios.get("/api/player", {
-                params: {sessionId: sessionId},
+                params: { sessionId: sessionId },
             });
             setPlayers(response.data);
         } catch (err) {
@@ -213,9 +205,6 @@ export default function Vote() {
         const storedUserData = getStoredUserData();
 
         if (selectedSuspect && socket && storedUserData) {
-
-            sessionStorage.setItem('votedSuspectId', selectedSuspect.id);
-
             socket.emit('voteForSuspect', selectedSuspect.id, storedUserData.id, storedUserData.sessionId);
         }
 
@@ -230,20 +219,6 @@ export default function Vote() {
     const handleTimeUp = () => {
         setDisableVote(true);
         console.log('Le temps est écoulé. Les votes sont désormais fermés.');
-
-        sessionStorage.removeItem("timerEndTime:votePhase");
-
-        const storedUserData = getStoredUserData();
-        if (storedUserData?.sessionId) {
-            socket.emit('endGameResults', {
-                sessionId: storedUserData.sessionId,
-                killerId: suspects.find((suspect) => suspect.isKiller)?.id,
-                votes,
-            });
-        }
-        const suspectTab = votes.map((vote) => vote.suspectId);
-
-        socket.emit('endGame', getStoredUserData().sessionId, suspects, suspectTab);
     };
 
     const synchronizeTimer = (endTime) => {
@@ -267,7 +242,7 @@ export default function Vote() {
         sessionStorage.removeItem("timerEndTime:votePhase");
         const suspectTab = votes.map((vote) => vote.suspectId);
 
-        console.log(suspectTab)
+        console.log(suspectTab);
 
         socket.emit('endGameButton', sessionId, suspectTab);
     };
@@ -292,10 +267,12 @@ export default function Vote() {
             <h1 className="text-5xl font-Amatic mb-7">Place au vote</h1>
 
             <div>
-                {disableVote ? (
-                    <p className="text-red-500 font-Amatic text-2xl">Le vote est terminé</p>
+                {disableVote && initialTime < 1 ? (
+                    <p className="text-red-500 font-Amatic text-2xl">Vote effectué</p>
+                ) : initialTime > 0 ? (
+                    <Timer questionId="votePhase" initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
                 ) : (
-                    <Timer questionId="votePhase"  initialTime={initialTime} onTimeUp={handleTimeUp} paused={false}/>
+                    <p>chargement</p>
                 )}
             </div>
 
@@ -304,14 +281,16 @@ export default function Vote() {
             ) : suspects ? (
                 <div className="w-full max-w-6xl mx-auto">
                     <div className="flex flex-row justify-between items-center">
-                        <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
-                        <_button label="indices"
-                                 className="max-w-24 text-white h-12 text-lg flex justify-center items-center"
-                                 onClick={toggleHints}/>
+                    <h1 className="font-Amatic text-3xl mb-4 mt-4">Suspects :</h1>
+                        <_button
+                            label="indices"
+                            className="max-w-24 text-white h-12 text-lg flex justify-center items-center"
+                            onClick={toggleHints}
+                        />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {suspects.map((suspect, index) => {
-                            const votesForSuspect = votes ? votes.filter(vote => vote.suspectId === suspect.id).length : 0;
+                            const votesForSuspect = votes ? votes.filter((vote) => vote.suspectId === suspect.id).length : 0;
 
                             return (
                                 <div key={index} className="flex flex-col items-center">
@@ -322,14 +301,18 @@ export default function Vote() {
                                             disableVote ? 'opacity-50 cursor-not-allowed' : ''
                                         }`}
                                     >
-                                        <p className="font-Amatic text-2xl text-white font-medium truncate">
-                                            {suspect.name}
-                                        </p>
+                                        <p className="font-Amatic text-2xl text-white font-medium truncate">{suspect.name}</p>
                                         {votesForSuspect > 0 && (
                                             <div className="absolute right-3 top-3 flex flex-wrap gap-0.5">
-                                                {Array.from({length: votesForSuspect}).map((_, i) => (
-                                                    <Image key={votesForSuspect} className="w-6 h-6"
-                                                           src="/amonUsPastille.png" width="24" height="24" alt=""/>
+                                                {Array.from({ length: votesForSuspect }).map((_, i) => (
+                                                    <Image
+                                                        key={votesForSuspect}
+                                                        className="w-6 h-6"
+                                                        src="/amonUsPastille.png"
+                                                        width="24"
+                                                        height="24"
+                                                        alt=""
+                                                    />
                                                 ))}
                                             </div>
                                         )}
@@ -352,7 +335,7 @@ export default function Vote() {
                                 key={index}
                                 className="border border-gray-600 bg-gray-800 p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center"
                             >
-                                <img width="30px" src={getPlayerSkin(player.skin)}/>
+                                <img width="30px" src={getPlayerSkin(player.skin)} />
                                 <p className="font-Amatic text-xl font-medium truncate">{player.name}</p>
                             </div>
                         ))}
@@ -378,13 +361,12 @@ export default function Vote() {
                 </div>
             )}
 
-                <div
-                    className={`absolute top-0 bottom-0 left-0 right-0 flex justify-center items-center  ${showHints ? "block" : "hidden"}`}
-                    onClick={() => setShowHints(false)}
-                >
-                    <AllHints onClose={() => setShowHints(false)}/>
-                </div>
-
+            <div
+                className={`absolute top-0 bottom-0 left-0 right-0 flex justify-center items-center ${showHints ? "block" : "hidden"}`}
+                onClick={() => setShowHints(false)}
+            >
+                <AllHints onClose={() => setShowHints(false)} />
+            </div>
 
             <Modal
                 isOpen={showModal}
@@ -392,15 +374,25 @@ export default function Vote() {
                 onConfirm={confirmVote}
                 suspectName={selectedSuspect?.name}
             />
+            {disableVote ? (
 
             <div className="mt-5">
                 <Button
                     label="Terminer le vote"
                     onClick={triggerEndGame}
-                    className="text-xl bg-red-700 text-white font-Amatic px-6 py-3 rounded-lg shadow hover:bg-red-800 transition"
+                    className="text-xl bg-red-700 text-white font-Amatic px-6 py-3 rounded-lg shadow hover:bg-red-800 transition disabled:bg-red-300 disabled:cursor-not-allowed"
                 />
             </div>
-
+                ) : (
+                <div className="mt-5">
+                    <Button
+                        label="Terminer le vote"
+                        onClick={triggerEndGame}
+                        disabled
+                        className="text-xl bg-red-700 text-white font-Amatic px-6 py-3 rounded-lg shadow hover:bg-red-800 transition disabled:bg-red-300 disabled:cursor-not-allowed"
+                    />
+                </div>
+            )}
         </div>
     );
 }

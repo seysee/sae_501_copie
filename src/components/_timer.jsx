@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 
 export default function Timer({ questionId, initialTime, onTimeUp, paused }) {
     const [timeLeft, setTimeLeft] = useState(null);
+    useEffect(() => {
+        setTimeLeft(initialTime); // Met à jour le timer à chaque changement de `initialTime`
+    }, [initialTime]);
 
     useEffect(() => {
         // On construit la clé : timerEndTime:<questionId>
