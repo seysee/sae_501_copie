@@ -290,9 +290,6 @@ export default function Salon() {
                             <span className="font-bold text-red-500 ml-2">
     {session.code || "Chargement..."}
   </span>
-                            <span className="font-bold text-red-500 ml-2">
-                                {session.code || "Chargement..."}
-                            </span>
                             <button
                                 onClick={handleCopyCode}
                                 title="Copier le code"
