@@ -4,9 +4,17 @@ const prisma = new PrismaClient();
 export default async function handler(req, res) {
     if (req.method === 'GET') {
         try {
+            const {id} = req.query;
             const { limit = 10 } = req.query;
-
-            // Récupérer les questions depuis la base
+            if (id){
+                const question = await prisma.questions.findUnique({
+                    where : {id: parseInt(id)}
+                });
+                if (!question) {
+                    return res.status(404).json({ error: "Pas de question." });
+                }
+                return res.status(200).json(question);
+            }
             const questions = await prisma.questions.findMany({
                 where : {active : true}
             });
