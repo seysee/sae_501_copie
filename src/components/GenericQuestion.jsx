@@ -23,6 +23,8 @@ export default function GenericQuestion({ question, onSuccess, socket, isActive,
         if (socket) {
             socket.on("answerSubmitted", ({ redirectUrl }) => {
                 if (redirectUrl) {
+                    sessionStorage.removeItem("currentQuestion");
+                    sessionStorage.removeItem("activePlayer");
                     sessionStorage.removeItem(`timerEndTime:${question.id}`);
 
                     window.location.href = redirectUrl;
@@ -114,6 +116,10 @@ export default function GenericQuestion({ question, onSuccess, socket, isActive,
     const handleTimeUp = () => {
         setTimeUp(true);
         setFeedback("Temps écoulé.");
+
+        sessionStorage.removeItem("currentQuestion");
+        sessionStorage.removeItem("activePlayer");
+
         if (socket) {
             const storedUserData = getStoredUserData();
             socket.emit("submitAnswer", {

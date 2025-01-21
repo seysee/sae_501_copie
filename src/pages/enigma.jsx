@@ -43,9 +43,26 @@ export default function Game() {
                 id: sPlayer.id
             });
 
-            socketInstance.emit('launchQuestion', sPlayer.sessionId);
+            const storedQ = sessionStorage.getItem("currentQuestion");
+            const storedAP = sessionStorage.getItem("activePlayer");
+
+            if (storedQ && storedAP) {
+                // On récupère la question existante
+                const parsedQ = JSON.parse(storedQ);
+                const parsedAP = JSON.parse(storedAP);
+
+                setQuestion(parsedQ);
+                setActivePlayer(parsedAP);
+                setIsLoading(false);
+            } else {
+                // Sinon, on lance la requête pour une question
+                socketInstance.emit('launchQuestion', sPlayer.sessionId);
+            }
 
             socketInstance.on('nextQuestion', (data) => {
+                sessionStorage.setItem("currentQuestion", JSON.stringify(data.question));
+                sessionStorage.setItem("activePlayer", JSON.stringify(data.activePlayer));
+
                 setTimeout(() => {
                     setQuestion(data.question);
                     setActivePlayer(data.activePlayer);
@@ -64,7 +81,7 @@ export default function Game() {
                     router.push(redirectUrl);
                 }
             });
-        } catch {}
+        } catch(e) {}
 
         return () => {
             socketInstance.off('nextQuestion');
