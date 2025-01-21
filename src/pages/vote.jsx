@@ -242,10 +242,7 @@ export default function Vote() {
             });
         }
 
-        socket.emit('endGame', getStoredUserData().sessionId, suspects);
-        setTimeout(() => {
-            router.push('/endGame');
-        }, 3000);
+        socket.emit('endGame', getStoredUserData().sessionId, suspects, votes);
     };
 
     const synchronizeTimer = (endTime) => {
@@ -268,7 +265,7 @@ export default function Vote() {
 
         sessionStorage.removeItem("timerEndTime:votePhase");
 
-        socket.emit('endGameButton', sessionId);
+        socket.emit('endGameButton', sessionId, votes);
     };
 
     useEffect(() => {

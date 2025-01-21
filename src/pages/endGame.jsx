@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import Button from "../components/_button";
+import { decryptParam } from '../lib/cryptoUtils';
 
 export default function EndGame() {
     const [suspect, setSuspect] = useState(null);
@@ -10,6 +11,7 @@ export default function EndGame() {
     const [isVisible, setIsVisible] = useState(false);
     const [showFooter, setShowFooter] = useState(false);
     const router = useRouter();
+    const { votes } = router.query;
 
     const getStoredUserData = () => {
         try {
@@ -50,6 +52,20 @@ export default function EndGame() {
         };
         fetchKiller();
     }, []);
+
+    useEffect(() => {
+        if (!votes) return; // Vérifie que votes est défini dans l'URL
+        try {
+            const decodedVotes = decodeURIComponent(votes); // Décodage de l'URL
+            const allVotes = decryptParam(decodedVotes); // Décryptage des votes
+            console.log("allVOTEEESSSSS (détaillé) :", JSON.stringify(allVotes, null, 2));
+Pâris, tu dois passer vote.userId et vote.suspectId au lieu de vote directement pour que ca fonctionne sans renvoyer de tableau de merde
+        } catch (error) {
+            console.error("Erreur lors du décryptage des votes :", error);
+        }
+    }, [votes]);
+
+
 
     const handleReturnHome = () => {
         try {
