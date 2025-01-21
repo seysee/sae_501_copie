@@ -164,7 +164,9 @@ export default function GenericQuestion({ question, onSuccess, socket, isActive,
                 </div>
             )}
 
-            <div id="game-container" className="relative w-full h-80 bg-black rounded-lg mt-6"></div>
+            {question.extraData && question.type !== "text" && question.type !== "number" && (
+                <div id="game-container" className="relative w-full h-80 bg-black rounded-lg mt-6"></div>
+            )}
             {feedback && <p className="text-green-500 mt-4">{feedback}</p>}
         </div>
     );

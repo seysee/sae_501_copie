@@ -3,8 +3,7 @@ export default async function equationGame({
                                                questionId,
                                                sessionId,
                                                onComplete,
-                                               socket
-                                           }) {
+                                               socket}) {
     const container = document.getElementById(containerId);
     if (!container) {
         console.error("Impossible de trouver le conteneur pour le jeu equationGame.");
