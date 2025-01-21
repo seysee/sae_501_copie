@@ -1,4 +1,3 @@
-// src/pages/index.js
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -7,10 +6,12 @@ import '../styles/App.css';
 import '../styles/index.css';
 import Button from '../components/_button';
 import axios from "axios";
+import FancyLoader from "../components/_loader";
 
 export default function Index() {
     const [isMobileDevice, setIsMobileDevice] = useState(false);
     const [userPseudo, setUserPseudo] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
 
     const checkDevice = () => {
@@ -68,6 +69,8 @@ export default function Index() {
             return;
         }
 
+        setIsLoading(true);
+
         try {
             // CRÉATION DE SESSION
             const sessionResponse = await axios.post('/api/session', {
@@ -99,17 +102,30 @@ export default function Index() {
             console.error('Erreur lors de la création de la session ou de la mise à jour du joueur :', error);
             alert('Une erreur est survenue lors de la création de la partie. Veuillez réessayer.');
         }
+        finally{
+            setIsLoading(false);
+        }
     };
+
+    const navigateWithLoader = (path) => {
+        setIsLoading(true);
+        setTimeout(() => {
+            router.push(path);
+        }, 1000);
+    };
+
 
     return (
         <div>
-            {!isMobileDevice && (
+            {isLoading && <FancyLoader />}
+
+            {!isMobileDevice && !isLoading && (
                 <div className="non-mobile-message">
                     Ce site est accessible uniquement sur mobile. 𐐘
                 </div>
             )}
 
-            {isMobileDevice && (
+            {!isLoading && isMobileDevice && (
                 <div className="box-area flex flex-col items-center justify-center">
                     <h1 className="text-6xl font-Amatic text-white mb-24">Parmi Nous</h1>
 
@@ -128,7 +144,7 @@ export default function Index() {
                             <Button
                                 label={userPseudo ? "Profil" : "Créer profil"}
                                 className="mb-4 bg-black text-white border-white"
-                            />
+                                onClick={() => navigateWithLoader('/profile')}                            />
                         </Link>
 
                         {userPseudo && (
@@ -142,6 +158,7 @@ export default function Index() {
                                     <Button
                                         label="Rejoindre partie"
                                         className="mb-4 bg-black text-white border-white"
+                                        onClick={() => navigateWithLoader('/joinGame')}
                                     />
                                 </Link>
                             </>
@@ -151,6 +168,7 @@ export default function Index() {
                             <Button
                                 label="Règles"
                                 className="bg-black font-bold text-red-500 border-red-600"
+                                onClick={() => navigateWithLoader('/rules')}
                             />
                         </Link>
                     </div>

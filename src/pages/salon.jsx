@@ -16,7 +16,6 @@ export default function Salon() {
     const [copySuccess, setCopySuccess] = useState('');
     const [killerType, setKillerType] = useState(0);
 
-    // État pour stocker et afficher des messages d'erreur
     const [errorMessage, setErrorMessage] = useState('');
 
     const router = useRouter();
