@@ -1,188 +1,314 @@
-export default async function colorGame({ containerId, questionId, sessionId, onComplete, socket }) {
+export default async function colorGame({
+                                            containerId,
+                                            questionId,
+                                            sessionId,
+                                            onComplete,
+                                            socket
+                                        }) {
+    // 1) Récupérer le conteneur
     const container = document.getElementById(containerId);
-
     if (!container) {
-        console.error("Impossible de trouver le conteneur pour le jeu de détection de couleur.");
+        console.error("Impossible de trouver le conteneur pour colorGame.");
         return;
     }
 
-    // Sélection de la couleur cible
-    const targetColors = ["red", "green", "blue"];
-    const storedColor = sessionStorage.getItem("selectedTargetColor");
-    const targetColor = storedColor || targetColors[Math.floor(Math.random() * targetColors.length)];
+    // Couleurs possibles
+    const possibleColors = ["red", "green", "blue"];
+    // Couleur cible, choisie au hasard
+    let targetColor = sessionStorage.getItem("colorGameTargetColor");
 
-    if (!storedColor) {
-        sessionStorage.setItem("selectedTargetColor", targetColor);
+    // Si aucune couleur n'est stockée, générer une nouvelle couleur
+    if (!targetColor) {
+        targetColor = possibleColors[Math.floor(Math.random() * possibleColors.length)];
+        sessionStorage.setItem("colorGameTargetColor", targetColor);
     }
 
-    // Création des éléments
-    const video = document.createElement("video");
-    video.setAttribute("autoplay", true);
-    video.setAttribute("playsinline", true);
-    video.className = `w-full h-auto border border-gray-300 absolute top-0 left-0`;
-
-    const canvas = document.createElement("canvas");
-    canvas.className = `w-full h-auto border border-gray-300 absolute top-0 left-0 hidden`;
-
-    const containerRef = document.createElement("div");
-    containerRef.className = "relative w-full max-w-md mx-auto";
-    container.appendChild(containerRef);
-
-    const switchCameraButton = document.createElement("button");
-    switchCameraButton.textContent = "Switch Camera";
-    switchCameraButton.className =
-        "absolute top-4 right-4 bg-white text-gray-700 p-2 rounded-full shadow-md hover:bg-gray-200";
-
-    const takePhotoButton = document.createElement("button");
-    takePhotoButton.className =
-        "absolute bottom-2.5 w-16 h-16 border-4 border-white rounded-full hover:border-gray-300";
-
-    const resetPhotoButton = document.createElement("button");
-    resetPhotoButton.className =
-        "absolute bottom-2.5 w-16 h-16 border-4 border-white rounded-full flex items-center justify-center hover:border-gray-300 hidden";
-    resetPhotoButton.textContent = "×";
-
-    const messageElement = document.createElement("p");
-    messageElement.className = "text-green-500 mt-4 text-center";
-
-    let facingMode = "environment";
     let isCompleted = false;
+    let photoTaken = false;
+    let stream = null;
+    let facingMode = "environment";
 
-    // Ajout des éléments au conteneur
-    containerRef.appendChild(video);
-    containerRef.appendChild(canvas);
-    containerRef.appendChild(switchCameraButton);
-    containerRef.appendChild(takePhotoButton);
-    containerRef.appendChild(resetPhotoButton);
-    container.appendChild(messageElement);
+    // Petite map color -> tailwind text classes
+    const colorClassMap = {
+        red: "text-red-400",
+        green: "text-green-400",
+        blue: "text-blue-400"
+    };
+    const colorClass = colorClassMap[targetColor] || "text-white";
 
-    // Activation de la caméra
+    // 2) Injection HTML
+    // Ajout d’un id sur la div container pour manipuler sa hauteur ("cameraContainer")
+    container.innerHTML = `
+    <!-- Titre (couleur à trouver) -->
+    <p 
+      id="colorGameTitle"
+      class="text-center text-3xl font-bold font-Amatic mb-2 ${colorClass}"
+    >
+      ${targetColor.toUpperCase()}
+    </p>
+
+    <!-- Div conteneur principal, qu’on va redimensionner dynamiquement -->
+    <div 
+      id="cameraContainer"
+      class="relative w-full max-w-md mx-auto"
+      style="position: relative; background: #000;"
+    >
+      <!-- Vidéo -->
+      <video
+        id="colorGameVideo"
+        autoplay
+        playsinline
+        class="border border-gray-300 absolute top-0 left-0"
+        style="z-index:1; width: 100%; height: auto;"
+      ></video>
+
+      <!-- Canvas (caché initialement) -->
+      <canvas
+        id="colorGameCanvas"
+        class="border border-gray-300 absolute top-0 left-0 hidden"
+        style="z-index:1; width: 100%; height: auto;"
+      ></canvas>
+
+      <!-- Bouton switch camera (en haut à droite) -->
+      <button
+        id="switchCamBtn"
+        class="bg-white text-gray-700 p-2 rounded-full shadow-md hover:bg-gray-200"
+        style="
+          position: absolute; 
+          top: 10px; 
+          right: 10px;
+          z-index: 10;
+        "
+      >
+        <i class="fa-solid fa-camera-rotate"></i>
+      </button>
+
+      <!-- Bouton prendre photo (ou reset) en bas, centré -->
+      <button
+        id="takePhotoBtn"
+        class="border-4 border-white rounded-full hover:border-gray-300"
+        style="
+          position: absolute; 
+          bottom: 10px; 
+          left: 50%; 
+          transform: translateX(-50%);
+          width: 60px;
+          height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: rgba(255,255,255,0.3);
+          z-index: 10;
+        "
+      >
+      </button>
+    </div>
+
+    <!-- Message de feedback -->
+    <p 
+      id="colorGameMessage"
+      class="text-center mt-4"
+    ></p>
+  `;
+
+    // 3) Sélecteurs
+    const cameraContainer = container.querySelector("#cameraContainer");
+    const videoEl = container.querySelector("#colorGameVideo");
+    const canvasEl = container.querySelector("#colorGameCanvas");
+    const switchCamBtn = container.querySelector("#switchCamBtn");
+    const takePhotoBtn = container.querySelector("#takePhotoBtn");
+    const messageEl = container.querySelector("#colorGameMessage");
+
+    // 4) Gestion de la caméra
     async function enableCamera() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode },
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode }
             });
+            if (videoEl) {
+                videoEl.srcObject = stream;
+                videoEl.style.transform = (facingMode === "user") ? "scaleX(-1)" : "scaleX(1)";
 
-            video.srcObject = stream;
+                // Quand la vidéo est prête, on calcule l’aspect ratio
+                videoEl.onloadedmetadata = () => {
+                    videoEl.play();
 
-            video.onloadedmetadata = () => {
-                video.play();
-                adjustContainerHeight();
-            };
+                    const vw = videoEl.videoWidth;
+                    const vh = videoEl.videoHeight;
+                    const aspectRatio = vw / vh;
+                    // On a la largeur du container => on calcule la hauteur
+                    const containerWidth = cameraContainer.offsetWidth;
+                    const computedHeight = containerWidth / aspectRatio;
 
-            switchCameraButton.addEventListener("click", switchCamera);
+                    // Appliquer cette hauteur au container
+                    cameraContainer.style.height = `${computedHeight}px`;
+                };
+            }
         } catch (err) {
-            messageElement.textContent = "Impossible d’accéder à la caméra. Vérifiez les permissions.";
+            showMessage("Impossible d’accéder à la caméra. Vérifiez les permissions.", true);
             console.error(err);
         }
     }
 
-    function adjustContainerHeight() {
-        const videoAspectRatio = video.videoWidth / video.videoHeight;
-        const containerWidth = video.offsetWidth;
-        const calculatedHeight = containerWidth / videoAspectRatio;
-        containerRef.style.height = `${calculatedHeight}px`;
-    }
-
-    // Bascule entre caméra frontale et arrière
     function switchCamera() {
-        facingMode = facingMode === "user" ? "environment" : "user";
+        facingMode = (facingMode === "user") ? "environment" : "user";
+        stopStream();
         enableCamera();
     }
 
-    // Capture d'une photo
+    function stopStream() {
+        if (stream) {
+            const tracks = stream.getTracks();
+            tracks.forEach((track) => track.stop());
+        }
+    }
+
+    // 5) Prendre une photo
     function takePhoto() {
-        const context = canvas.getContext("2d");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        if (!videoEl || !canvasEl) return;
+        const context = canvasEl.getContext("2d");
+
+        canvasEl.width = videoEl.videoWidth;
+        canvasEl.height = videoEl.videoHeight;
 
         if (facingMode === "user") {
-            context.translate(canvas.width, 0);
+            context.translate(canvasEl.width, 0);
             context.scale(-1, 1);
         }
 
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.classList.remove("hidden");
-        video.classList.add("hidden");
-        takePhotoButton.classList.add("hidden");
-        resetPhotoButton.classList.remove("hidden");
+        // Dessiner la frame
+        context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
 
-        detectColor();
+        // Adapter le canvas à la taille du container
+        // => on le rend visible sur 100% de la largeur
+        canvasEl.classList.remove("hidden");
+        videoEl.classList.add("hidden");
+
+        // Ajuster la hauteur du container en fonction du canvas
+        // (même aspect ratio)
+        const cw = canvasEl.width;
+        const ch = canvasEl.height;
+        const aspect = cw / ch;
+        const containerWidth = cameraContainer.offsetWidth;
+        cameraContainer.style.height = `${containerWidth / aspect}px`;
+
+        photoTaken = true;
+        // Le bouton devient une croix
+        takePhotoBtn.innerHTML = '<span class="text-white text-2xl font-bold">×</span>';
+
+        // Analyser la couleur
+        detectColor(targetColor, 5);
     }
 
-    // Détection de la couleur cible
-    function detectColor(requiredPercentage = 5) {
-        const context = canvas.getContext("2d");
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    // 6) Détecter la couleur
+    function detectColor(tColor, requiredPercentage) {
+        const context = canvasEl.getContext("2d");
+        const imageData = context.getImageData(0, 0, canvasEl.width, canvasEl.height);
         const data = imageData.data;
 
         let matchingPixels = 0;
         const totalPixels = data.length / 4;
 
         const colorRanges = {
-            red: { rMin: 150, rMax: 255, gMin: 0, gMax: 100, bMin: 0, bMax: 100 },
-            green: { rMin: 0, rMax: 120, gMin: 80, gMax: 255, bMin: 0, bMax: 120 },
-            blue: { rMin: 0, rMax: 120, gMin: 0, gMax: 150, bMin: 100, bMax: 255 },
+            red:   { rMin: 150, rMax: 255, gMin: 0,   gMax: 100, bMin: 0,   bMax: 100 },
+            green: { rMin: 0,   rMax: 120, gMin: 80,  gMax: 255, bMin: 0,   bMax: 120 },
+            blue:  { rMin: 0,   rMax: 120, gMin: 0,   gMax: 150, bMin: 100, bMax: 255 }
         };
 
-        const range = colorRanges[targetColor];
+        const range = colorRanges[tColor] || colorRanges.red;
 
         for (let i = 0; i < data.length; i += 4) {
-            const red = data[i];
-            const green = data[i + 1];
-            const blue = data[i + 2];
+            const r = data[i];
+            const g = data[i+1];
+            const b = data[i+2];
 
             if (
-                red >= range.rMin &&
-                red <= range.rMax &&
-                green >= range.gMin &&
-                green <= range.gMax &&
-                blue >= range.bMin &&
-                blue <= range.bMax
+                r >= range.rMin && r <= range.rMax &&
+                g >= range.gMin && g <= range.gMax &&
+                b >= range.bMin && b <= range.bMax
             ) {
                 matchingPixels++;
             }
         }
 
         const percentage = (matchingPixels / totalPixels) * 100;
-
-        if (percentage >= requiredPercentage) {
+        const detected = (percentage >= requiredPercentage);
+        if (detected) {
             handleSuccess();
         } else {
-            messageElement.textContent = "La couleur détectée n'est pas la bonne.";
+            showMessage("La couleur détectée n'est pas la bonne.", true);
         }
     }
 
-    // Réinitialisation
+    // 7) Reset
     function resetPhoto() {
-        canvas.classList.add("hidden");
-        video.classList.remove("hidden");
-        takePhotoButton.classList.remove("hidden");
-        resetPhotoButton.classList.add("hidden");
-        messageElement.textContent = "";
+        videoEl.classList.remove("hidden");
+        canvasEl.classList.add("hidden");
+        takePhotoBtn.innerHTML = ""; // enlève la croix
+        photoTaken = false;
+        showMessage("", false);
+
+        // Réinitialiser la taille du container à la taille du flux vidéo
+        if (videoEl.videoWidth && videoEl.videoHeight) {
+            const aspectRatio = videoEl.videoWidth / videoEl.videoHeight;
+            const cw = cameraContainer.offsetWidth;
+            cameraContainer.style.height = `${cw / aspectRatio}px`;
+        }
+
+        // Réinitialisation de l'état de completion
+        isCompleted = false;
     }
 
-    // Gestion du succès
+
+    // 8) Succès
     function handleSuccess() {
         if (isCompleted) return;
-
         isCompleted = true;
-        messageElement.textContent = "Couleur correcte détectée !";
-
-        sessionStorage.removeItem("selectedTargetColor");
-
-        // Soumission de la réponse
-        if (socket && sessionId) {
-            socket.emit("submitAnswer", { sessionId, questionId, answer: "color_success" });
-        }
-
+        sessionStorage.removeItem("colorGameTargetColor");
+        showMessage("Couleur correcte détectée !", false);
+        submitAnswer("color_success");
         if (onComplete) {
             onComplete({ correct: true, message: "Couleur détectée avec succès !" });
         }
     }
 
-    takePhotoButton.addEventListener("click", takePhoto);
-    resetPhotoButton.addEventListener("click", resetPhoto);
+    function submitAnswer(answer) {
+        if (socket) {
+            socket.emit("submitAnswer", {
+                sessionId,
+                questionId,
+                answer
+            });
+        }
+    }
 
-    await enableCamera();
+    // 9) showMessage
+    function showMessage(msg, isError) {
+        messageEl.textContent = msg;
+        if (!msg) {
+            messageEl.className = "text-center mt-4";
+        } else {
+            messageEl.className = "text-center mt-4 " + (isError ? "text-red-500" : "text-green-500");
+        }
+    }
+
+    // 10) Écouteurs
+    switchCamBtn.addEventListener("click", switchCamera);
+    takePhotoBtn.addEventListener("click", () => {
+        if (!photoTaken) {
+            takePhoto();
+        } else {
+            resetPhoto();
+        }
+    });
+
+    // 11) Initialisation
+    enableCamera();
+
+    // Nettoyage quand on quitte
+    return () => {
+        stopStream();
+        switchCamBtn.removeEventListener("click", switchCamera);
+        takePhotoBtn.removeEventListener("click", takePhotoBtn);
+    };
 }
