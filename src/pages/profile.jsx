@@ -76,7 +76,7 @@ export default function Profile() {
             setError('Le pseudo ne peut pas être vide.');
             return;
         }
-        if (pseudo.length > 15) {
+        if (pseudo.length > 16) {
             setError('Le pseudo est trop long.');
             return;
         }
@@ -139,7 +139,7 @@ export default function Profile() {
             <div className="w-full max-w-md">
                 <label htmlFor="pseudo" className="block text-lg mb-4">
                     {isConnected ? 'Modifiez votre pseudo :' : 'Entrez votre pseudo : '}
-                    <span className={pseudo.length > 15 ? "text-red-500" : "text-green-500"}>{" "+pseudo.length}</span>/15
+                    <span className={pseudo.length > 16 ? "text-red-500" : "text-green-500"}>{" "+pseudo.length}</span>/16
                 </label>
                 <input
                     type="text"
