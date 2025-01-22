@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 import Button from "./_button";
 import Timer from "./_timer";
 
-export default function GenericQuestion({ question, onSuccess, socket, isActive, activePlayerName }) {
+export default function GenericQuestion({question, onSuccess, socket, isActive, activePlayerName}) {
     const [assetsLoaded, setAssetsLoaded] = useState([]);
     const [extraLogic, setExtraLogic] = useState(null);
     const [feedback, setFeedback] = useState('');
@@ -20,32 +20,36 @@ export default function GenericQuestion({ question, onSuccess, socket, isActive,
     };
 
     useEffect(() => {
-        if (socket) {
-            socket.on("answerSubmitted", ({ redirectUrl }) => {
-                if (redirectUrl) {
-                    sessionStorage.removeItem("currentQuestion");
-                    sessionStorage.removeItem("activePlayer");
-                    sessionStorage.removeItem(`timerEndTime:${question.id}`);
+        if (!socket || !question) return;
 
-                    window.location.href = redirectUrl;
-                }
-            });
-        }
+        socket.on("answerSubmitted", ({redirectUrl}) => {
+            if (redirectUrl) {
+                sessionStorage.removeItem("currentQuestion");
+                sessionStorage.removeItem("activePlayer");
+                sessionStorage.removeItem(`timerEndTime:${question.id}`);
+
+                window.location.href = redirectUrl;
+            }
+        });
+
         return () => {
             if (socket) {
                 socket.off("answerSubmitted");
             }
         };
-    }, [socket, question.id]);
+    }, [socket, question]);
 
     useEffect(() => {
+        if (!question) return;
+
         if (question.assets) {
             const loadAssets = async () => {
                 try {
                     const assets = JSON.parse(question.assets || "[]");
                     const loadedAssets = assets.map((asset) => `/puzzle/${asset}`);
                     setAssetsLoaded(loadedAssets);
-                } catch {}
+                } catch {
+                }
             };
             loadAssets();
             const container = document.getElementById("game-container");
@@ -53,19 +57,22 @@ export default function GenericQuestion({ question, onSuccess, socket, isActive,
                 container.dataset.assets = question.assets;
             }
         }
-    }, [question.assets]);
+    }, [question]);
 
     useEffect(() => {
+        if (!question) return;
+
         if (question.extraData && typeof question.extraData === "string") {
             const loadExtraLogic = async () => {
                 try {
                     const logic = await import(`../extras/${question.extraData}`);
                     setExtraLogic(() => logic.default || logic);
-                } catch {}
+                } catch {
+                }
             };
             loadExtraLogic();
         }
-    }, [question.extraData]);
+    }, [question]);
 
     const handleAnswerChange = (e) => {
         setAnswer(e.target.value);
@@ -130,10 +137,19 @@ export default function GenericQuestion({ question, onSuccess, socket, isActive,
         }
     };
 
+    if (!question) {
+        return (
+            <div className="text-gray-300 text-xl">
+                Chargement de la question...
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col items-center justify-center text-white">
             <h1 className="text-4xl mb-4 font-Amatic font-bold">{question.question}</h1>
-            <Timer questionId={question.id} initialTime={question.duration} onTimeUp={handleTimeUp} paused={paused || timeUp} />
+            <Timer questionId={question.id} initialTime={question.duration} onTimeUp={handleTimeUp}
+                   paused={paused || timeUp}/>
 
             {isActive ? (
                 <>
