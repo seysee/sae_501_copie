@@ -1,8 +1,6 @@
 import {Server} from 'socket.io';
 import {encryptParam} from '../../lib/cryptoUtils';
 import {PrismaClient} from '@prisma/client';
-import {router} from "next/client";
-import {type} from "node:os";
 
 const prisma = new PrismaClient();
 const sessions = {}; // Store en mémoire pour les sessions
@@ -78,8 +76,7 @@ export default function handler(req, res) {
                     });
                     // Diffuse l’événement aux autres clients de la session.
                     socket.to(sessionId).emit('refreshHints');
-                }
-                catch (error) {
+                } catch (error) {
                     console.error("Erreur lors de l'émission de refreshHints :", error);
                 }
             });
@@ -96,14 +93,13 @@ export default function handler(req, res) {
                 });
                 console.log("(socket.js:83) answeredQuestions", JSON.parse(answeredQuestions.questions)?.map(Number));
                 let selectedQuestion = null;
-                if(answeredQuestions.questions.length < 10) {
+                if (answeredQuestions.questions.length < 10) {
                     const questions = await prisma.questions.findMany(
                         {
                             where: {
-                                id: {
-                                    notIn: JSON.parse(answeredQuestions.questions)?.map(Number),
-                                },
+                                id: { notIn: JSON.parse(answeredQuestions.questions)?.map(Number),
                                 active: true,
+                                }
                             },
                         },
                     )
@@ -148,8 +144,7 @@ export default function handler(req, res) {
                         data: {activePlayerIndex: newIndex},
                     });
                     sessionData.activePlayerIndex = newIndex;
-                }
-                catch (error) {
+                } catch (error) {
                     console.error('Erreur lors de la mise à jour de l’index du joueur actif :', error);
                 }
 
@@ -234,15 +229,15 @@ export default function handler(req, res) {
                 io.to(sessionId).emit('allVotes', sessionVote[sessionId]);
             });
 
-            socket.on('getVoteEndTime', (sessionId, timer ) => {
+            socket.on('getVoteEndTime', (sessionId, timer) => {
                 socket.join(sessionId);
 
                 if (!sessionTimerVote[sessionId]) {
                     sessionTimerVote[sessionId] = timer; // Initialiser le timer pour la session
                 }
-                if (timerAlreadyEnd[sessionId] === true){
+                if (timerAlreadyEnd[sessionId] === true) {
                     const message = "vote fini"
-                    io.to(sessionId).emit('endVote', { message });
+                    io.to(sessionId).emit('endVote', {message});
                     return
                 }
                 let returnTimer = sessionTimerVote[sessionId];
@@ -252,11 +247,11 @@ export default function handler(req, res) {
                         if (returnTimer > 0) {
                             returnTimer -= 1;
                             sessionTimerVote[sessionId] = returnTimer; // Mettre à jour le timer
-                            io.to(sessionId).emit('VoteTime', { returnTimer }); // Émettre le temps restant
+                            io.to(sessionId).emit('VoteTime', {returnTimer}); // Émettre le temps restant
                         } else {
                             clearInterval(intervalId);
                             timerAlreadyEnd[sessionId] = true;
-                            io.to(sessionId).emit('endVote', { returnTimer: 0 });
+                            io.to(sessionId).emit('endVote', {returnTimer: 0});
                             if (sessions[sessionId]) {
                                 delete sessions[sessionId].intervalId;
                             }
@@ -283,7 +278,7 @@ export default function handler(req, res) {
                     sessions[sessionId] = {};
                 }
                 sessions[sessionId].endTime = endTime;
-                io.to(sessionId).emit('voteStart', { endTime });
+                io.to(sessionId).emit('voteStart', {endTime});
             });
 
 
