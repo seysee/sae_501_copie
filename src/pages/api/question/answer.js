@@ -16,7 +16,6 @@ export default async function handler(req, res) {
                 return res.status(404).json({ message: "Question non trouvée." });
             }
 
-
             // Normalisation de la chaîne pour gérer les réponses
             const normalizeString = (str) =>
                 str.toLowerCase()
@@ -27,7 +26,12 @@ export default async function handler(req, res) {
 
             console.log("(answer.js:28) answer, question.solution", answer, question.solution);
             const userAnswer = normalizeString(answer);
-            const correctAnswer = normalizeString(question.solution) === userAnswer;
+
+            const possibleAnswers = question.solution
+                .split(';')
+                .map((answer) => normalizeString(answer.trim()));
+
+            const correctAnswer = possibleAnswers.includes(userAnswer);
 
             if (correctAnswer) {
                 return res.status(200).json({

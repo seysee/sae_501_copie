@@ -70,7 +70,6 @@ export default function Index() {
         }
     }
 
-
     // Création de la session + update Player -> SessionId + mise à jour du session storage
     const createGame = async () => {
         setClicked(true)
