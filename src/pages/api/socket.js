@@ -269,7 +269,13 @@ export default function handler(req, res) {
                     sessions[sessionId].intervalId = intervalId;
                 }
             });
-
+            socket.on('answerResultRightSolution', (data) => {
+                // On envoie la solution à tous les joueurs
+                io.to(data.sessionId).emit('answerResultRightSolution', {
+                    questionId: data.questionId,
+                    rightSolution: data.rightSolution
+                });
+            });
             socket.on('startVote', (sessionId, durationInSeconds) => {
                 const now = new Date();
                 const endTime = new Date(now.getTime() + durationInSeconds * 1000);
