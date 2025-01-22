@@ -2,7 +2,7 @@ import { useState } from "react";
 import skinsData from "/src/data/skins";
 
 export default function _skin({ onSkinSelect }) {
-    const [selectedSkinId, setSelectedSkinId] = useState(null);
+    const [selectedSkinId, setSelectedSkinId] = useState(1);
 
     // Utilisation de skinsData.skins pour accéder au tableau des skins
     const skins = skinsData.skins;
