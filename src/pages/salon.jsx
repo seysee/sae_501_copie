@@ -19,6 +19,7 @@ export default function Salon() {
     const router = useRouter();
     const skins = skinsData.skins;
     const [isLoading, setIsLoading] = useState(true);
+    const [clicked, setClicked] = useState(false);
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
     const getPlayerSkin = (playerSkinId) => {
@@ -226,6 +227,7 @@ export default function Salon() {
     };
 
     const quitGame = async () => {
+        setClicked(true)
         const storedPlayer = getStoredUserData();
         if (!storedPlayer) {
             console.error("Impossible de récupérer les données utilisateur.");
@@ -389,6 +391,7 @@ export default function Salon() {
                             <Button
                                 label="Annuler"
                                 onClick={quitGame}
+                                disabled={clicked}
                                 className="py-3 bg-black text-red-500 border-red-500"
                             />
                         </div>

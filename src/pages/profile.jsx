@@ -13,46 +13,46 @@ export default function Profile() {
     const router = useRouter();
 
     const bannedWords = [
-        "bâtard", "merde", "salope", "pute", "putain","pédé", "tapette", "enculé", "fdp",
+        "merde", "salope", "pute", "putain", "pédé", "tapette", "enculé", "fdp",
         "nègre", "negro", "bougnoule", "chinetoque", "arabe", "juif", "chintok", "sale",
         "tafiole", "féminazi", "misogyne", "viol", "raciste", "connard", "connasse",
         "xénophobe", "torture", "tueur", "meurtre", "mort", "tuer", "tué", "génocide",
-        "torture", "terroriste", "jihadiste", "daesh","esclavage", "nazi", "fasciste", "salopard", "fuck",
+        "torture", "terroriste", "jihadiste", "daesh", "esclavage", "nazi", "fasciste", "salopard", "fuck",
         "f*ck", "fu*k", "fuc*", "shit", "bitch", "asshole", "slut", "whore", "jerk",
-        "nigga","nigger", "nig*er","ni*ger","nigg*r","n*gger", "n!gger","n!gga", "n!gg@r", "n!gg*r", "n1gga", "n1gg3r",
-        "n!gger", "n!ggr", "n1ggr","n|gga", "n|gger", "n|gg*r", "n|gg@r","nigg@r", "n!ggar", "ni**er",
-        "ni**a", "n!gg@","ni gger","ni gga","nig ger", "nig ga","n1g@a", "n1gg@", "n!g@","n1gg@", "ngg@", "n1g@",
-        "n igga", "n i gger", "ni gg a", "n ig g er","n_igga", "n__igger", "n_ig_er",
-        "n.i.g.g.a", "n.i.g.g.e.r","n i g g a", "n i gg er", "ni g g er","n-igga", "n-igger", "ni-gger",
-        "n1gga", "n1gg3r", "ni66a", "ni663r","n!66a", "ni99er", "n1gg3r","nigg4", "n1gg@", "nigg3r",
+        "nigga", "nigger", "nig*er", "ni*ger", "nigg*r", "n*gger", "n!gger", "n!gga", "n!gg@r", "n!gg*r", "n1gga", "n1gg3r",
+        "n!gger", "n!ggr", "n1ggr", "n|gga", "n|gger", "n|gg*r", "n|gg@r", "nigg@r", "n!ggar", "ni**er",
+        "ni**a", "n!gg@", "ni gger", "ni gga", "nig ger", "nig ga", "n1g@a", "n1gg@", "n!g@", "n1gg@", "ngg@", "n1g@",
+        "n igga", "n i gger", "ni gg a", "n ig g er", "n_igga", "n__igger", "n_ig_er",
+        "n.i.g.g.a", "n.i.g.g.e.r", "n i g g a", "n i gg er", "ni g g er", "n-igga", "n-igger", "ni-gger",
+        "n1gga", "n1gg3r", "ni66a", "ni663r", "n!66a", "ni99er", "n1gg3r", "nigg4", "n1gg@", "nigg3r",
         "n¡gga", "n¡gger", "ni99@", "reggin", "aggin",
-        "nìgga", "nìggér", "nígga", "nígger","nīggā", "nîgga", "nîgger", "nìggа", "nιgga",
-        "nïgga", "nïgger", "nıgga", "nıgger", "nіgga","n🅸gga", "n🅸gg🅰", "n🅽igg🅰","n🅽🅸🅶ga", "n🅸g🅶er", "n🅶🅶a",
+        "nìgga", "nìggér", "nígga", "nígger", "nīggā", "nîgga", "nîgger", "nìggа", "nιgga",
+        "nïgga", "nïgger", "nıgga", "nıgger", "nіgga", "n🅸gga", "n🅸gg🅰", "n🅽igg🅰", "n🅽🅸🅶ga", "n🅸g🅶er", "n🅶🅶a",
         "dick", "pussy", "wanker", "prick", "racist", "fag", "dyke", "cock", "sodomite", "rapist", "paedophile", "nazi",
         "fdp", "n4z1", "b1tch", "sh1t", "m0therf***er", "f**k", "n*gger", "p3de", "v1ol", "v10leur", "r4ciste",
         "t4pette", "t4fiole", "kkk", "klux", "supremaciste", "nazisme", "esclavagiste", "homophobe", "xénophobe",
-        "antisémitisme", "genocide", "segregation","antisémite", "bougnoul","sale_juif", "chinetoque", "negre","slave", "massa",
-        "vagin", "bite", "couille", "zeub", "chibre","fellation", "pédophile", "pedophile", "prostituée","gode","cumshot", "pegging",
-        "bdsm", "kink","pervers", "mongolien", "trisomique","esclave", "babouin", "chimpanzé", "negr0",
+        "antisémitisme", "genocide", "segregation", "antisémite", "bougnoul", "sale_juif", "chinetoque", "negre", "slave", "massa",
+        "vagin", "bite", "couille", "zeub", "chibre", "fellation", "pédophile", "pedophile", "prostituée", "gode", "cumshot", "pegging",
+        "bdsm", "kink", "pervers", "mongolien", "trisomique", "esclave", "babouin", "chimpanzé", "negr0",
         "goudou", "gouine", "négresse", "négrillon", "pédé", "sidaique", "travelo", "caca", "pipi", "prout",
         "c4c4", "c4ca", "cac4", "p1p1", "p1pi", "pip1", "Al Chabaab",
-        "Al-Jamaa al-islamiya","Al-Mourabitoune","el-Mouakine bi dima","Al-Qaïda",
-        "Ansar al-Islam (AI)","Ansar Dine","Ansarallah","Aryan Strikeforce",
-        "Asbat Al-Ansar","Association mondiale tamoule","Aum Shinrikyo","Babbar Khalsa International",
-        "Boko Haram","Blood & Honour","al-Qods","Abdullah Azzam",
-        "al-Ashtar","Combat 18","Division Atomwaffen","Division Fatemiyoun",
-        "Ejército de Liberación Nacional","Émirat du Caucase","État islamique","Province du Sinaï",
-        "État islamique","Euskadi Ta Askatasuna","Hezb-e Islami","Macina",
-        "Palestine","Fuerzas Armadas Revolucionarias","Gardiens de la révolution islamique","Abou Sayyaf",
-        "Gulbuddin Hekmatyar","Hamas","Harakat al-Sabireen","Harakat ul-Mudjahidin",
-        "HASAM","Hay'at Tahrir al-Sham","Hezbollah","Hizbul Mujahideen",
-        "International Relief Fund for the Afflicted and Needy","Jaish-e-Mohammed",
-        "Jamaat Nosrat Al-Islam Wal-Mouslimine","James Mason","Jaysh Al-Muhajirin Wal-Ansar","Jemaah Islamiyyah",
-        "Jihad islamique palestinien","Kahane Chai","La Brigade des martyrs d'Al-Aqsa","La Fédération internationale de la jeunesse sikh",
-        "Lashkar-e-Jhangvi","Lashkar-e-Tayyiba","Les talibans","Les Tigres libérateurs de l'Eelam tamoul",
-        "Moudjahidines indiens","Mouvement impérial russe","Mouvement islamique d'Ouzbékistan","Mouvement pour l'unicité et le jihad en Afrique de l'Ouest",
-        "Organisation Abou Nidal (OAN)","Parti des travailleurs du Kurdistan","Proud Boys","Réseau Haqqani",
-        "Samidoun","Sendero Luminoso","Tehrik-e-Taliban Pakistan","The Base","Three Percenters",
+        "Al-Jamaa al-islamiya", "Al-Mourabitoune", "el-Mouakine bi dima", "Al-Qaïda",
+        "Ansar al-Islam (AI)", "Ansar Dine", "Ansarallah", "Aryan Strikeforce",
+        "Asbat Al-Ansar", "Association mondiale tamoule", "Aum Shinrikyo", "Babbar Khalsa International",
+        "Boko Haram", "Blood & Honour", "al-Qods", "Abdullah Azzam",
+        "al-Ashtar", "Combat 18", "Division Atomwaffen", "Division Fatemiyoun",
+        "Ejército de Liberación Nacional", "Émirat du Caucase", "État islamique", "Province du Sinaï",
+        "État islamique", "Euskadi Ta Askatasuna", "Hezb-e Islami", "Macina",
+        "Palestine", "Fuerzas Armadas Revolucionarias", "Gardiens de la révolution islamique", "Abou Sayyaf",
+        "Gulbuddin Hekmatyar", "Hamas", "Harakat al-Sabireen", "Harakat ul-Mudjahidin",
+        "HASAM", "Hay'at Tahrir al-Sham", "Hezbollah", "Hizbul Mujahideen",
+        "International Relief Fund for the Afflicted and Needy", "Jaish-e-Mohammed",
+        "Jamaat Nosrat Al-Islam Wal-Mouslimine", "James Mason", "Jaysh Al-Muhajirin Wal-Ansar", "Jemaah Islamiyyah",
+        "Jihad islamique palestinien", "Kahane Chai", "La Brigade des martyrs d'Al-Aqsa", "La Fédération internationale de la jeunesse sikh",
+        "Lashkar-e-Jhangvi", "Lashkar-e-Tayyiba", "Les talibans", "Les Tigres libérateurs de l'Eelam tamoul",
+        "Moudjahidines indiens", "Mouvement impérial russe", "Mouvement islamique d'Ouzbékistan", "Mouvement pour l'unicité et le jihad en Afrique de l'Ouest",
+        "Organisation Abou Nidal (OAN)", "Parti des travailleurs du Kurdistan", "Proud Boys", "Réseau Haqqani",
+        "Samidoun", "Sendero Luminoso", "Tehrik-e-Taliban Pakistan", "The Base", "Three Percenters",
     ];
 
     const containsBannedWord = (text) => {
@@ -76,7 +76,7 @@ export default function Profile() {
             setError('Le pseudo ne peut pas être vide.');
             return;
         }
-        if (pseudo.length > 15) {
+        if (pseudo.length > 16) {
             setError('Le pseudo est trop long.');
             return;
         }
@@ -139,7 +139,8 @@ export default function Profile() {
             <div className="w-full max-w-md">
                 <label htmlFor="pseudo" className="block text-lg mb-4">
                     {isConnected ? 'Modifiez votre pseudo :' : 'Entrez votre pseudo : '}
-                    <span className={pseudo.length > 15 ? "text-red-500" : "text-green-500"}>{" "+pseudo.length}</span>/15
+                    <span
+                        className={pseudo.length > 16 ? "text-red-500" : "text-green-500"}>{" " + pseudo.length}</span>/16
                 </label>
                 <input
                     type="text"
@@ -159,9 +160,9 @@ export default function Profile() {
                 />
             </div>
             {pseudo === "Pâris est le plus beau, le plus fort, et le plus intelligent !!!" && (
-            <div className="absolute w-full h-full flex justify-center items-center" >
-                <img src="trollFace.png" onClick={() => setPseudo("Easter Egg")} />
-            </div>
+                <div className="absolute w-full h-full flex justify-center items-center">
+                    <img src="trollFace.png" onClick={() => setPseudo("Easter Egg")}/>
+                </div>
             )}
         </div>
     );
