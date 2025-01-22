@@ -12,6 +12,7 @@ let alreadyVerifiedThisQuestion = false;
 export default function Result() {
     const router = useRouter();
     const [correct, setCorrect] = useState(null);
+    const [rightSolution, setRightSolution] = useState(null);
     const [feedback, setFeedback] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [amIActivePlayer, setAmIActivePlayer] = useState(false);
@@ -93,6 +94,14 @@ export default function Result() {
         }
     }, [checkedActivePlayer, questionId, answer]);
 
+    useEffect(() => {
+        if (socket) {
+            socket.on('answerResultRightSolution', (data) => {
+                // On stocke la solution dans notre état
+                setRightSolution(data.rightSolution);
+            });
+        }
+    }, []);
 
     useEffect(() => {
         defineButtonVisibility();
@@ -345,6 +354,18 @@ export default function Result() {
             if (result.correct) {
                 await addNewHint();
             }
+            if (!result.correct && response.data.solution && socket) {
+                const spStr = sessionStorage.getItem('userData');
+                if (spStr) {
+                    const sp = JSON.parse(spStr);
+                    socket.emit('answerResultRightSolution', {
+                        sessionId: sp.sessionId,
+                        questionId: qId,          // identifiant de la question
+                        rightSolution: response.data.solution
+                    });
+                }
+            }
+
         } catch (error) {
             setFeedback("Erreur lors de la vérification. Veuillez réessayer.");
             result.message = "Erreur de vérification.";
@@ -364,19 +385,23 @@ export default function Result() {
                 <FancyLoader />
             ) : (
                 <>
-                    {correct === null ? (
-                        <h1 className="text-5xl mt-10 mb-4 text-yellow-400 font-Amatic">En attente du résultat...</h1>
-                    ) : correct ? (
-                        <h1 className="text-5xl mt-10 mb-4 text-green-500 font-Amatic">Bonne Réponse !</h1>
-                    ) : (
+                {correct === null ? (
+                    <h1 className="text-5xl mt-10 mb-4 text-yellow-400 font-Amatic">En attente du résultat...</h1>
+                ) : correct ? (
+                    <h1 className="text-5xl ...">Bonne Réponse !</h1>
+                ) : (
+                    <>
                         <h1 className="text-5xl mt-10 mb-4 text-red-500 font-Amatic">Mauvaise Réponse !</h1>
+                        <p className="text-2xl mb-8 text-center font-Amatic">La bonne réponse était : {rightSolution}</p>
+                    </>
                     )}
-                    <p className="text-2xl mb-8 text-center font-Amatic">{feedback}</p>
-                    {correct && latestHint && (
-                        <div className="text-3xl text-white font-bold font-Amatic mb-8">
+            <p className="text-2xl mb-8 text-center font-Amatic">{feedback}</p>
+            {correct && latestHint && (
+                <div className="text-3xl text-white font-bold font-Amatic mb-8">
                             <Hint hint={latestHint} />
                         </div>
                     )}
+
                     {showButton && (
                         <button
                             onClick={handleNextQuestion}
