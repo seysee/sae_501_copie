@@ -98,8 +98,7 @@ export default function handler(req, res) {
                         {
                             where: {
                                 id: { notIn: JSON.parse(answeredQuestions.questions)?.map(Number),
-                                active: true,
-                                }
+                                active: true, }
                             },
                         },
                     )
