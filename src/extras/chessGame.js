@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { Chessboard } from "react-chessboard";
-import { Chess } from "chess.js";
+import React, {useEffect, useState} from "react";
+import {Chessboard} from "react-chessboard";
+import {Chess} from "chess.js";
 
-export default function ChessGame({ containerId, questionId, sessionId, onComplete, socket }) {
+export default function ChessGame({containerId, questionId, sessionId, onComplete, socket}) {
     const container = document.getElementById(containerId);
 
     if (!container) {
@@ -13,17 +13,22 @@ export default function ChessGame({ containerId, questionId, sessionId, onComple
     const [currentPosition, setCurrentPosition] = useState(null);
     const game = new Chess();
 
-    // Position FEN corrigée
     const puzzlePosition = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1";
     const bestMove = "e4";
-    game.load(puzzlePosition); // Charger la position initiale
+    game.load(puzzlePosition);
 
     useEffect(() => {
-        setCurrentPosition(game.fen()); // Mettre à jour la position initiale
-    }, []);
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Le conteneur ${containerId} n'a pas été trouvé.`);
+            return;
+        }
+        console.log("Position du jeu chargée :", game.fen());
+        setCurrentPosition(game.fen());
+    }, [containerId]);
 
     function handleMove(from, to) {
-        const move = game.move({ from, to });
+        const move = game.move({from, to});
 
         if (!move) {
             alert("Coup invalide !");
@@ -33,10 +38,10 @@ export default function ChessGame({ containerId, questionId, sessionId, onComple
         setCurrentPosition(game.fen());
 
         if (move.san === bestMove) {
-            onComplete({ correct: true, message: "Bravo, meilleur coup trouvé !" });
+            onComplete({correct: true, message: "Bravo, meilleur coup trouvé !"});
 
             if (socket) {
-                socket.emit("submitAnswer", { sessionId, questionId, answer: bestMove });
+                socket.emit("submitAnswer", {sessionId, questionId, answer: bestMove});
             }
         } else {
             alert("Ce n'est pas le meilleur coup, essayez encore !");
@@ -45,9 +50,12 @@ export default function ChessGame({ containerId, questionId, sessionId, onComple
 
     return (
         <div id={containerId} style={{ width: "400px", margin: "auto" }}>
-            {currentPosition && (
+            {currentPosition ? (
                 <Chessboard position={currentPosition} onPieceDrop={handleMove} />
+            ) : (
+                <p>Chargement du jeu...</p>
             )}
         </div>
     );
+
 }
