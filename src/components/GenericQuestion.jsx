@@ -239,7 +239,7 @@ export default function GenericQuestion({
                 question.type !== "number" && (
                     <div
                         id="game-container"
-                        className="relative w-full h-80 bg-black rounded-lg mt-6"
+                        className="relative w-full h-80 bg-transparent rounded-lg mt-6"
                     ></div>
                 )}
 
