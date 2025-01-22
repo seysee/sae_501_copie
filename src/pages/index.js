@@ -59,6 +59,17 @@ export default function Index() {
         return code;
     };
 
+    function clearSessionStorageExceptUserData() {
+        const keepKey = "userData"; // On garde seulement userData
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const key = sessionStorage.key(i);
+            if (key !== keepKey) {
+                sessionStorage.removeItem(key);
+            }
+        }
+    }
+
+
     // Création de la session + update Player -> SessionId + mise à jour du session storage
     const createGame = async () => {
         const storedPlayer = getStoredUserData();
@@ -68,6 +79,8 @@ export default function Index() {
             router.push('/profile');
             return;
         }
+
+        clearSessionStorageExceptUserData();
 
         setIsLoading(true);
 
