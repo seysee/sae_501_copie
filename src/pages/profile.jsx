@@ -13,38 +13,46 @@ export default function Profile() {
     const router = useRouter();
 
     const bannedWords = [
-        "con", "conne", "abruti", "imbécile", "crétin", "débile", "connard", "connasse", "trouduc",
-        "enfoiré", "bâtard", "merde", "emmerdeur", "chieur", "salope", "saligaud", "pute", "putain",
-        "bordel", "pédé", "tapette", "batarde", "enculé", "fdp", "filsdepute", "crevard",
-        "nègre", "negro", "bougnoule", "chinetoque", "sale arabe", "juif", "chintok", "sale noir",
-        "pédé", "tafiole", "tapette", "féminazi", "misogyne", "pute", "viol", "violeur", "raciste",
-        "xénophobe", "haineux", "sataniste", "démon", "tortionnaire", "tueur", "assassin",
-        "meurtrier", "meurtre", "mort", "tuer", "tué", "massacre", "génocide", "torture", "terroriste", "kamikaze", "jihadiste",
-        "esclavage", "nazi", "fasciste", "salopard", "sac à merde",
-        "fuck", "f*ck", "fu*k", "fuc*", "shit", "bitch", "asshole", "bastard", "motherfucker", "slut", "whore", "jerk",
-        "nigga", "nigger", "fucker", "dick", "damn", "pussy", "wanker", "prick", "twat",
-        "bollocks", "scumbag", "arsehole", "harlot", "racist", "bigot",
-        "queer", "fag", "dyke", "cock", "bollocks", "f***", "arse", "idiot", "cretin",
-        "scumbag", "jerkoff", "sodomite", "rapist", "paedophile", "peckerhead", "nazi",
-        "c0nnard", "fdp", "n4z1", "b1tch", "sh1t", "m0therf***er", "f**k", "n*gger",
-        "wtf", "omg", "mthrfkr", "p3de", "v1ol", "v10leur", "s4lope", "r4ciste",
-        "h4ineux", "t4pette", "t4fiole", "ch1nque", "sale_blanc", "fils_de_p***",
-        "kkk", "supremaciste", "lynchage", "colonisateur", "nazisme", "séparatiste",
-        "white_power", "esclavagiste", "homophobe", "xénophobe", "antisémitisme",
-        "racisme", "supremacy", "hate_crime", "genocide", "segregation", "apartheid",
-        "antisémite", "bougnoul", "arrogant_blanc", "sale_juif", "dirty_black",
-        "sale_arabe", "chintok", "chinetoque", "negre", "monkey", "ape",
-        "yellow_skin", "darkie", "slave", "massa", "master_race",
-        "sodomie", "éjaculation", "gangbang", "hardcore", "porno", "porn",
-        "chatte", "cul", "vagin", "bite", "couille",
-        "dildo", "fellation", "pédophile", "pedophile", "masturbateur", "prostituée", "escort",
-        "gode", "hardcore_sex", "bareback", "cumshot", "pegging", "bdsm", "kink", "sex_addict",
-        "pervers", "idiot", "stupide", "débile", "taré", "mongolien", "trisomique",
-        "esclave", "babouin", "chimpanzé", "clochard", "negr0", "boche", "chicano", "enculeur",
-        "femmelette", "gogol", "goudou", "gouine", "lope", "lopette", "nabot",
-        "négresse", "négrillon", "pédé", "pouffiasse", "romano", "schleu", "sidaïque",
-        "tafiole", "tantouse", "tantouze", "tarlouse", "tarlouze", "travelo", "caca", "pipi",
-        "c4c4", "c4ca", "cac4", "p1p1", "p1pi", "pip1"
+        "bâtard", "merde", "salope", "pute", "putain","pédé", "tapette", "enculé", "fdp",
+        "nègre", "negro", "bougnoule", "chinetoque", "arabe", "juif", "chintok", "sale",
+        "tafiole", "féminazi", "misogyne", "viol", "raciste", "connard", "connasse",
+        "xénophobe", "torture", "tueur", "meurtre", "mort", "tuer", "tué", "génocide",
+        "torture", "terroriste", "jihadiste", "daesh","esclavage", "nazi", "fasciste", "salopard", "fuck",
+        "f*ck", "fu*k", "fuc*", "shit", "bitch", "asshole", "slut", "whore", "jerk",
+        "nigga","nigger", "nig*er","ni*ger","nigg*r","n*gger", "n!gger","n!gga", "n!gg@r", "n!gg*r", "n1gga", "n1gg3r",
+        "n!gger", "n!ggr", "n1ggr","n|gga", "n|gger", "n|gg*r", "n|gg@r","nigg@r", "n!ggar", "ni**er",
+        "ni**a", "n!gg@","ni gger","ni gga","nig ger", "nig ga","n1g@a", "n1gg@", "n!g@","n1gg@", "ngg@", "n1g@",
+        "n igga", "n i gger", "ni gg a", "n ig g er","n_igga", "n__igger", "n_ig_er",
+        "n.i.g.g.a", "n.i.g.g.e.r","n i g g a", "n i gg er", "ni g g er","n-igga", "n-igger", "ni-gger",
+        "n1gga", "n1gg3r", "ni66a", "ni663r","n!66a", "ni99er", "n1gg3r","nigg4", "n1gg@", "nigg3r",
+        "n¡gga", "n¡gger", "ni99@", "reggin", "aggin",
+        "nìgga", "nìggér", "nígga", "nígger","nīggā", "nîgga", "nîgger", "nìggа", "nιgga",
+        "nïgga", "nïgger", "nıgga", "nıgger", "nіgga","n🅸gga", "n🅸gg🅰", "n🅽igg🅰","n🅽🅸🅶ga", "n🅸g🅶er", "n🅶🅶a",
+        "dick", "pussy", "wanker", "prick", "racist", "fag", "dyke", "cock", "sodomite", "rapist", "paedophile", "nazi",
+        "fdp", "n4z1", "b1tch", "sh1t", "m0therf***er", "f**k", "n*gger", "p3de", "v1ol", "v10leur", "r4ciste",
+        "t4pette", "t4fiole", "kkk", "klux", "supremaciste", "nazisme", "esclavagiste", "homophobe", "xénophobe",
+        "antisémitisme", "genocide", "segregation","antisémite", "bougnoul","sale_juif", "chinetoque", "negre","slave", "massa",
+        "vagin", "bite", "couille", "zeub", "chibre","fellation", "pédophile", "pedophile", "prostituée","gode","cumshot", "pegging",
+        "bdsm", "kink","pervers", "mongolien", "trisomique","esclave", "babouin", "chimpanzé", "negr0",
+        "goudou", "gouine", "négresse", "négrillon", "pédé", "sidaique", "travelo", "caca", "pipi", "prout",
+        "c4c4", "c4ca", "cac4", "p1p1", "p1pi", "pip1", "Al Chabaab",
+        "Al-Jamaa al-islamiya","Al-Mourabitoune","el-Mouakine bi dima","Al-Qaïda",
+        "Ansar al-Islam (AI)","Ansar Dine","Ansarallah","Aryan Strikeforce",
+        "Asbat Al-Ansar","Association mondiale tamoule","Aum Shinrikyo","Babbar Khalsa International",
+        "Boko Haram","Blood & Honour","al-Qods","Abdullah Azzam",
+        "al-Ashtar","Combat 18","Division Atomwaffen","Division Fatemiyoun",
+        "Ejército de Liberación Nacional","Émirat du Caucase","État islamique","Province du Sinaï",
+        "État islamique","Euskadi Ta Askatasuna","Hezb-e Islami","Macina",
+        "Palestine","Fuerzas Armadas Revolucionarias","Gardiens de la révolution islamique","Abou Sayyaf",
+        "Gulbuddin Hekmatyar","Hamas","Harakat al-Sabireen","Harakat ul-Mudjahidin",
+        "HASAM","Hay'at Tahrir al-Sham","Hezbollah","Hizbul Mujahideen",
+        "International Relief Fund for the Afflicted and Needy","Jaish-e-Mohammed",
+        "Jamaat Nosrat Al-Islam Wal-Mouslimine","James Mason","Jaysh Al-Muhajirin Wal-Ansar","Jemaah Islamiyyah",
+        "Jihad islamique palestinien","Kahane Chai","La Brigade des martyrs d'Al-Aqsa","La Fédération internationale de la jeunesse sikh",
+        "Lashkar-e-Jhangvi","Lashkar-e-Tayyiba","Les talibans","Les Tigres libérateurs de l'Eelam tamoul",
+        "Moudjahidines indiens","Mouvement impérial russe","Mouvement islamique d'Ouzbékistan","Mouvement pour l'unicité et le jihad en Afrique de l'Ouest",
+        "Organisation Abou Nidal (OAN)","Parti des travailleurs du Kurdistan","Proud Boys","Réseau Haqqani",
+        "Samidoun","Sendero Luminoso","Tehrik-e-Taliban Pakistan","The Base","Three Percenters",
     ];
 
     const containsBannedWord = (text) => {
@@ -66,6 +74,10 @@ export default function Profile() {
     const handleSavePseudo = async () => {
         if (!pseudo.trim()) {
             setError('Le pseudo ne peut pas être vide.');
+            return;
+        }
+        if (pseudo.length > 15) {
+            setError('Le pseudo est trop long.');
             return;
         }
         if (!skin) {
@@ -100,7 +112,6 @@ export default function Profile() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-white relative">
-            {/* Bouton retour, affiché uniquement si isConnected === true */}
             {(
                 <button
                     onClick={() => router.back()}
@@ -127,7 +138,8 @@ export default function Profile() {
             <h1 className="text-5xl font-Amatic mb-8">Profil</h1>
             <div className="w-full max-w-md">
                 <label htmlFor="pseudo" className="block text-lg mb-4">
-                    {isConnected ? 'Modifiez votre pseudo :' : 'Entrez votre pseudo :'}
+                    {isConnected ? 'Modifiez votre pseudo :' : 'Entrez votre pseudo : '}
+                    <span className={pseudo.length > 15 ? "text-red-500" : "text-green-500"}>{" "+pseudo.length}</span>/15
                 </label>
                 <input
                     type="text"
