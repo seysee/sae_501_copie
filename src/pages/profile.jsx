@@ -158,6 +158,11 @@ export default function Profile() {
                     className="w-full bg-black text-green-500 border-green-500"
                 />
             </div>
+            {pseudo === "Pâris est le plus beau, le plus fort, et le plus intelligent !!!" && (
+            <div className="absolute w-full h-full flex justify-center items-center" >
+                <img src="trollFace.png" onClick={() => setPseudo("Easter Egg")} />
+            </div>
+            )}
         </div>
     );
 }
