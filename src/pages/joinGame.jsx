@@ -32,11 +32,23 @@ export default function JoinGame() {
         }
     }, [router]);
 
+    function clearSessionStorageExceptUserData() {
+        const keepKey = "userData";
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const key = sessionStorage.key(i);
+            if (key !== keepKey) {
+                sessionStorage.removeItem(key);
+            }
+        }
+    }
+
     const handleJoinGame = async () => {
         if (isButtonDisabled) return;
         setIsButtonDisabled(true);
         setErrorMessage('');
         setCannotJoin('');
+
+        clearSessionStorageExceptUserData();
 
         if (!sessionCodeInput) {
             setErrorMessage('Veuillez entrer un code de session valide.');
