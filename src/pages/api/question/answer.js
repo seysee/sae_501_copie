@@ -37,7 +37,8 @@ export default async function handler(req, res) {
             } else {
                 return res.status(200).json({
                     correct: false,
-                    message: JSON.parse(question.feedback)?.incorrect || "Mauvaise réponse, essayez encore."
+                    message: JSON.parse(question.feedback)?.incorrect || "Mauvaise réponse, essayez encore.",
+                    solution: question.solution
                 });
             }
         } catch (error) {
