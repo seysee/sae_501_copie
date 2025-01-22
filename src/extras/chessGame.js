@@ -15,8 +15,6 @@ export default function chessGameLogic({ containerId, socket, onComplete, questi
     board.style.gridTemplateRows = 'repeat(8, 1fr)';
     container.appendChild(board);
 
-    let selectedSquare = null;
-
     const bestMoves = [
         { from: 'e2', to: 'e4' },
     ];
