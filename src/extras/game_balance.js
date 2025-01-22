@@ -1,6 +1,15 @@
 import axios from "axios";
 
-export default async function gameBalance({ containerId, questionId, sessionId, onComplete, socket }) {
+/**
+ * Jeu d'équilibre avec vies (affichées en coeurs) et succès.
+ */
+export default async function gameBalance({
+                                              containerId,
+                                              questionId,
+                                              sessionId,
+                                              onComplete,
+                                              socket
+                                          }) {
     const radiusThreshold = 10;
     const container = document.getElementById(containerId);
 
@@ -16,7 +25,9 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
     let lives = 3;
 
     function calculateDistance(pos1, pos2) {
-        return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2));
+        return Math.sqrt(
+            Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
+        );
     }
 
     function generateRandomPosition(existingPositions) {
@@ -24,9 +35,13 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
         do {
             position = {
                 x: Math.random() * 80 + 10,
-                y: Math.random() * 80 + 10,
+                y: Math.random() * 80 + 10
             };
-        } while (existingPositions.some((existing) => calculateDistance(position, existing) < radiusThreshold));
+        } while (
+            existingPositions.some(
+                (existing) => calculateDistance(position, existing) < radiusThreshold
+            )
+            );
         return position;
     }
 
@@ -47,83 +62,104 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
                 id: i,
                 x: position.x,
                 y: position.y,
-                type: Math.random() < 0.5 ? "wall" : "death",
+                type: Math.random() < 0.5 ? "wall" : "death"
             });
         }
         return obstacles;
     }
 
     function renderGame() {
-        container.innerHTML = '';
+        container.innerHTML = "";
 
+        // Trou (arrivée)
         const hole = document.createElement("div");
         hole.style = `
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 50%;
-            top: ${holePosition.y}%;
-            left: ${holePosition.x}%;
-            transform: translate(-50%, -50%);
-            background: green;
-        `;
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      top: ${holePosition.y}%;
+      left: ${holePosition.x}%;
+      transform: translate(-50%, -50%);
+      background: green;
+      z-index: 1;
+    `;
         hole.innerHTML = "🏁";
         container.appendChild(hole);
 
+        // Obstacles
         obstacles.forEach((obstacle) => {
             const obstacleElement = document.createElement("div");
             obstacleElement.style = `
-                position: absolute;
-                width: 40px;
-                height: 40px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                border-radius: 50%;
-                top: ${obstacle.y}%;
-                left: ${obstacle.x}%;
-                transform: translate(-50%, -50%);
-                background: ${obstacle.type === "wall" ? "gray" : "red"};
-            `;
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 50%;
+        top: ${obstacle.y}%;
+        left: ${obstacle.x}%;
+        transform: translate(-50%, -50%);
+        background: ${obstacle.type === "wall" ? "gray" : "red"};
+        z-index: 2;
+      `;
             obstacleElement.innerHTML = obstacle.type === "wall" ? "🧱" : "💀";
             container.appendChild(obstacleElement);
         });
 
+        // Balle
         const ball = document.createElement("div");
         ball.style = `
-            position: absolute;
-            width: 8%;
-            height: 8%;
-            border-radius: 50%;
-            top: ${ballPosition.y}%;
-            left: ${ballPosition.x}%;
-            transform: translate(-50%, -50%);
-        `;
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      top: ${ballPosition.y}%;
+      left: ${ballPosition.x}%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      font-size: 24px;
+    `;
         ball.innerHTML = "⚽";
         container.appendChild(ball);
 
-        const status = document.createElement("p");
-        status.style = "color: white; text-align: center; margin-top: 20px;";
-        status.innerHTML = `Vies : ${lives} | Succès : ${successCount}/3`;
-        container.appendChild(status);
+        // Vies + succès
+        const uiWrapper = document.createElement("div");
+        uiWrapper.style = `
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      z-index: 999;
+      font-size: 20px;
+      pointer-events: none; /* pour que le doigt ne bloque pas */
+    `;
+        const hearts = Array(lives).fill("❤️").join(" ");
+        uiWrapper.innerHTML = `${hearts} &nbsp; | &nbsp; Succès : ${successCount}/3`;
+        container.appendChild(uiWrapper);
     }
 
     async function handleGameEnd(success) {
         try {
-            const response = await axios.post('/api/question/answer', {
+            const response = await axios.post("/api/question/answer", {
                 id: questionId,
-                answer: success ? "success" : "failure",
+                answer: success ? "success" : "failure"
             });
 
-            // Envoie également via le socket
+            // Emission socket
             if (socket) {
                 socket.emit("submitAnswer", {
                     sessionId,
                     questionId,
-                    answer: userAnswer,
+                    answer: success ? "hole_success" : "hole_failure"
                 });
             }
 
@@ -134,7 +170,7 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
             }
 
             console.log(response.data.message);
-            onComplete(response.data); // Envoie les résultats au composant parent
+            onComplete(response.data);
         } catch (error) {
             console.error("Erreur lors de l'envoi de la réponse :", error);
         }
@@ -146,15 +182,18 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
         const beta = event.beta;
         const gamma = event.gamma;
 
+        // Ajuster la vitesse / sensibilité
         const newX = Math.min(Math.max(ballPosition.x + gamma / 15, 0), 100);
         const newY = Math.min(Math.max(ballPosition.y + beta / 15, 0), 100);
 
         const newBallPosition = { x: newX, y: newY };
 
+        // Collision obstacles
         for (const obstacle of obstacles) {
             const distance = calculateDistance(newBallPosition, obstacle);
             if (distance < 5) {
                 if (obstacle.type === "wall") {
+                    // simple mur => on bloque le déplacement
                     return;
                 } else if (obstacle.type === "death") {
                     lives--;
@@ -173,6 +212,7 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
 
         ballPosition = newBallPosition;
 
+        // Collision trou (arrivée)
         const distanceToHole = calculateDistance(newBallPosition, holePosition);
         if (distanceToHole < 5) {
             successCount++;
@@ -195,8 +235,10 @@ export default async function gameBalance({ containerId, questionId, sessionId, 
         renderGame();
     }
 
+    // Initial rendering
     renderGame();
 
+    // Gérer gyroscope
     if (window.DeviceOrientationEvent) {
         if (typeof DeviceOrientationEvent.requestPermission === "function") {
             DeviceOrientationEvent.requestPermission()
