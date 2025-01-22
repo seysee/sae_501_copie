@@ -12,6 +12,7 @@ export default function Index() {
     const [isMobileDevice, setIsMobileDevice] = useState(false);
     const [userPseudo, setUserPseudo] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [clicked, setClicked] = useState(false);
     const router = useRouter();
 
     const checkDevice = () => {
@@ -72,6 +73,7 @@ export default function Index() {
 
     // Création de la session + update Player -> SessionId + mise à jour du session storage
     const createGame = async () => {
+        setClicked(true)
         const storedPlayer = getStoredUserData();
 
         if (!storedPlayer) {
@@ -170,13 +172,15 @@ export default function Index() {
                                     <>
                                         <Button
                                             label="Créer partie"
-                                            className="mb-4 bg-black text-white border-white"
+                                            className={`mb-4 bg-black text-white border-white ${clicked ? "opacity-50 cursor-not-allowed" : ""}`}
+                                            disabled={clicked}
                                             onClick={createGame}
                                         />
                                         <Link href="/joinGame" passHref>
                                             <Button
                                                 label="Rejoindre partie"
-                                                className="mb-4 bg-black text-white border-white"
+                                                className={`mb-4 bg-black text-white border-white ${clicked ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                disabled={clicked}
                                                 onClick={() => handleRedirect('/joinGame')}
                                             />
                                         </Link>
