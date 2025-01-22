@@ -1,61 +1,96 @@
-import React, {useEffect, useState} from "react";
-import {Chessboard} from "react-chessboard";
-import {Chess} from "chess.js";
+import { Chess } from 'chess.js';
 
-export default function ChessGame({containerId, questionId, sessionId, onComplete, socket}) {
+export default function chessGameLogic({ containerId, socket, onComplete, questionId, sessionId }) {
+    const chess = new Chess();
     const container = document.getElementById(containerId);
+    if (!container) return;
 
-    if (!container) {
-        console.error("Impossible de trouver le conteneur pour le jeu d'échecs.");
-        return;
-    }
+    const board = document.createElement('div');
+    board.id = 'chess-board';
+    board.style.width = '400px';
+    board.style.height = '400px';
+    board.style.border = '2px solid black';
+    board.style.display = 'grid';
+    board.style.gridTemplateColumns = 'repeat(8, 1fr)';
+    board.style.gridTemplateRows = 'repeat(8, 1fr)';
+    container.appendChild(board);
 
-    const [currentPosition, setCurrentPosition] = useState(null);
-    const game = new Chess();
+    let selectedSquare = null;
 
-    const puzzlePosition = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1";
-    const bestMove = "e4";
-    game.load(puzzlePosition);
+    const bestMoves = [
+        { from: 'e2', to: 'e4' },
+    ];
 
-    useEffect(() => {
-        const container = document.getElementById(containerId);
-        if (!container) {
-            console.error(`Le conteneur ${containerId} n'a pas été trouvé.`);
-            return;
-        }
-        console.log("Position du jeu chargée :", game.fen());
-        setCurrentPosition(game.fen());
-    }, [containerId]);
+    const renderBoard = () => {
+        const boardHtml = getBoardHtml(chess.board());
+        board.innerHTML = '';
+        board.innerHTML = boardHtml;
 
-    function handleMove(from, to) {
-        const move = game.move({from, to});
+        const squares = board.querySelectorAll('.square');
+        squares.forEach(square => {
+            square.addEventListener('click', handleSquareClick);
+        });
+    };
 
-        if (!move) {
-            alert("Coup invalide !");
-            return;
-        }
+    const getBoardHtml = (board) => {
+        let html = '';
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const piece = board[row][col];
+                const squareColor = (row + col) % 2 === 0 ? '#f0d9b5' : '#b58863';
+                let squareClass = 'square';
 
-        setCurrentPosition(game.fen());
+                // Vérifier si cette case est l'une des meilleures
+                const squareId = `${String.fromCharCode(97 + col)}${8 - row}`;
+                if (bestMoves.some(move => move.from === squareId)) {
+                    squareClass += ' best-move'; // Ajouter une classe pour les meilleurs coups
+                }
 
-        if (move.san === bestMove) {
-            onComplete({correct: true, message: "Bravo, meilleur coup trouvé !"});
-
-            if (socket) {
-                socket.emit("submitAnswer", {sessionId, questionId, answer: bestMove});
+                html += ` 
+                    <div 
+                        class="${squareClass}" 
+                        data-row="${row}" 
+                        data-col="${col}"
+                        data-square-id="${squareId}"
+                        style="width: 50px; height: 50px; background-color: ${squareColor}; display: flex; justify-content: center; align-items: center; cursor: pointer;">
+                        ${piece ? `<span style="color: ${piece.color === 'w' ? 'white' : 'black'};">${piece.type.toUpperCase()}</span>` : ''}
+                    </div>`;
             }
-        } else {
-            alert("Ce n'est pas le meilleur coup, essayez encore !");
         }
-    }
+        return html;
+    };
 
-    return (
-        <div id={containerId} style={{ width: "400px", margin: "auto" }}>
-            {currentPosition ? (
-                <Chessboard position={currentPosition} onPieceDrop={handleMove} />
-            ) : (
-                <p>Chargement du jeu...</p>
-            )}
-        </div>
-    );
+    // Fonction pour gérer les clics sur les cases
+    const handleSquareClick = (e) => {
+        const square = e.target;
+        const squareId = square.getAttribute('data-square-id');
 
+        const isBestMove = bestMoves.some(move => move.to === squareId);
+
+        if (isBestMove) {
+            if (socket) {
+                socket.emit("submitAnswer", { sessionId, questionId, answer: "chess_success" });
+            }
+            onComplete({ correct: true, message: "Bon coup !" });
+        } else {
+            onComplete({ correct: false, message: "Mauvais coup, réessaie !" });
+        }
+    };
+
+    renderBoard();
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .square {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .best-move {
+            background-color: orange !important;
+        }
+    `;
+    document.head.appendChild(style);
 }

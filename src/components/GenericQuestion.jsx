@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import Button from "./_button";
+import React, {useEffect, useState} from "react";
 import Timer from "./_timer";
 
 export default function GenericQuestion({
@@ -32,7 +31,7 @@ export default function GenericQuestion({
     useEffect(() => {
         if (!socket || !question) return;
 
-        socket.on("answerSubmitted", ({ redirectUrl }) => {
+        socket.on("answerSubmitted", ({redirectUrl}) => {
             if (redirectUrl) {
                 sessionStorage.removeItem("currentQuestion");
                 sessionStorage.removeItem("activePlayer");
@@ -58,7 +57,8 @@ export default function GenericQuestion({
                     const assets = JSON.parse(question.assets || "[]");
                     const loadedAssets = assets.map((asset) => `/puzzle/${asset}`);
                     setAssetsLoaded(loadedAssets);
-                } catch {}
+                } catch {
+                }
             };
             loadAssets();
 
@@ -78,7 +78,8 @@ export default function GenericQuestion({
                 try {
                     const logic = await import(`../extras/${question.extraData}`);
                     setExtraLogic(() => logic.default || logic);
-                } catch {}
+                } catch {
+                }
             };
             loadExtraLogic();
         }
