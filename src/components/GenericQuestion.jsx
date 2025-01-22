@@ -1,14 +1,23 @@
-import React, {useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
 import Button from "./_button";
 import Timer from "./_timer";
 
-export default function GenericQuestion({question, onSuccess, socket, isActive, activePlayerName}) {
+export default function GenericQuestion({
+                                            question,
+                                            onSuccess,
+                                            socket,
+                                            isActive,
+                                            activePlayerName
+                                        }) {
     const [assetsLoaded, setAssetsLoaded] = useState([]);
     const [extraLogic, setExtraLogic] = useState(null);
-    const [feedback, setFeedback] = useState('');
-    const [answer, setAnswer] = useState('');
+    const [feedback, setFeedback] = useState("");
+    const [answer, setAnswer] = useState("");
     const [paused, setPaused] = useState(false);
     const [timeUp, setTimeUp] = useState(false);
+
+    // Compte à rebours local pour "action_wait"
+    const [countdown, setCountdown] = useState(null);
 
     const getStoredUserData = () => {
         try {
@@ -19,15 +28,15 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
         }
     };
 
+    // Écouter answerSubmitted
     useEffect(() => {
         if (!socket || !question) return;
 
-        socket.on("answerSubmitted", ({redirectUrl}) => {
+        socket.on("answerSubmitted", ({ redirectUrl }) => {
             if (redirectUrl) {
                 sessionStorage.removeItem("currentQuestion");
                 sessionStorage.removeItem("activePlayer");
                 sessionStorage.removeItem(`timerEndTime:${question.id}`);
-
                 window.location.href = redirectUrl;
             }
         });
@@ -39,6 +48,7 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
         };
     }, [socket, question]);
 
+    // Charger assets
     useEffect(() => {
         if (!question) return;
 
@@ -48,10 +58,10 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
                     const assets = JSON.parse(question.assets || "[]");
                     const loadedAssets = assets.map((asset) => `/puzzle/${asset}`);
                     setAssetsLoaded(loadedAssets);
-                } catch {
-                }
+                } catch {}
             };
             loadAssets();
+
             const container = document.getElementById("game-container");
             if (container) {
                 container.dataset.assets = question.assets;
@@ -59,6 +69,7 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
         }
     }, [question]);
 
+    // Charger extraLogic
     useEffect(() => {
         if (!question) return;
 
@@ -67,12 +78,42 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
                 try {
                     const logic = await import(`../extras/${question.extraData}`);
                     setExtraLogic(() => logic.default || logic);
-                } catch {
-                }
+                } catch {}
             };
             loadExtraLogic();
         }
     }, [question]);
+
+    // ----- Lancement auto si question.type = "action" ou "action_wait" -----
+    useEffect(() => {
+        if (!question || !isActive) return;
+        if (!extraLogic) return; // On attend que l'extraLogic soit chargé
+
+        if (question.type === "action") {
+            // Se lance immédiatement
+            handleExtraLogic();
+        } else if (question.type === "action_wait") {
+            // Lance un compte à rebours de 3 secondes
+            setCountdown(3);
+        }
+    }, [question, isActive, extraLogic]);
+
+    // Gérer le compte à rebours pour action_wait
+    useEffect(() => {
+        if (countdown === null) return; // pas de countdown en cours
+        if (countdown <= 0) {
+            // On lance le jeu
+            handleExtraLogic();
+            setCountdown(null);
+            return;
+        }
+        const timerId = setInterval(() => {
+            setCountdown((c) => c - 1);
+        }, 1000);
+        return () => clearInterval(timerId);
+    }, [countdown]);
+
+    // ---------------
 
     const handleAnswerChange = (e) => {
         setAnswer(e.target.value);
@@ -80,13 +121,11 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        if (!isActive) {
-            return;
-        }
+        if (!isActive) return;
+
         const storedUserData = getStoredUserData();
-        if (!storedUserData || !socket) {
-            return;
-        }
+        if (!storedUserData || !socket) return;
+
         socket.emit("submitAnswer", {
             sessionId: storedUserData.sessionId,
             questionId: question.id,
@@ -96,34 +135,31 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
     };
 
     const handleExtraLogic = () => {
-        if (!isActive) {
-            return;
-        }
-        if (extraLogic) {
-            const storedUserData = getStoredUserData();
-            const containerId = "game-container";
-            extraLogic({
-                containerId,
-                questionId: question.id,
-                sessionId: storedUserData.sessionId,
-                socket,
-                onComplete: (result) => {
-                    socket.emit("submitAnswer", {
-                        sessionId: storedUserData.sessionId,
-                        questionId: question.id,
-                        answer: result.answer
-                    });
-                    setFeedback(result.message || "Interaction terminée.");
-                    if (result.correct) onSuccess();
-                },
-            });
-        }
+        if (!isActive) return;
+        if (!extraLogic) return;
+
+        const storedUserData = getStoredUserData();
+        const containerId = "game-container";
+        extraLogic({
+            containerId,
+            questionId: question.id,
+            sessionId: storedUserData.sessionId,
+            socket,
+            onComplete: (result) => {
+                socket.emit("submitAnswer", {
+                    sessionId: storedUserData.sessionId,
+                    questionId: question.id,
+                    answer: result.answer
+                });
+                setFeedback(result.message || "Interaction terminée.");
+                if (result.correct) onSuccess();
+            }
+        });
     };
 
     const handleTimeUp = () => {
         setTimeUp(true);
         setFeedback("Temps écoulé.");
-
         sessionStorage.removeItem("currentQuestion");
         sessionStorage.removeItem("activePlayer");
 
@@ -132,7 +168,7 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
             socket.emit("submitAnswer", {
                 sessionId: storedUserData?.sessionId,
                 questionId: question.id,
-                answer: "time_up",
+                answer: "time_up"
             });
         }
     };
@@ -148,11 +184,17 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
     return (
         <div className="flex flex-col items-center justify-center text-white">
             <h1 className="text-4xl mb-4 font-Amatic font-bold">{question.question}</h1>
-            <Timer questionId={question.id} initialTime={question.duration} onTimeUp={handleTimeUp}
-                   paused={paused || timeUp}/>
+
+            <Timer
+                questionId={question.id}
+                initialTime={question.duration}
+                onTimeUp={handleTimeUp}
+                paused={paused || timeUp}
+            />
 
             {isActive ? (
                 <>
+                    {/* Text ou number => input */}
                     {(question.type === "text" || question.type === "number") && (
                         <form className="flex flex-col items-center space-y-4" onSubmit={handleSubmit}>
                             <input
@@ -170,13 +212,19 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
                             </button>
                         </form>
                     )}
-                    {question.extraData && (question.type !== "text" && question.type !== "number") && (
-                        <Button
-                            label="Lancer l'énigme"
-                            onClick={handleExtraLogic}
-                            className="py-3 px-6 bg-blue-500 text-white rounded-lg mt-4"
-                        />
+
+                    {/* Type "action" => auto-lancement => PAS de bouton */}
+                    {/* Type "action_wait" => auto-lancement après 3s => PAS de bouton */}
+                    {question.type === "action_wait" && countdown > 0 && (
+                        <p className="text-lg text-yellow-400 mb-2">
+                            Le jeu commencera dans {countdown} seconde{countdown > 1 ? "s" : ""}...
+                        </p>
                     )}
+                    {/*
+            Si c’est un "mini-jeu" (extraData) MAIS ni text/number => "action" ou "action_wait" =>
+            => plus de bouton "Lancer l'énigme"
+            => car c’est auto-lancé
+          */}
                 </>
             ) : (
                 <div className="mt-6">
@@ -186,9 +234,15 @@ export default function GenericQuestion({question, onSuccess, socket, isActive, 
                 </div>
             )}
 
-            {question.extraData && question.type !== "text" && question.type !== "number" && (
-                <div id="game-container" className="relative w-full h-80 bg-black rounded-lg mt-6"></div>
-            )}
+            {question.extraData &&
+                question.type !== "text" &&
+                question.type !== "number" && (
+                    <div
+                        id="game-container"
+                        className="relative w-full h-80 bg-black rounded-lg mt-6"
+                    ></div>
+                )}
+
             {feedback && <p className="text-green-500 mt-4">{feedback}</p>}
         </div>
     );
