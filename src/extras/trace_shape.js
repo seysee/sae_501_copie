@@ -6,6 +6,42 @@ export default async function traceShapeGame({ containerId, questionId, sessionI
         return;
     }
 
+    const style = document.createElement("style");
+    style.innerHTML = `
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #${containerId} {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            border: 1px solid white;
+        }
+        
+        .button-container {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        button {
+            margin-top: 10px;
+        }
+        
+        button:last-child {
+            margin-right: 0;
+        }
+    `;
+    document.head.appendChild(style);
+
     const canvas = document.createElement("canvas");
     canvas.width = 300;
     canvas.height = 300;
@@ -261,15 +297,22 @@ export default async function traceShapeGame({ containerId, questionId, sessionI
     canvas.addEventListener("touchmove", continueDrawing);
     canvas.addEventListener("touchend", stopDrawing);
 
+    const buttonContainer = document.createElement("div");
+    buttonContainer.className = "button-container";
+
     const validateButton = document.createElement("button");
     validateButton.textContent = "Valider le tracé";
     validateButton.className = "bg-blue-500 text-white px-4 py-2 mt-4 rounded-lg hover:bg-blue-600";
     validateButton.onclick = validatePath;
-    container.appendChild(validateButton);
 
     const resetButton = document.createElement("button");
     resetButton.textContent = "Réinitialiser le tracé";
     resetButton.className = "bg-gray-500 text-white px-4 py-2 mt-4 rounded-lg hover:bg-gray-600 ml-2";
     resetButton.onclick = resetDrawing;
-    container.appendChild(resetButton);
+
+    buttonContainer.appendChild(validateButton);
+    buttonContainer.appendChild(resetButton);
+
+    container.appendChild(buttonContainer);
+
 }
