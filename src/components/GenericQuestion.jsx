@@ -208,7 +208,7 @@ export default function GenericQuestion({
                             />
                             <Button
                                 type="submit"
-                                className="py-3 px-6"
+                                className="py-3 px-6 text-green-500 border-green-500"
                                 label={"Envoyer"}>
                             </Button>
                         </form>
