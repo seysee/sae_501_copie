@@ -6,7 +6,7 @@ import _skin from "../components/_skin";
 
 export default function Profile() {
     const [pseudo, setPseudo] = useState('');
-    const [skin, setSkin] = useState(null);
+    const [skin, setSkin] = useState(1);
     const [error, setError] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
 
