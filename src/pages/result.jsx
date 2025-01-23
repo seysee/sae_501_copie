@@ -11,6 +11,7 @@ let alreadyVerifiedThisQuestion = false;
 
 export default function Result() {
     const router = useRouter();
+    const [showConfetti, setShowConfetti] = useState(false);
     const [correct, setCorrect] = useState(null);
     const [rightSolution, setRightSolution] = useState(null);
     const [feedback, setFeedback] = useState('');
@@ -31,6 +32,10 @@ export default function Result() {
         return false;
     };
 
+    const handleCorrectAnswer = () => {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 2000); // Cache après 2 secondes
+    };
 
     useEffect(() => {
         if (!socket) {
@@ -97,11 +102,13 @@ export default function Result() {
     useEffect(() => {
         if (socket) {
             socket.on('answerResultRightSolution', (data) => {
-                // On stocke la solution dans notre état
-                setRightSolution(data.rightSolution);
+                // On stocke uniquement la première solution
+                const firstSolution = data.rightSolution?.split(';')[0].trim();
+                setRightSolution(firstSolution);
             });
         }
     }, []);
+
 
     useEffect(() => {
         defineButtonVisibility();
