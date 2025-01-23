@@ -28,13 +28,8 @@ export default async function blowGame({ containerId, questionId, sessionId, onC
     const errorElement = document.createElement("p");
     errorElement.className = "mt-4 text-red-500";
 
-    const skipButton = document.createElement("button");
-    skipButton.textContent = "Skip";
-    skipButton.className = "mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-700 text-white font-bold rounded-lg";
-
     container.appendChild(balloonContainer);
     container.appendChild(errorElement);
-    container.appendChild(skipButton);
 
     // Variables pour le ballon et le microphone
     let balloonSize = 50;
@@ -107,15 +102,6 @@ export default async function blowGame({ containerId, questionId, sessionId, onC
             errorElement.textContent = "Impossible d’accéder au microphone. Vérifiez les permissions dans votre navigateur.";
         }
     };
-
-    // Événement pour le bouton "Skip"
-    skipButton.addEventListener("click", () => {
-        isCompleted = true;
-        balloonSize = 300;
-        balloon.style.width = `${balloonSize}px`;
-        balloon.style.height = `${balloonSize}px`;
-        handleSuccess();
-    });
 
     // Initialisation
     getMicrophoneAccess();
