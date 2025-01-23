@@ -8,13 +8,11 @@ export default async function sudokuGame({ containerId, questionId, sessionId, o
         return;
     }
 
-    // Générer une grille de Sudoku facile
     const sudoku = getSudoku("easy");
-    let puzzle = sudoku.puzzle.split(""); // Convertir la chaîne en tableau pour manipulation
-    const solution = sudoku.solution.split(""); // Convertir la solution en tableau
-    const cellsToKeep = 35; // Nombre de cases visibles
+    let puzzle = sudoku.puzzle.split("");
+    const solution = sudoku.solution.split("");
+    const cellsToKeep = 35;
 
-    // Fonction pour remplir partiellement le puzzle
     const partiallyFillPuzzle = (puzzle, solution, cellsToKeep) => {
         const totalCells = puzzle.length;
         const filledIndices = new Set();
@@ -44,9 +42,16 @@ export default async function sudokuGame({ containerId, questionId, sessionId, o
     const puzzleArray = convertTo2DArray(puzzle);
     const solutionArray = convertTo2DArray(solution);
 
-    // Ajouter des styles pour la grille et la modale
     const style = document.createElement("style");
     style.innerHTML = `
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        
         .sudoku-container {
             display: grid;
             grid-template-columns: repeat(9, 1fr);
@@ -117,7 +122,6 @@ export default async function sudokuGame({ containerId, questionId, sessionId, o
     `;
     document.head.appendChild(style);
 
-    // Rendu de la grille
     const renderGrid = () => {
         container.innerHTML = `
             <div class="sudoku-container">
@@ -148,7 +152,6 @@ export default async function sudokuGame({ containerId, questionId, sessionId, o
         `;
     };
 
-    // Ouvrir la modale pour choisir un chiffre
     const openModal = (row, col) => {
         const modal = document.createElement("div");
         modal.className = "sudoku-modal";
@@ -179,11 +182,10 @@ export default async function sudokuGame({ containerId, questionId, sessionId, o
                     alert("Mauvaise réponse, réessayez !");
                 }
 
-                document.body.removeChild(modal); // Fermer la modale
+                document.body.removeChild(modal);
             });
         });
 
-        // Fermer la modale si on clique en dehors
         modal.addEventListener("click", (e) => {
             if (e.target === modal) {
                 document.body.removeChild(modal);
@@ -191,14 +193,12 @@ export default async function sudokuGame({ containerId, questionId, sessionId, o
         });
     };
 
-    // Vérifier si le Sudoku est complété
     const isSolved = () => {
         return puzzleArray.every((row, rowIndex) =>
             row.every((cell, colIndex) => cell === solutionArray[rowIndex][colIndex])
         );
     };
 
-    // Gérer la victoire
     const handleWin = () => {
         if (socket) {
             socket.emit("submitAnswer", {
@@ -210,7 +210,6 @@ export default async function sudokuGame({ containerId, questionId, sessionId, o
         onComplete({ correct: true, message: "Sudoku complété avec succès !" });
     };
 
-    // Attacher les écouteurs d'événements
     const attachEventListeners = () => {
         document.querySelectorAll(".sudoku-cell.empty").forEach((cell) => {
             cell.addEventListener("click", () => {

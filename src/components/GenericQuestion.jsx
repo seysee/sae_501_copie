@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from "react";
 import Timer from "./_timer";
+import Button from "./_button";
 
 export default function GenericQuestion({
                                             question,
@@ -205,12 +206,11 @@ export default function GenericQuestion({
                                 onChange={handleAnswerChange}
                                 className="w-full p-3 bg-black text-white border border-gray-500 rounded-lg mb-6"
                             />
-                            <button
+                            <Button
                                 type="submit"
-                                className="py-3 px-6 bg-black text-green-500 border-green-500"
-                            >
-                                Envoyer
-                            </button>
+                                className="py-3 px-6"
+                                label={"Envoyer"}>
+                            </Button>
                         </form>
                     )}
 
