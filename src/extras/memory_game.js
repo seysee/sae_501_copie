@@ -96,7 +96,7 @@ export default async function memoryOrderGame({
             socket.emit("submitAnswer", {
                 sessionId,
                 questionId,
-                answer: success ? "memory_order_success" : "memory_order_failure"
+                answer: success ? "memory_numbers_success" : "memory_order_failure"
             });
         }
         onComplete({ correct: success, message: success ? "Séquence correcte !" : "Séquence incorrecte." });
