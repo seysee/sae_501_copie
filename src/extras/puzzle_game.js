@@ -8,8 +8,8 @@ export default async function puzzleGame({ containerId, questionId, sessionId, o
 
     const imageWidth = 300;
     const imageHeight = 300;
-    const gridSize = 3; // Par défaut
-    const tolerance = 15; // Tolérance pour vérifier les positions
+    const gridSize = 3;
+    const tolerance = 15;
 
     const storedImage = sessionStorage.getItem("selectedPuzzleImage");
     const assets = JSON.parse(container.dataset.assets || "[]");
