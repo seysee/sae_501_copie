@@ -1,62 +1,59 @@
-export default async function repeatPhraseGame({ containerId, questionId, sessionId, onComplete, socket }) {
+export default async function completeSongGame({ containerId, questionId, sessionId, onComplete, socket }) {
     const container = document.getElementById(containerId);
 
     if (!container) {
-        console.error("Impossible de trouver le conteneur pour le jeu de répétition de phrase.");
+        console.error("Impossible de trouver le conteneur pour le jeu.");
         return;
     }
+
+    // Liste de chansons et de leurs extraits
+    const songs = [
+        {
+            prompt: "Au soleil, sous la pluie, à midi ou à minuit...",
+            answer: "Au soleil sous la pluie à midi ou à minuit il y a tout ce que vous voulez aux Champs-Élysées"
+        },
+        {
+            prompt: "Il était un petit navire, il était un petit navire...",
+            answer: "Il était un petit navire il était un petit navire qui n'avait jamais navigué qui n'avait jamais navigué"
+        },
+        {
+            prompt: "Quand il me prend dans ses bras, qu'il me parle tout bas...",
+            answer: "Quand il me prend dans ses bras qu'il me parle tout bas je vois la vie en rose"
+        },
+    ];
+
+    // Sélection de la chanson via sessionStorage
+    const storedSong = sessionStorage.getItem("completeSong");
+    const selectedSong = storedSong ? JSON.parse(storedSong) : songs[Math.floor(Math.random() * songs.length)];
+
+    if (!storedSong) {
+        sessionStorage.setItem("completeSong", JSON.stringify(selectedSong));
+    }
+
+    // Initialisation des éléments DOM
+    container.innerHTML = `
+        <p class="text-lg text-yellow-500 mb-6">Complétez la chanson :</p>
+        <p class="text-lg font-bold text-white mb-6">"${selectedSong.prompt}"</p>
+        <button class="px-6 py-3 rounded-full shadow-md bg-blue-500 text-white text-lg font-bold transition duration-300">
+            Maintenez pour parler
+        </button>
+        <p id="gameMessage" class="text-green-500 mt-4"></p>
+        <p id="recognizedText" class="text-gray-300 mt-2"></p>
+    `;
+
+    const button = container.querySelector("button");
+    const messageEl = container.querySelector("#gameMessage");
+    const recognizedTextEl = container.querySelector("#recognizedText");
 
     // Vérification de la prise en charge de la reconnaissance vocale
     if (!("webkitSpeechRecognition" in window)) {
         const errorMessage = "Votre navigateur ne prend pas en charge la reconnaissance vocale.";
-        container.innerHTML = `<p class="text-red-500 text-center">${errorMessage}</p>`;
+        messageEl.textContent = errorMessage;
+        messageEl.style.color = "red";
         console.error(errorMessage);
         return;
     }
 
-    // Tableau de phrases drôles
-    const phrases = [
-        "Noé le caca",
-        "Je suis un hamster ninja",
-        "Le brocoli est le roi des légumes",
-        "Pikachu fait du yoga",
-        "Les licornes aiment le café",
-        "Ma chaussette gauche est une superstar",
-        "Pourquoi le poulet a-t-il traversé la route",
-        "J'aime chanter sous la pluie avec mon parapluie",
-        "Les escargots font des courses",
-        "La lune danse la salsa avec le soleil"
-    ];
-
-    // Sélection de la phrase via sessionStorage
-    const storedPhrase = sessionStorage.getItem("repeatPhrase");
-    const selectedPhrase = storedPhrase || phrases[Math.floor(Math.random() * phrases.length)];
-
-    if (!storedPhrase) {
-        sessionStorage.setItem("repeatPhrase", selectedPhrase);
-    }
-
-    // Initialisation des éléments DOM
-    const phraseElement = document.createElement("p");
-    phraseElement.className = "text-lg text-yellow-500 mb-6";
-    phraseElement.textContent = `Répétez cette phrase : "${selectedPhrase}"`;
-
-    const button = document.createElement("button");
-    button.className = "px-6 py-3 rounded-full shadow-md bg-blue-500 text-white text-lg font-bold transition duration-300";
-    button.textContent = "Maintenez pour parler";
-
-    const messageElement = document.createElement("p");
-    messageElement.className = "text-green-500 mt-4";
-
-    const recognizedTextElement = document.createElement("p");
-    recognizedTextElement.className = "text-gray-300 mt-2";
-
-    container.appendChild(phraseElement);
-    container.appendChild(button);
-    container.appendChild(messageElement);
-    container.appendChild(recognizedTextElement);
-
-    // Initialisation de la reconnaissance vocale
     const recognition = new window.webkitSpeechRecognition();
     recognition.lang = "fr-FR"; // Langue française
     recognition.continuous = false; // Arrête l'écoute après une seule phrase
@@ -66,14 +63,14 @@ export default async function repeatPhraseGame({ containerId, questionId, sessio
 
     // Fonction appelée en cas de succès
     function handleSuccess() {
-        messageElement.textContent = "Félicitations ! Vous avez correctement répété la phrase.";
-        sessionStorage.removeItem("repeatPhrase"); // Nettoyage du storage après succès
+        messageEl.textContent = "Bravo ! Vous avez correctement complété la chanson.";
+        messageEl.style.color = "green";
+        sessionStorage.removeItem("completeSong");
 
         if (onComplete) {
-            onComplete({ correct: true, message: "Phrase répétée avec succès !" });
+            onComplete({ correct: true, message: "Chanson complétée avec succès !" });
         }
 
-        // Envoi de la réponse via socket
         if (socket && sessionId) {
             socket.emit("submitAnswer", { sessionId, questionId, answer: "repeat_success" });
         }
@@ -82,18 +79,20 @@ export default async function repeatPhraseGame({ containerId, questionId, sessio
     // Gestion des événements de reconnaissance vocale
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript.trim().toLowerCase();
-        recognizedTextElement.textContent = `Vous avez dit : "${transcript}"`;
+        recognizedTextEl.textContent = `Vous avez dit : "${transcript}"`;
 
-        if (transcript === selectedPhrase.trim().toLowerCase()) {
+        if (transcript === selectedSong.answer.toLowerCase()) {
             handleSuccess();
         } else {
-            messageElement.textContent = "Ce n'est pas la bonne phrase. Essayez encore !";
+            messageEl.textContent = "Ce n'est pas la bonne réponse. Essayez encore !";
+            messageEl.style.color = "red";
         }
     };
 
     recognition.onerror = (event) => {
         console.error("Erreur de reconnaissance vocale :", event.error);
-        messageElement.textContent = "Une erreur est survenue lors de la reconnaissance vocale.";
+        messageEl.textContent = "Une erreur est survenue lors de la reconnaissance vocale.";
+        messageEl.style.color = "red";
     };
 
     // Gestion des interactions utilisateur
@@ -102,7 +101,7 @@ export default async function repeatPhraseGame({ containerId, questionId, sessio
             isListening = true;
             button.textContent = "Relâchez pour arrêter";
             button.className = "px-6 py-3 rounded-full shadow-md bg-red-500 text-white text-lg font-bold transition duration-300";
-            messageElement.textContent = "Écoute en cours... Répétez la phrase !";
+            messageEl.textContent = "Écoute en cours... Complétez la chanson !";
             recognition.start();
         }
     }
@@ -112,7 +111,7 @@ export default async function repeatPhraseGame({ containerId, questionId, sessio
             isListening = false;
             button.textContent = "Maintenez pour parler";
             button.className = "px-6 py-3 rounded-full shadow-md bg-blue-500 text-white text-lg font-bold transition duration-300";
-            messageElement.textContent = "Écoute terminée. Vérification...";
+            messageEl.textContent = "Écoute terminée. Vérification...";
             recognition.stop();
         }
     }
