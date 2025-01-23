@@ -388,7 +388,7 @@ export default function Result() {
                 {correct === null ? (
                     <h1 className="text-5xl mt-10 mb-4 text-yellow-400 font-Amatic">En attente du résultat...</h1>
                 ) : correct ? (
-                    <h1 className="text-5xl ...">Bonne Réponse !</h1>
+                    <h1 className="text-5xl mt-10 mb-4 text-green-500 font-Amatic">Bonne Réponse !</h1>
                 ) : (
                     <>
                         <h1 className="text-5xl mt-10 mb-4 text-red-500 font-Amatic">Mauvaise Réponse !</h1>
