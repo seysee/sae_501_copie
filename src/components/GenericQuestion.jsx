@@ -95,7 +95,7 @@ export default function GenericQuestion({
             handleExtraLogic();
         } else if (question.type === "action_wait") {
             // Lance un compte à rebours de 3 secondes
-            setCountdown(3);
+            setCountdown(5);
         }
     }, [question, isActive, extraLogic]);
 
