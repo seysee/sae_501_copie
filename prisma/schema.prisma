@@ -25,9 +25,9 @@ model Sessions {
   playersNumber     Int?
   createdAt         DateTime? @default(now()) @db.DateTime(0)
   status            Int?
-  questions         String?   @default("[]") @db.LongText
+  questions         String?   @db.LongText
   hostId            Int?
-  hints             String?   @default("[]") @db.LongText
+  hints             String?   @db.LongText
   killerId          Int?
   answeredCount     Int?
   activePlayerIndex Int?
