@@ -50,10 +50,10 @@ SAE501 — Escape Game Parmi Nous
 
 ## Contributeurs
 
-Pâris,
-Seyma,
-Antonin,
-Noé,
+Pâris, 
+Seyma, 
+Antonin, 
+Noé, 
 Joran
 
 ---
