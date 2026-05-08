@@ -23,14 +23,14 @@ SAE501 — Escape Game Parmi Nous
 | 🔴 Très difficile | Énigme GPS visuelle, reconnaissance vocale via micro, surprise |
 
 ### Mécaniques utilisées
-- 📷 **Caméra** — scanner des indices cachés
-- 📳 **Accéléromètre** — secouer le téléphone pour révéler un indice
-- 📍 **GPS** — se rendre à un emplacement précis
-- 🎤 **Microphone** — reconnaissance de chanson (Shazam-like)
+- **Caméra** — scanner des indices cachés
+- **Accéléromètre** — secouer le téléphone pour révéler un indice
+- **GPS** — se rendre à un emplacement précis
+- **Microphone** — reconnaissance de chanson (Shazam-like)
 
 ---
 
-## 🛠️ Stack technique
+## Stack technique
 
 | Technologie | Usage |
 |-------------|-------|
@@ -48,7 +48,7 @@ SAE501 — Escape Game Parmi Nous
 
 ---
 
-## 👥 Contributeurs
+## Contributeurs
 
 Pâris
 Seyma
@@ -58,6 +58,6 @@ Joran
 
 ---
 
-## 📄 Licence
+## Licence
 
 Projet réalisé dans le cadre pédagogique de la **SAE 501** — BUT MMI.
