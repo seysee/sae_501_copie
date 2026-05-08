@@ -1,5 +1,5 @@
 import { useState } from "react";
-import skinsData from "/src/data/skins";
+import skinsData from "../data/skins";
 
 export default function _skin({ onSkinSelect }) {
     const [selectedSkinId, setSelectedSkinId] = useState(1);

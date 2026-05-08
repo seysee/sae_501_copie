@@ -5,7 +5,7 @@ import Timer from '../components/_timer';
 import Modal from '../components/_modal';
 import AllHints from '../components/_allHints';
 import _button from "../components/_button";
-import skinsData from "/src/data/skins";
+import skinsData from "../data/skins";
 import { useRouter } from 'next/router';
 import Button from "../components/_button";
 import Image from "next/image";
