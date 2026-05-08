@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+SAE501 — Escape Game Parmi Nous
 
-## Getting Started
+> Escape game multijoueur en ligne inspiré d'Among Us, développé dans le cadre de la SAE 501 par des étudiants MMI.
 
-First, run the development server:
+### Présentation
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**SAE501 Escape Game** est une application web multijoueur où des enquêteurs doivent résoudre des énigmes pour identifier un tueur caché parmi cinq suspects. Un saboteur, dissimulé parmi les joueurs, tente de les induire en erreur.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Principe
+- Les joueurs rejoignent un **salon privé**
+- Les rôles sont **attribués aléatoirement** (enquêteur ou saboteur)
+- Chaque énigme résolue révèle un **indice** sur l'identité du tueur
+- Les enquêteurs disposent d'une **tentative unique** pour désigner le coupable
+- Victoire enquêteurs si le tueur est trouvé, victoire saboteur sinon
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Niveaux de difficulté
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Niveau | Exemples d'énigmes |
+|--------|-------------------|
+| 🟢 Facile | Blind test musical, jeu des différences, suite logique |
+| 🟡 Moyen | Étiquettes sur objets physiques, secouer le téléphone, GPS |
+| 🟠 Difficile | Gestes devant la caméra, décodage de chiffres, boussole |
+| 🔴 Très difficile | Énigme GPS visuelle, reconnaissance vocale via micro, surprise |
 
-## Learn More
+### Mécaniques utilisées
+- 📷 **Caméra** — scanner des indices cachés
+- 📳 **Accéléromètre** — secouer le téléphone pour révéler un indice
+- 📍 **GPS** — se rendre à un emplacement précis
+- 🎤 **Microphone** — reconnaissance de chanson (Shazam-like)
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠️ Stack technique
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Technologie | Usage |
+|-------------|-------|
+| **Next.js 16** | Framework React (SSR / App Router) |
+| **React 18** | UI composants |
+| **TypeScript** | Typage statique |
+| **Tailwind CSS** | Styles utilitaires |
+| **Socket.io** | Temps réel (multijoueur) |
+| **Prisma** | ORM base de données |
+| **MariaDB** | Base de données relationnelle |
+| **Axios** | Requêtes HTTP |
+| **web-push** | Notifications push |
+| **ngrok** | Tunnel local (dev/démo) |
+| **crypto-js** | Chiffrement côté client |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 👥 Contributeurs
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pâris
+Seyma
+Antonin
+Noé
+Joran
+
+---
+
+## 📄 Licence
+
+Projet réalisé dans le cadre pédagogique de la **SAE 501** — BUT MMI.
