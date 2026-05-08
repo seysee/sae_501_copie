@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import "/src/styles/switchBtn.css"
+import "../styles/switchBtn.css"
 
 const SwitchRedGreen = ({arg1, arg2, onSelect}) => {
     const [isGreen, setIsGreen] = useState(false);
