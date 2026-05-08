@@ -1,4 +1,4 @@
-import questions from '/src/data/questions.json';
+import questions from '../../../data/questions.json';
 
 export default function handler(req, res) {
     const { id } = req.query;

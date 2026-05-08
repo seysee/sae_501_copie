@@ -3,7 +3,7 @@ import Button from '../components/_button';
 import axios from 'axios';
 import io from 'socket.io-client';
 import {useRouter} from 'next/router';
-import skinsData from "/src/data/skins";
+import skinsData from "/../data/skins";
 import _switchBtn from "../components/_switchBtn";
 import FancyLoader from "../components/_loader";
 
